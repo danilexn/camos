@@ -13,5 +13,3 @@ if __name__ == "__main__":
     app.setPalette(DarkPalette())
     w = MainWindow()
     app.exec_()
-
-# this is a test
