@@ -8,6 +8,7 @@ import pyqtgraph as pg
 class FrameContainer(QtWidgets.QWidget):
     def __init__(self, parent):
         super(QtWidgets.QWidget, self).__init__()
+        self.currentlayer = 0
         self.parent = parent
         self.setContentsMargins(0, 0, 0, 0)
         self.mainlayout = QtWidgets.QHBoxLayout(self)
@@ -32,6 +33,10 @@ class FrameContainer(QtWidgets.QWidget):
             self._change_LayersControls_values
         )
 
+        self.opened_layers_widget.currentRowChanged.connect(
+            self._change_current_layer
+        )
+
         self.box_layout1_1.addWidget(self.opened_layers_widget, 1)
         self.box_layout1_1.addWidget(self.layers_controls, 1)
         self.box_layout1.addLayout(self.box_layout1_1, 1)
@@ -44,6 +49,9 @@ class FrameContainer(QtWidgets.QWidget):
         self.box_layout2 = QtWidgets.QVBoxLayout()
         self.box_layout2.setContentsMargins(0, 0, 0, 0)
         self.box_layout2.addWidget(self.parent.signalviewport.scene.canvas.native)
+
+    def _change_current_layer(self, index):
+        self.currentlayer = index
 
     def _update_layer_elements(self, name):
         item = QListWidgetItem(name)
@@ -61,9 +69,13 @@ class FrameContainer(QtWidgets.QWidget):
         self._populate_colormaps()
         layout.addRow(QLabel("Colormap:"), self.colormap_layer_selector)
         self.contrast_layer_slider = QSlider(QtCore.Qt.Horizontal)
+        self.contrast_layer_slider.setRange(-127, 127)
+        self.contrast_layer_slider.setValue(0)
         layout.addRow(QLabel("Contrast:"), self.contrast_layer_slider)
         self.brightness_layer_slider = QSlider(QtCore.Qt.Horizontal)
         layout.addRow(QLabel("Brightness:"), self.brightness_layer_slider)
+        self.brightness_layer_slider.setRange(-127, 127)
+        self.brightness_layer_slider.setValue(0)
         self.apply_changes_layer_bt = QPushButton("Change")
         self.apply_changes_layer_bt.clicked.connect(self._apply_changes_layer)
         layout.addRow(self.apply_changes_layer_bt)
@@ -87,13 +99,22 @@ class FrameContainer(QtWidgets.QWidget):
     def _change_LayersControls_values(self, index):
         op = self.parent.model.get_opacity(index)
         self.opacity_layer_slider.setValue(op)
+        co = self.parent.model.get_contrast(index)
+        self.contrast_layer_slider.setValue(co)
+        br = self.parent.model.get_brightness(index)
+        self.brightness_layer_slider.setValue(br)
         cm = self.parent.model.get_colormap(index)
         self.colormap_layer_selector.setCurrentIndex(list(cmaps.keys()).index(cm))
+        self.parent.model.currentlayer = index
 
     def _apply_changes_layer(self):
         index = self.opened_layers_widget.currentRow()
         op = self.opacity_layer_slider.value()
+        br = self.brightness_layer_slider.value()
+        co = self.contrast_layer_slider.value()
         self.parent.model.set_opacity(op, index)
+        self.parent.model.set_brightness(br, index)
+        self.parent.model.set_contrast(co, index)
         cm = self.colormap_layer_selector.currentText()
         self.parent.model.set_colormap(cm, index)
 
@@ -102,19 +123,45 @@ class FrameContainer(QtWidgets.QWidget):
         self.removeAction = QAction(self)
         self.removeAction.setText("&Remove")
         self.removeAction.setIcon(QIcon("resources/icon-remove.svg"))
-        self.removeAction.triggered.connect(
-            lambda idx=self.opened_layers_widget.currentRow(): self._layer_remove(idx)
-        )
-        self.openAction = QAction(QIcon("resources/icon-duplicate.svg"), "&Duplicate", self)
-        self.saveAction = QAction(QIcon("resources/icon-rotate.svg"), "&Rotate", self)
+        self.removeAction.triggered.connect(self._layer_remove)
+        self.duplicateAction = QAction(QIcon("resources/icon-duplicate.svg"), "&Duplicate", self)
+        self.duplicateAction.triggered.connect(self._duplicate_layer)
+        self.rotateAction = QAction(QIcon("resources/icon-rotate.svg"), "&Rotate", self)
+        self.rotateAction.triggered.connect(self._rotate_layer)
+        self.toggleROIAction = QAction(QIcon("resources/icon-roi.svg"), "&Toggle ROI", self)
+        self.toggleROIAction.triggered.connect(self._toggle_roi)
+        self.cropAction = QAction(QIcon("resources/icon-crop.svg"), "&Crop", self)
+        self.cropAction.triggered.connect(self._crop_layer)
 
-    def _layer_remove(self, idx):
+    def _layer_remove(self):
+        self.currentlayer = self.opened_layers_widget.currentRow()
+        idx = self.currentlayer
         self.opened_layers_widget.takeItem(idx)
         self.parent.model.layer_remove(idx)
+
+    def _duplicate_layer(self):
+        self.currentlayer = self.opened_layers_widget.currentRow()
+        idx = self.currentlayer
+        self.parent.model.duplicate_image(idx)
+
+    def _crop_layer(self):
+        self.currentlayer = self.opened_layers_widget.currentRow()
+        idx = self.currentlayer
+        self.parent.model.crop_image(idx)
+
+    def _toggle_roi(self):
+        self.parent.viewport.toggle_roi()
+
+    def _rotate_layer(self):
+        self.currentlayer = self.opened_layers_widget.currentRow()
+        idx = self.currentlayer
+        self.parent.model.rotate_image(idx)
 
     def _createLayersToolBar(self):
         # File toolbar
         layersToolBar = self.parent.addToolBar("layers")
         layersToolBar.addAction(self.removeAction)
-        layersToolBar.addAction(self.openAction)
-        layersToolBar.addAction(self.saveAction)
+        layersToolBar.addAction(self.duplicateAction)
+        layersToolBar.addAction(self.rotateAction)
+        layersToolBar.addAction(self.toggleROIAction)
+        layersToolBar.addAction(self.cropAction)

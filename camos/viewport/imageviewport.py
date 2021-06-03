@@ -1,5 +1,6 @@
 import pyqtgraph as pg
 
+
 class ImageViewPort(pg.ImageView):
 
     # constructor which inherit original
@@ -14,6 +15,7 @@ class ImageViewPort(pg.ImageView):
         self.ui.histogram.hide()
         self.ui.menuBtn.hide()
         self.ui.roiBtn.hide()
+        self.roi.rotatable = False
 
     # All functions below have similar code now, just as a placeholder
     def load_image(self, index):
@@ -32,3 +34,16 @@ class ImageViewPort(pg.ImageView):
         scenePos = self.getImageItem().mapFromScene(event)
         row, col = int(scenePos.y()), int(scenePos.x())
         self.model.set_currpos(col, row)
+
+    def roiChanged(self, event):
+        roi_coord = [
+            [event.pos().x(), event.pos().y()],
+            [event.pos().x() + event.size().x(), event.pos().y() + event.size().y()],
+        ]
+        self.model.roi_coord = roi_coord
+
+    def toggle_roi(self):
+        if self.roi.isVisible():
+            self.roi.hide()
+        else:
+            self.roi.show()

@@ -14,6 +14,8 @@ class RunTask(QWidget):
         self.setWindowTitle("Running {}".format("task"))
 
         self.obj = task
+
+    def _init_thread(self):
         self.thread = QThread()
         self.obj.intReady.connect(self.on_count_changed)
         self.obj.moveToThread(self.thread)
@@ -22,6 +24,7 @@ class RunTask(QWidget):
         self.thread.started.connect(self.obj.run)
 
     def start_progress(self):
+        self._init_thread()
         self.show()
         self.thread.start()
 

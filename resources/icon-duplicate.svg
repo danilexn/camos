@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   inkscape:version="1.1-dev (48d18c81, 2020-07-08)"
+   sodipodi:docname="icon-duplicate.svg"
+   id="svg827"
+   version="1.1"
+   width="48"
+   viewBox="0 0 48 48"
+   height="48">
+  <defs
+     id="defs831" />
+  <sodipodi:namedview
+     inkscape:current-layer="svg827"
+     inkscape:window-maximized="1"
+     inkscape:window-y="25"
+     inkscape:window-x="0"
+     inkscape:cy="14.131148"
+     inkscape:cx="15.606557"
+     inkscape:zoom="15.25"
+     showgrid="false"
+     id="namedview829"
+     inkscape:window-height="997"
+     inkscape:window-width="1680"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0"
+     guidetolerance="10"
+     gridtolerance="10"
+     objecttolerance="10"
+     borderopacity="1"
+     bordercolor="#666666"
+     pagecolor="#ffffff" />
+  <path
+     id="path823"
+     fill="none"
+     d="M0 0h48v48h-48z" />
+  <path
+     style="fill:#ffffff;fill-opacity:1"
+     id="path825"
+     d="M6 10h-4v32c0 2.21 1.79 4 4 4h32v-4h-32v-32zm36-8h-28c-2.21 0-4 1.79-4 4v28c0 2.21 1.79 4 4 4h28c2.21 0 4-1.79 4-4v-28c0-2.21-1.79-4-4-4zm0 32h-28v-28h28v28zm-8-8h-8v-4h4c2.21 0 4-1.79 4-4v-4c0-2.21-1.79-4-4-4h-8v4h8v4h-4c-2.21 0-4 1.79-4 4v8h12v-4z" />
+</svg>

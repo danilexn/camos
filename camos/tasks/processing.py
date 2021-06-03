@@ -4,6 +4,7 @@ from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
 import numpy as np
 from tasks.runtask import RunTask
+from utils.errormessages import ErrorMessages
 
 class Processing(QObject):
     finished = pyqtSignal()
