@@ -12,3 +12,8 @@ class SignalViewModel(QObject):
     def add_data(self, data):
         self.data.append(data)
         self.newdata.emit()
+
+    def list_signals(self):
+        if len(self.data) == 0:
+            return None
+        return map(str, range(len(self.data)))

@@ -8,12 +8,15 @@ import cv2
 from utils.cmaps import cmaps
 
 from model.inputdata import InputData
+import numpy as np
+import copy
 
 class ImageViewModel(QObject):
     newdata = pyqtSignal(str)
     removedata = pyqtSignal()
     updated = pyqtSignal()
-    updatepos = pyqtSignal(float, float, int)
+    updatepos = pyqtSignal(float, float, int, int)
+    updateint = pyqtSignal(int)
 
     def __init__(self, images=[], parent=None):
         self.images = images
@@ -21,6 +24,8 @@ class ImageViewModel(QObject):
         # information below (frames, opacities, colormap)
         self.frames = []
         self.opacities = []
+        self.contrasts = []
+        self.brightnesses = []
         self.colormaps = []
 
         # TODO: treat these as properties
@@ -29,11 +34,14 @@ class ImageViewModel(QObject):
         self.frame = 0
         self.curr_x = 0
         self.curr_y = 0
+        self.roi_coord = [[0, 0], [1, 1]]
+
+        # TODO: review this
+        self.currentlayer = 0
         super(ImageViewModel, self).__init__()
 
     @pyqtSlot()
     def load_image(self, file):
-        self.lastlayer += 1
         image = InputData(file, memoryPersist=True)
         image.loadImage()
         if self.maxframe < image.frames:
@@ -41,7 +49,10 @@ class ImageViewModel(QObject):
         self.images.append(image)
         self.frames.append(image.frames)
         self.opacities.append(50)
+        self.brightnesses.append(0)
+        self.contrasts.append(0)
         self.colormaps.append("bw")
+        self.lastlayer += 1
         self.newdata.emit("Layer {}".format(self.lastlayer))
 
     @pyqtSlot()
@@ -53,8 +64,28 @@ class ImageViewModel(QObject):
         self.images.append(image)
         self.frames.append(image.frames)
         self.opacities.append(100)
+        self.brightnesses.append(0)
+        self.contrasts.append(0)
         self.colormaps.append("bw")
         self.newdata.emit()
+
+    def crop_image(self, index):
+        x_min, x_max = int(self.roi_coord[0][0]), int(self.roi_coord[1][0])
+        y_min, y_max = int(self.roi_coord[0][1]), int(self.roi_coord[1][1])
+        cropped = self.images[index]._image._imgs[:, x_min:x_max, y_min:y_max]
+        image = copy.deepcopy(self.images[index])
+        image._image._imgs = cropped
+        image.crop = [0,0,image._image._imgs[0].shape]
+        if self.maxframe < image.frames:
+            self.maxframe = image.frames
+        self.images.append(image)
+        self.frames.append(image.frames)
+        self.opacities.append(100)
+        self.brightnesses.append(0)
+        self.contrasts.append(0)
+        self.colormaps.append("bw")
+        self.lastlayer += 1
+        self.newdata.emit("Layer {}".format(self.lastlayer))
 
     @pyqtSlot()
     def layer_remove(self, index):
@@ -77,6 +108,8 @@ class ImageViewModel(QObject):
         # New class from scratch (see comments in self.__init__ method)
         frame = int(self.frame / (self.maxframe / self.frames[0]))
         _background = self.images[0]._image._imgs[frame]
+        _background = np.int16(_background)
+        _background = _background * (self.contrasts[0]/127+1) - self.contrasts[0] + self.brightnesses[0]
         background = cv2.normalize(
             _background, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U
         )
@@ -85,6 +118,10 @@ class ImageViewModel(QObject):
             for i in range(1, len(self.images)):
                 frame = int(self.frame / (self.maxframe / self.frames[i]))
                 _overlay = self.images[i]._image._imgs[frame]
+                _overlay = np.int16(_overlay)
+                _overlay = _overlay * (self.contrasts[i]/127+1) - self.contrasts[i] + self.brightnesses[i]
+                _overlay = np.clip(_overlay, 0, 255)
+                _overlay = np.uint8(_overlay)
                 overlay = cv2.normalize(
                     _overlay, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U
                 )
@@ -100,15 +137,52 @@ class ImageViewModel(QObject):
         self.updated.emit()
 
     @pyqtSlot()
+    def rotate_image(self, index=0):
+        rotated = np.rot90(self.images[index]._image._imgs, axes = (1, 2))
+        self.images[index]._image._imgs = rotated
+        self.images[index].crop = [0,0,rotated[0].shape]
+        self.updated.emit()
+
+    @pyqtSlot()
+    def duplicate_image(self, index=0):
+        image = copy.deepcopy(self.images[index])
+        if self.maxframe < image.frames:
+            self.maxframe = image.frames
+        self.images.append(image)
+        self.frames.append(image.frames)
+        self.opacities.append(50)
+        self.brightnesses.append(0)
+        self.contrasts.append(0)
+        self.colormaps.append("bw")
+        self.lastlayer += 1
+        self.newdata.emit("Layer {}".format(self.lastlayer))
+
+    @pyqtSlot()
+    def set_contrast(self, contrast, index=0):
+        self.contrasts[index] = contrast
+        self.updated.emit()
+
+    @pyqtSlot()
+    def set_brightness(self, brightness, index=0):
+        self.brightnesses[index] = brightness
+        self.updated.emit()
+
+    @pyqtSlot()
     def set_colormap(self, cmap, index=0):
         self.colormaps[index] = cmap
         self.updated.emit()
 
-    def get_opacity(self, index):
+    def get_opacity(self, index=0):
         return self.opacities[index]
 
-    def get_colormap(self, index):
+    def get_colormap(self, index=0):
         return self.colormaps[index]
+
+    def get_brightness(self, index=0):
+        return self.brightnesses[index]
+
+    def get_contrast(self, index=0):
+        return self.contrasts[index]
 
     # TODO: rewrite these methods as properties
     def get_frame(self, index):
@@ -121,13 +195,20 @@ class ImageViewModel(QObject):
     def set_frame(self, t):
         self.frame = t
         self.updated.emit()
-        self.updatepos.emit(self.curr_x, self.curr_y, self.frame)
+        self.updatepos.emit(self.curr_x, self.curr_y, self.frame, self.get_currint())
 
     @pyqtSlot()
     def set_currpos(self, x, y):
         self.curr_x = x
         self.curr_y = y
-        self.updatepos.emit(self.curr_x, self.curr_y, self.frame)
+        self.updatepos.emit(self.curr_x, self.curr_y, self.frame, self.get_currint())
+
+    def get_currint(self):
+        try:
+            frame = int(self.frame / (self.maxframe / self.frames[self.currentlayer]))
+            return self.images[self.currentlayer]._image._imgs[frame, self.curr_x, self.curr_y]
+        except:
+            pass
 
     # TODO: make it interactive and more efficient
     def get_icon(self, index):
