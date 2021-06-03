@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   inkscape:version="1.1-dev (48d18c81, 2020-07-08)"
+   sodipodi:docname="iconfinder_ic_crop_48px_352293.svg"
+   id="svg827"
+   version="1.1"
+   width="48"
+   viewBox="0 0 48 48"
+   height="48">
+  <defs
+     id="defs831" />
+  <sodipodi:namedview
+     inkscape:current-layer="svg827"
+     inkscape:window-maximized="0"
+     inkscape:window-y="83"
+     inkscape:window-x="66"
+     inkscape:cy="24.036753"
+     inkscape:cx="24.036753"
+     inkscape:zoom="13.604167"
+     showgrid="false"
+     id="namedview829"
+     inkscape:window-height="480"
+     inkscape:window-width="756"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0"
+     guidetolerance="10"
+     gridtolerance="10"
+     objecttolerance="10"
+     borderopacity="1"
+     bordercolor="#666666"
+     pagecolor="#ffffff" />
+  <path
+     id="path823"
+     fill="none"
+     d="M0 0h48v48h-48z" />
+  <path
+     style="fill:#ffffff;fill-opacity:1"
+     id="path825"
+     d="M34 30h4v-16c0-2.21-1.79-4-4-4h-16v4h16v16zm-20 4v-32h-4v8h-8v4h8v20c0 2.21 1.79 4 4 4h20v8h4v-8h8v-4h-32z" />
+</svg>

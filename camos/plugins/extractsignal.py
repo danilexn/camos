@@ -15,12 +15,12 @@ class ExtractSignal(Processing):
     # TODO: make it faster, replace np.where by, e.g., a coordinate map of the mask.
     def _run(self):
         self.output = np.zeros((self.mask.max, self.image.frames))
-        total = int(self.image.frames)
-        for t in range(self.image.frames):
-            for i in range(1, self.mask.max):
-                cell = self.mask.image(0) == i
-                self.output[i, t] = np.sum(np.where(cell > 0, self.image.image(t), 0))
-            self.intReady.emit(t * 100 / total)
+        total = int(self.mask.max)
+        for i in range(1, self.mask.max):
+            cell = self.mask.image(0) == i
+            cell = cell[np.newaxis, :, :]
+            self.output[i, :] = np.sum(np.where(cell > 0, self.image._image._imgs, 0), axis = (1, 2))
+            self.intReady.emit(i * 100 / total)
 
         self.finished.emit()
 
