@@ -1,11 +1,31 @@
+#
+# Created on Sat Jun 05 2021
+#
+# The MIT License (MIT)
+# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+# and associated documentation files (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial
+# portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
 import numpy as np
-# TODO: rethink how PyQt5 dependencies are loaded
 from PyQt5.QtWidgets import *
-from tasks.analysis import Analysis
+from camos.tasks.analysis import Analysis
+
 
 class FindPeaks(Analysis):
     def __init__(self, model=None, parent=None, input=None):
-        super(FindPeaks, self).__init__(model, parent, input)
+        super(FindPeaks, self).__init__(model, parent, input, name="Find Peaks")
         self.mask = None
         self.image = None
         self.analysis_name = "Find Peaks from Signal"
@@ -19,10 +39,10 @@ class FindPeaks(Analysis):
         for i in range(1, self.mask.max):
             cell = self.mask.image(0) == i
             cell = cell[np.newaxis, :, :]
-            self.output[i, :] = np.sum(np.where(cell > 0, self.image._image._imgs, 0), axis = (1, 2))
+            self.output[i, :] = np.sum(
+                np.where(cell > 0, self.image._image._imgs, 0), axis=(1, 2)
+            )
             self.intReady.emit(i * 100 / total)
-
-        self.finished.emit()
 
     def initialize_UI(self):
         self.masklabel = QLabel("Algorithm", self.dockUI)

@@ -1,32 +1,65 @@
+#
+# Created on Sat Jun 05 2021
+#
+# The MIT License (MIT)
+# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+# and associated documentation files (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial
+# portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
 import numpy as np
-from tasks.runtask import RunTask
-from utils.errormessages import ErrorMessages
+from camos.tasks.runtask import RunTask
+from camos.utils.errormessages import ErrorMessages
+import camos.utils.apptools as apptools
+from camos.tasks.plotting import AnalysisPlot
+
 
 class Analysis(QObject):
     finished = pyqtSignal()
+    plotReady = pyqtSignal()
     intReady = pyqtSignal(int)
 
-    def __init__(self, model=None, parent=None, input=None):
+    def __init__(self, model=None, parent=None, input=None, name="No name processing"):
         super(Analysis, self).__init__()
         self.model = model
         self.input = input
         self.parent = parent
         self.output = np.zeros((1, 1))
-        self.analysis_name = "Generic Analysis"
+        self.analysis_name = name
+        self.addMenuElement()
+        self.finished.connect(self.plot)
 
     def _run(self):
+        pass
+
+    def _plot(self):
         pass
 
     @pyqtSlot()
     def run(self):
         self._run()
+        self.finished.emit()
         pass
 
     def plot(self):
+        self._plot()
+        self.plot.draw()
+        self.plotReady.emit()
         pass
 
     def output_to_signalmodel(self):
@@ -45,6 +78,9 @@ class Analysis(QObject):
         self.initialize_UI()
         self._final_initialize_UI()
 
+    def initialize_UI(self):
+        pass
+
     def _initialize_UI(self):
         self.dockUI = QDockWidget(self.analysis_name, self.parent)
         self.main_layout = QHBoxLayout()
@@ -52,6 +88,8 @@ class Analysis(QObject):
         self.group_plot = QGroupBox("Plots")
         self.layout = QVBoxLayout()
         self.plot_layout = QVBoxLayout()
+        self.plot = AnalysisPlot(self, width=5, height=4, dpi=100)
+        self.plot_layout.addWidget(self.plot)
         self.group_settings.setLayout(self.layout)
         self.group_plot.setLayout(self.plot_layout)
         self.main_layout.addWidget(self.group_settings, 1)
@@ -71,5 +109,8 @@ class Analysis(QObject):
         self.dockUI.setFloating(True)
         self.parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dockUI)
 
-    def plot(self):
-        pass
+    def addMenuElement(self):
+        camosGUI = apptools.getGui()
+        analysisAct = QtWidgets.QAction("{}".format(self.analysis_name), camosGUI)
+        analysisAct.triggered.connect(self.display)
+        camosGUI.analysisMenu.addAction(analysisAct)

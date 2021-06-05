@@ -1,9 +1,30 @@
+#
+# Created on Sat Jun 05 2021
+#
+# The MIT License (MIT)
+# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+# and associated documentation files (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial
+# portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
 
-from utils.cmaps import cmaps
+from camos.utils.cmaps import cmaps
 import pyqtgraph as pg
+
 
 class FrameContainer(QtWidgets.QWidget):
     def __init__(self, parent):
@@ -33,9 +54,7 @@ class FrameContainer(QtWidgets.QWidget):
             self._change_LayersControls_values
         )
 
-        self.opened_layers_widget.currentRowChanged.connect(
-            self._change_current_layer
-        )
+        self.opened_layers_widget.currentRowChanged.connect(self._change_current_layer)
 
         self.box_layout1_1.addWidget(self.opened_layers_widget, 1)
         self.box_layout1_1.addWidget(self.layers_controls, 1)
@@ -124,11 +143,15 @@ class FrameContainer(QtWidgets.QWidget):
         self.removeAction.setText("&Remove")
         self.removeAction.setIcon(QIcon("resources/icon-remove.svg"))
         self.removeAction.triggered.connect(self._layer_remove)
-        self.duplicateAction = QAction(QIcon("resources/icon-duplicate.svg"), "&Duplicate", self)
+        self.duplicateAction = QAction(
+            QIcon("resources/icon-duplicate.svg"), "&Duplicate", self
+        )
         self.duplicateAction.triggered.connect(self._duplicate_layer)
         self.rotateAction = QAction(QIcon("resources/icon-rotate.svg"), "&Rotate", self)
         self.rotateAction.triggered.connect(self._rotate_layer)
-        self.toggleROIAction = QAction(QIcon("resources/icon-roi.svg"), "&Toggle ROI", self)
+        self.toggleROIAction = QAction(
+            QIcon("resources/icon-roi.svg"), "&Toggle ROI", self
+        )
         self.toggleROIAction.triggered.connect(self._toggle_roi)
         self.cropAction = QAction(QIcon("resources/icon-crop.svg"), "&Crop", self)
         self.cropAction.triggered.connect(self._crop_layer)

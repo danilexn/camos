@@ -18,6 +18,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
+
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
@@ -28,48 +29,68 @@ from camos.utils.errormessages import ErrorMessages
 import camos.utils.apptools as apptools
 
 
-class Processing(QObject):
+class Saving(QObject):
     finished = pyqtSignal()
     intReady = pyqtSignal(int)
 
-    def __init__(self, model=None, parent=None, input=None, name="No name processing"):
-        super(Processing, self).__init__()
+    def __init__(
+        self,
+        model=None,
+        parent=None,
+        input=None,
+        name="No name saving",
+        show=False,
+        extensions="avi File (*.avi);;mov File (*.mov)",
+    ):
+        super(Saving, self).__init__()
         self.model = model
-        self.input = input
         self.parent = parent
-        self.output = np.zeros((1, 1))
         self.analysis_name = name
+        self.show = show
+        self.extensions = extensions
         self.addMenuElement()
+        # self.finished.connect(self.plot)
 
     def _run(self):
         pass
 
     @pyqtSlot()
     def run(self):
+        if not self.filename:
+            ErrorMessages("Path was not selected!")
+            return
         self._run()
         self.finished.emit()
         pass
 
-    def plot(self):
-        pass
-
-    def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(self.output)
-
-    def output_to_imagemodel(self):
-        self.parent.model.add_image(self.output)
-
     def display(self):
+        # TODO: change to signal...
         if type(self.model.list_images()) is type(None):
             # Handle error that there are no images
-            ErrorMessages("There are no images loaded!")
+            ErrorMessages("There are no datasets!")
             return
-        self._initialize_UI()
-        self.initialize_UI()
-        self._final_initialize_UI()
+
+        self.filename = self.show_savemenu()
+
+        if self.show:
+            self._initialize_UI()
+            self.initialize_UI()
+            self._final_initialize_UI()
 
     def initialize_UI(self):
         pass
+
+    def show_savemenu(self):
+        options = QFileDialog.Options()
+        fileName, _ = QFileDialog.getSaveFileName(
+            self.parent,
+            "QFileDialog.getSaveFileName()",
+            "",
+            str(self.extensions),
+            options=options,
+        )
+
+        return fileName
 
     def _initialize_UI(self):
         self.dockUI = QDockWidget(self.analysis_name, self.parent)
@@ -91,6 +112,6 @@ class Processing(QObject):
 
     def addMenuElement(self):
         camosGUI = apptools.getGui()
-        analysisAct = QtWidgets.QAction("{}".format(self.analysis_name), camosGUI)
-        analysisAct.triggered.connect(self.display)
-        camosGUI.processMenu.addAction(analysisAct)
+        savingAct = QtWidgets.QAction("{}".format(self.analysis_name), camosGUI)
+        savingAct.triggered.connect(self.display)
+        camosGUI.saveMenu.addAction(savingAct)

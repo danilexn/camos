@@ -18,4 +18,22 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
-__all__ = ["imageviewport", "signalviewport"]
+from PyQt5.QtWidgets import *
+from camos.tasks.opening import Opening
+from camos.model.inputdata import InputData
+
+import h5py
+
+
+class OpenImage(Opening):
+    def __init__(self, model=None, signal=None, parent=None, input=None, file=None):
+        super(OpenImage, self).__init__(
+            model, parent, input, name="Open image", extensions="tif File (*.tif)"
+        )
+        self.analysis_name = "Open image"
+        self.model = model
+
+    def _run(self):
+        image = InputData(self.filename, memoryPersist=True)
+        image.loadImage()
+        self.model.add_image(image)

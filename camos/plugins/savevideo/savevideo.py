@@ -18,4 +18,37 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
-__all__ = ["imageviewport", "signalviewport"]
+import numpy as np
+from PyQt5.QtWidgets import *
+from camos.tasks.saving import Saving
+
+import cv2
+
+
+class SaveVideo(Saving):
+    def __init__(self, model=None, signal=None, parent=None, input=None):
+        super(SaveVideo, self).__init__(
+            model, parent, input, name="Save Video", show=True
+        )
+        self.image = None
+        self.analysis_name = "Save Video"
+
+    def _run(self):
+        height, width, layers = self.model.get_current_view(0).shape
+        size = (width, height)
+        out = cv2.VideoWriter(
+            self.filename, cv2.VideoWriter_fourcc(*"DIVX"), int(self.fps.text()), size
+        )
+        for i in range(self.model.maxframe):
+            self.model.frame = i
+            out.write(np.uint8(self.model.get_current_view()))
+            self.intReady.emit(i * 100 / self.model.maxframe)
+
+        out.release()
+
+    def initialize_UI(self):
+        self.fpslabel = QLabel("Frames per second", self.dockUI)
+        self.fps = QLineEdit()
+
+        self.layout.addWidget(self.fpslabel)
+        self.layout.addWidget(self.fps)

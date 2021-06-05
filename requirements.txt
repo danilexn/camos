@@ -1,0 +1,10 @@
+Cython
+numexpr
+numpy
+PyQt5
+cellpose
+opencv-python
+vispy
+visbrain
+multipagetiff
+pyqt-darktheme

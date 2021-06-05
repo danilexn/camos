@@ -1,15 +1,36 @@
+#
+# Created on Sat Jun 05 2021
+#
+# The MIT License (MIT)
+# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+# and associated documentation files (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial
+# portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+import copy
+
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 from PyQt5.QtGui import QIcon, QImage, QPixmap
 
-# TODO: decide whether cv2 processing will go inside this class
 import cv2
-from utils.cmaps import cmaps
-
-from model.inputdata import InputData
 import numpy as np
-import copy
+
+from camos.utils.cmaps import cmaps
+from camos.model.inputdata import InputData
+
 
 class ImageViewModel(QObject):
     newdata = pyqtSignal(str)
@@ -20,7 +41,7 @@ class ImageViewModel(QObject):
 
     def __init__(self, images=[], parent=None):
         self.images = images
-        # TODO: make a new image class containing all 
+        # TODO: make a new image class containing all
         # information below (frames, opacities, colormap)
         self.frames = []
         self.opacities = []
@@ -56,18 +77,17 @@ class ImageViewModel(QObject):
         self.newdata.emit("Layer {}".format(self.lastlayer))
 
     @pyqtSlot()
-    def add_image(self, data):
-        image = InputData(data, memoryPersist=True)
-        image.addImage()
+    def add_image(self, image):
         if self.maxframe < image.frames:
             self.maxframe = image.frames
         self.images.append(image)
         self.frames.append(image.frames)
-        self.opacities.append(100)
+        self.opacities.append(50)
         self.brightnesses.append(0)
         self.contrasts.append(0)
         self.colormaps.append("bw")
-        self.newdata.emit()
+        self.lastlayer += 1
+        self.newdata.emit("Layer {}".format(self.lastlayer))
 
     def crop_image(self, index):
         x_min, x_max = int(self.roi_coord[0][0]), int(self.roi_coord[1][0])
@@ -75,7 +95,7 @@ class ImageViewModel(QObject):
         cropped = self.images[index]._image._imgs[:, x_min:x_max, y_min:y_max]
         image = copy.deepcopy(self.images[index])
         image._image._imgs = cropped
-        image.crop = [0,0,image._image._imgs[0].shape]
+        image.crop = [0, 0, image._image._imgs[0].shape]
         if self.maxframe < image.frames:
             self.maxframe = image.frames
         self.images.append(image)
@@ -109,7 +129,11 @@ class ImageViewModel(QObject):
         frame = int(self.frame / (self.maxframe / self.frames[0]))
         _background = self.images[0]._image._imgs[frame]
         _background = np.int16(_background)
-        _background = _background * (self.contrasts[0]/127+1) - self.contrasts[0] + self.brightnesses[0]
+        _background = (
+            _background * (self.contrasts[0] / 127 + 1)
+            - self.contrasts[0]
+            + self.brightnesses[0]
+        )
         background = cv2.normalize(
             _background, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U
         )
@@ -119,7 +143,11 @@ class ImageViewModel(QObject):
                 frame = int(self.frame / (self.maxframe / self.frames[i]))
                 _overlay = self.images[i]._image._imgs[frame]
                 _overlay = np.int16(_overlay)
-                _overlay = _overlay * (self.contrasts[i]/127+1) - self.contrasts[i] + self.brightnesses[i]
+                _overlay = (
+                    _overlay * (self.contrasts[i] / 127 + 1)
+                    - self.contrasts[i]
+                    + self.brightnesses[i]
+                )
                 _overlay = np.clip(_overlay, 0, 255)
                 _overlay = np.uint8(_overlay)
                 overlay = cv2.normalize(
@@ -138,9 +166,9 @@ class ImageViewModel(QObject):
 
     @pyqtSlot()
     def rotate_image(self, index=0):
-        rotated = np.rot90(self.images[index]._image._imgs, axes = (1, 2))
+        rotated = np.rot90(self.images[index]._image._imgs, axes=(1, 2))
         self.images[index]._image._imgs = rotated
-        self.images[index].crop = [0,0,rotated[0].shape]
+        self.images[index].crop = [0, 0, rotated[0].shape]
         self.updated.emit()
 
     @pyqtSlot()
@@ -206,15 +234,19 @@ class ImageViewModel(QObject):
     def get_currint(self):
         try:
             frame = int(self.frame / (self.maxframe / self.frames[self.currentlayer]))
-            return self.images[self.currentlayer]._image._imgs[frame, self.curr_x, self.curr_y]
+            return self.images[self.currentlayer]._image._imgs[
+                frame, self.curr_x, self.curr_y
+            ]
         except:
             pass
 
     # TODO: make it interactive and more efficient
     def get_icon(self, index):
-        original = cv2.resize(self.images[index]._image._imgs[0],None,fx=0.2,fy=0.2)
+        original = cv2.resize(self.images[index]._image._imgs[0], None, fx=0.2, fy=0.2)
         height, width = original.shape
         bytesPerLine = 3 * width
-        icon_image = QImage(original.data, width, height, bytesPerLine, QImage.Format_RGB888)
+        icon_image = QImage(
+            original.data, width, height, bytesPerLine, QImage.Format_RGB888
+        )
         icon_pixmap = QPixmap.fromImage(icon_image)
         return icon_pixmap
