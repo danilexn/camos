@@ -22,4 +22,4 @@ super(Opening, self).__init__()
             h5printR(h, '  ')
 
 
-readingCMOS.h5print('filename.bxr')  # read the structure of .bxr fil
+readingCMOS.h5print('Phase_00_spontaneous_before_stimulation.bxr')  # read the structure of .bxr fil
