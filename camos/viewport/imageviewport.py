@@ -1,23 +1,9 @@
-#
+# -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-#
-# The MIT License (MIT)
-# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial
-# portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+# Last modified on Mon Jun 07 2021
+# Copyright (c) CaMOS Development Team. All Rights Reserved.
+# Distributed under a MIT License. See LICENSE for more info.
+
 import pyqtgraph as pg
 
 
@@ -30,6 +16,7 @@ class ImageViewPort(pg.ImageView):
         self.model = model
         self.parent = parent
         self.scene.sigMouseMoved.connect(self.mouse_moved)
+        self.scene.sigMouseClicked.connect(self.mouse_clicked)
 
         # This will hide some UI elements that will be handled by us
         self.ui.histogram.hide()
@@ -38,27 +25,46 @@ class ImageViewPort(pg.ImageView):
         self.roi.rotatable = False
 
     # All functions below have similar code now, just as a placeholder
-    def load_image(self, index):
-        image = self.model.images[index]._image._imgs
-        self.setImage(image)
+    def load_image(self, layer = -1):
+        image = self.model.get_layer(layer = layer)
+        item = DrawingImage(image=image)
+        if layer == -1:
+            self.model.viewitems.append(item)
+        else:
+            self.model.viewitems[layer] = item
+        self.view.addItem(self.model.viewitems[layer])
+        self.view.addedItems[-1].setOpts(opacity = 0.5)
+        # self.view.addedItems[-1].setLevels([0, 210])
 
-    def update_viewport(self):
-        image = self.model.get_current_view()
-        self.setImage(image)
+    def update_viewport(self, layer = 0):
+        op = self.model.opacities[layer]
+        self.view.addedItems[layer + 3].setOpts(opacity = op/100)
+        # self.view.addedItems[layer + 3].setLevels([0, 210])
 
-    def remove_image(self):
-        image = self.model.get_current_view()
-        self.setImage(image)
+    def update_viewport_frame(self, layer = 0):
+        image = self.model.get_layer(layer = layer)
+        self.view.addedItems[layer + 3].setImage(image)
+        self.model.viewitems[layer] = self.view.addedItems[layer + 3]
+
+    def remove_image(self, layer = 0):
+        self.view.removeItem(self.view.addedItems[layer + 3])
 
     def mouse_moved(self, event):
         scenePos = self.getImageItem().mapFromScene(event)
         row, col = int(scenePos.y()), int(scenePos.x())
         self.model.set_currpos(col, row)
 
+    def mouse_clicked(self, event):
+        if event._double:
+            self.model.select_cells()
+
     def roiChanged(self, event):
         roi_coord = [
             [event.pos().x(), event.pos().y()],
-            [event.pos().x() + event.size().x(), event.pos().y() + event.size().y()],
+            [
+                event.pos().x() + event.size().x(),
+                event.pos().y() + event.size().y(),
+            ],
         ]
         self.model.roi_coord = roi_coord
 
@@ -67,3 +73,30 @@ class ImageViewPort(pg.ImageView):
             self.roi.hide()
         else:
             self.roi.show()
+
+
+class DrawingImage(pg.ImageItem):
+    def mouseClickEvent(self, event):
+        print("Click", event.pos())
+
+    def mouseDragEvent(self, event):
+        if event.isStart():
+            self.setBorder(pg.mkPen(cosmetic=False, width=4.5, color='r'))
+            # ScenePos is where it is
+            self.initialposition = self.scenePos()
+        elif event.isFinish():
+            self.border = None
+            self.updateImage()
+        else:
+            tr = pg.QtGui.QTransform()
+            tr.scale(1.0, 1.0)
+            p = 2*event._scenePos - self.initialposition
+            tr.translate(p.x(), p.y())
+            self.setTransform(tr)
+
+    def hoverEvent(self, event):
+        if not event.isExit():
+            # the mouse is hovering over the image; make sure no other items
+            # will receive left click/drag events from here.
+            event.acceptDrags(pg.QtCore.Qt.LeftButton)
+            event.acceptClicks(pg.QtCore.Qt.LeftButton)

@@ -1,1 +1,1 @@
-__all__ = ['aboutpage', 'meanfiringrate']
+__all__ = ["aboutpage", "meanfiringrate"]

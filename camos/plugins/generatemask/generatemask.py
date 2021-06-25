@@ -1,53 +1,54 @@
-#
+# -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-#
-# The MIT License (MIT)
-# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial
-# portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
-import numpy as np
+# Last modified on Mon Jun 07 2021
+# Copyright (c) CaMOS Development Team. All Rights Reserved.
+# Distributed under a MIT License. See LICENSE for more info.
+
 from PyQt5.QtWidgets import *
 from camos.tasks.processing import Processing
 from camos.plugins.stackprojection import stackprojection
+from camos.model.inputdata import InputData
 
 
 class GenerateMask(Processing):
-    def __init__(self, model=None, parent=None, input=None):
-        super(GenerateMask, self).__init__(model, parent, input, name="Generate Masks")
+    analysis_name = "Extract Mask"
+
+    def __init__(self, model=None, parent=None, signal=None):
+        super(GenerateMask, self).__init__(
+            model, parent, signal, name=self.analysis_name
+        )
         self.output = None
         self.image = None
+        self.layername = "Mask of Layer {}"
         self.finished.connect(self.output_to_imagemodel)
-        self.analysis_name = "Extract Mask"
-        self.gpu = False
-        self.torch = False
+        self.gpu = True
+        self.torch = True
         self.method = "nuclei"
         self.proj = "maximum"
         self.projector = stackprojection.StackProjection()
 
     def _run(self):
-        # TODO: replace this by a simpler approach (i.e., used in FluoroSNNAP
-        # WARNING: may not work in macOS if no GPU acceleration is available
         from cellpose import models
 
         # Nuclei model works the best in this case
         # TODO: gpu acceleration toggle, user selectable
-        model = models.Cellpose(gpu=self.gpu, model_type="nuclei")
+        model = models.Cellpose(
+            torch=self.torch, gpu=self.gpu, model_type=self.method
+        )
         # TODO: self.image may be the Z projection, so all cells are detected
-        masks, _, _, _ = model.eval(self.image.image(0), diameter=None, channels=[0])
+        masks, _, _, _ = model.eval(
+            self.image.image(0), diameter=None, channels=[[0, 0]]
+        )
         self.output = masks
+
+    def output_to_imagemodel(self):
+        image = InputData(
+            self.output,
+            memoryPersist=True,
+            name=self.layername.format(self.index),
+        )
+        image.loadImage()
+        self.parent.model.add_image(image, "Mask of Layer {}".format(self.index))
 
     def initialize_UI(self):
         # TODO: Create a checkbox for GPU acceleration
@@ -79,6 +80,7 @@ class GenerateMask(Processing):
 
     def _set_image(self, index):
         self.image = self.model.images[index]
+        self.index = index
 
     def _set_gpu(self, cb):
         self.gpu = cb.isChecked()

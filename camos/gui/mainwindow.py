@@ -1,26 +1,13 @@
-#
+# -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-#
-# The MIT License (MIT)
-# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial
-# portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
-from PyQt5 import QtWidgets
+# Last modified on Mon Jun 07 2021
+# Copyright (c) CaMOS Development Team. All Rights Reserved.
+# Distributed under a MIT License. See LICENSE for more info.
+
+from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
+import sys
 
 from camos.model.imageviewmodel import ImageViewModel
 from camos.model.signalviewmodel import SignalViewModel
@@ -30,9 +17,21 @@ from camos.gui.framecontainer import FrameContainer
 
 
 class MainWindow(QtWidgets.QMainWindow):
+    """This is the main GUI entry point of the application
+
+    Args:
+        QtWidgets (QMainWindow): base class from PyQt5 to inherit basic Window functionality
+    """
+
     def __init__(self, camosApp=None, *args, **kwargs):
+        """Initialization of the class and its parent
+
+        Args:
+            camosApp (camosApp, optional): The main instance of the application. Defaults to None.
+        """
         super(MainWindow, self).__init__(*args, **kwargs)
         # Global variables of the program, models and viewports
+
         self.title = "CaMOS"
         self.model = ImageViewModel(parent=self)
         self.signalmodel = SignalViewModel(parent=self)
@@ -44,13 +43,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Connect events
         self.signalmodel.newdata.connect(self.signalviewport.add_last_track)
-        self.model.newdata.connect(self.viewport.update_viewport)
+        self.model.newdata.connect(self.viewport.load_image)
         self.model.updated.connect(self.viewport.update_viewport)
+        self.model.updatedframe.connect(self.viewport.update_viewport_frame)
 
         # Layout of the UI
         layout = QHBoxLayout()
         self.setLayout(layout)
-        self.initUI()
+        self.init_UI()
         self.create_menubar()
         self.container = FrameContainer(self)
         self.setCentralWidget(self.container)
@@ -58,19 +58,33 @@ class MainWindow(QtWidgets.QMainWindow):
         self.model.removedata.connect(self.viewport.remove_image)
         self.model.updatepos.connect(self._update_statusbar)
 
-    def initUI(self):
-
+    def init_UI(self):
+        """Basic appearance properties; title, geometry and statusbar. Eventually, shows the window.
+        """
         self.setWindowTitle(self.title)
         self.setGeometry(100, 100, 800, 600)
         self.statusBar().showMessage("Statusbar - awaiting user control")
         self.show()
 
-    def _update_statusbar(self, x, y, t, int):
+    def _update_statusbar(self, x, y, t, v):
+        """Updates the basic info about the current image being displayed in the ImageViewPort in the statusbar.
+
+        Args:
+            x (int): X-coordinate of the pixel under the mouse for the current layer
+            y (int): Y-coordinate of the pixel under the mouse for the current layer
+            t (int): currently selected frame of the current layer
+            v (int): RGB or gray value (any bit depth) of the pixel under the mouse for the current layer
+        """
         self.statusBar().showMessage(
-            "Position: [{}, {}]; Frame: {}; Value: {}".format(x, y, t, int)
+            "Position: [{}, {}]; Frame: {}; Value: {}".format(x, y, t, v)
         )
 
     def create_menubar(self):
+        """Creates the menubar itself and the menus: File, Process and Analyze.
+        File contains submenus for Open, Save, Preferences and Exiting the application
+        Open and Save functionality are provided through plugins
+        Process and Analyze are populated with the currently available plugins for each category.
+        """
         # Main menubar
         menubar = self.menuBar()
 
@@ -82,48 +96,29 @@ class MainWindow(QtWidgets.QMainWindow):
         # File menu
         # Sublevels
         # Open image
-        self.openAct = QtWidgets.QAction(QIcon("open.png"), " &Open image...", self)
-        self.openAct.setShortcut("Ctrl+O")
-        self.openAct.setStatusTip("Open file")
-        self.openAct.triggered.connect(self.on_open_image_clicked)
-
-        self.openAct = QtWidgets.QAction(QIcon("open.png"), " &Open image...", self)
-        self.openAct.setShortcut("Ctrl+O")
-        self.openAct.setStatusTip("Open file")
-        self.openAct.triggered.connect(self.on_open_image_clicked)
-
         self.openMenu = QMenu("Open", self)
         self.saveMenu = QMenu("Save", self)
 
-        self.exitAct = QtWidgets.QAction(QIcon("exit.png"), " &Exit program", self)
+        self.exitAct = QtWidgets.QAction(
+            QIcon("exit.png"), "&Exit program", self
+        )
         self.exitAct.setShortcut("Ctrl+Q")
         self.exitAct.setStatusTip("Exit application")
-        self.exitAct.triggered.connect(QtWidgets.qApp.quit)
+        self.exitAct.triggered.connect(
+            lambda: self.closeEvent(QtGui.QCloseEvent())
+        )
 
-        self.fileMenu.addAction(self.openAct)
         self.fileMenu.addMenu(self.openMenu)
         self.fileMenu.addMenu(self.saveMenu)
-        # self.fileMenu.addAction(self.exportAct)
         # self.fileMenu.addAction(self.settingsAct)
         self.fileMenu.addAction(self.exitAct)
 
-    def on_open_image_clicked(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(
-            self,
-            "QFileDialog.getOpenFileName()",
-            "",
-            "All Files (*);;tif Files (*.tif)",
-            options=options,
-        )
-        if fileName:
-            # handler = RunTask(ExtractSignal, self.model)
-            # handler.start_progress
-            # Run in background
-            self.model.load_image(fileName)
-
     def closeEvent(self, event):
+        """Handle for self.exitAct being triggered
+
+        Args:
+            event (QtGui.QCloseEvent)
+        """
         quit_msg = "Are you sure you want to exit the program?"
         reply = QMessageBox.question(
             self, "Message", quit_msg, QMessageBox.Yes, QMessageBox.No

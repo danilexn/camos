@@ -7,49 +7,42 @@
 import numpy as np
 from PyQt5.QtWidgets import *
 from camos.tasks.analysis import Analysis
-import matplotlib.cm as cm
-
 import networkx as nx
-from camos.plugins.detectpeaks import oopsi
 
 
-class MeanFiringRate(Analysis):
-    analysis_name = "Mean Firing Rate"
+class Correlation(Analysis):
+    analysis_name = "Calculate Correlation"
 
     def __init__(self, model=None, parent=None, signal=None):
-        super(MeanFiringRate, self).__init__(
-            model, parent, signal, name=self.analysis_name
+        super(Correlation, self).__init__(
+            model, parent, input, name=self.analysis_name
         )
-        self.data = None
+        self.model = model
+        self.signal = signal
 
     def _run(self):
         self.pos = {}
         self.events = np.array([])
         self.cells = np.array([])
         signal_output = self.data
-        for i in range(signal_output.shape[0]):
-            F = np.diff(signal_output[i])
-            db, Cz = oopsi.fast(F, dt=0.1, iter_max=50)
-            idx = np.where(db >= 1)
-            self.events = np.append(self.events, idx)
-            self.cells = np.append(self.cells, np.repeat(i, len(idx[0])))
-            self.intReady.emit(i * 100 / signal_output.shape[0])
 
-        self.G_mfr = nx.Graph()
-        # Calculate the positions
+        self.G = nx.Graph()
+        self.G.add_nodes_from(list(range(1, len(signal_output))))
+
+        # Calculate node positions in the image
         for i in range(1, len(signal_output)):
             cell = self.mask[0] == i
             p = np.average(np.where(cell > 0), axis=1)
-            self.pos[i - 1] = np.flip(p)
-            self.intReady.emit(i * 100 / signal_output.shape[0])
+            self.pos[i] = np.flip(p)
+            self.intReady.emit(i * 100 / len(signal_output))
 
-        # Calculate mean firing rate per cell
+        # Calculate cross correlation
         for i in range(1, len(signal_output) - 1):
-            self.G_mfr.add_node(
-                i,
-                weight=np.sum(np.diff(self.events[np.where(self.cells == i)])),
-            )
-            self.intReady.emit(i * 100 / signal_output.shape[0])
+            for j in range(i + 1, len(signal_output)):
+                cc = np.corrcoef(signal_output[i], signal_output[j])[0, 1]
+                if cc >= float(self.corrthreshold.text()):
+                    self.G.add_edge(i, j, weight=cc)
+            self.intReady.emit(i * 100 / len(signal_output))
 
         self.finished.emit()
 
@@ -70,29 +63,31 @@ class MeanFiringRate(Analysis):
         self.cbmask = QComboBox()
         self.cbmask.currentIndexChanged.connect(self._set_mask)
         self.cbmask.addItems(self.model.list_images())
+        self.corrthresholdlabel = QLabel("Correlation threshold", self.dockUI)
+        self.corrthreshold = QLineEdit()
+        self.corrthreshold.setText("0.85")
 
         self.layout.addWidget(self.masklabel)
         self.layout.addWidget(self.cbmask)
         self.layout.addWidget(self.datalabel)
         self.layout.addWidget(self.cbdata)
+        self.layout.addWidget(self.corrthresholdlabel)
+        self.layout.addWidget(self.corrthreshold)
+
+    def _set_mask(self):
+        index = self.cbmask.currentIndex()
+        self.mask = self.model.images[index]._image
 
     def _set_data(self, index):
         dataset = self.signal.data[index]
         self.data = dataset
 
-    def _set_mask(self, text):
-        index = self.cbmask.currentIndex()
-        self.mask = self.model.images[index]._image
-
     def _plot(self):
-        colors = [self.G_mfr.nodes[n]["weight"] for n in self.G_mfr.nodes]
-        colors = [float(i) / max(colors) for i in colors]
-        colors = cm.viridis(colors)
         nx.draw(
-            self.G_mfr,
+            self.G,
             self.pos,
-            node_color=colors,
-            alpha=0.6,
+            edge_color="white",
+            alpha=0.3,
             width=2,
             ax=self.plot.axes,
         )

@@ -3,8 +3,8 @@ numexpr
 numpy
 PyQt5
 cellpose
-opencv-python
+opencv - python
 vispy
 visbrain
 multipagetiff
-pyqt-darktheme
+pyqt - darktheme

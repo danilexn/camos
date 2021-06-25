@@ -1,45 +1,54 @@
-#
+# -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-#
-# The MIT License (MIT)
-# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial
-# portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+# Last modified on Mon Jun 07 2021
+# Copyright (c) CaMOS Development Team. All Rights Reserved.
+# Distributed under a MIT License. See LICENSE for more info.
+
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
+import sys
+
 import numpy as np
 from camos.tasks.runtask import RunTask
 from camos.utils.errormessages import ErrorMessages
-import camos.utils.apptools as apptools
+from camos.model.inputdata import InputData
+
+
+class Stream(QtCore.QObject):
+    newText = QtCore.pyqtSignal(str)
+
+    def write(self, text):
+        self.newText.emit(str(text))
+
+    def flush(self):
+        pass
 
 
 class Processing(QObject):
     finished = pyqtSignal()
     intReady = pyqtSignal(int)
+    txtReady = pyqtSignal(str)
 
-    def __init__(self, model=None, parent=None, input=None, name="No name processing"):
+    def __init__(
+        self, model=None, parent=None, signal=None, name="No name processing"
+    ):
         super(Processing, self).__init__()
         self.model = model
-        self.input = input
+        self.signal = signal
+        self.layername = "Unnamed Layer {}"
+        self.index = 0
         self.parent = parent
         self.output = np.zeros((1, 1))
         self.analysis_name = name
-        self.addMenuElement()
+        sys.stdout = Stream(newText=self.onUpdateOutput)
+
+    def onUpdateOutput(self, text):
+        self._onUpdateOutput(text)
+
+    def _onUpdateOutput(self, text):
+        self.txtReady.emit(text)
 
     def _run(self):
         pass
@@ -56,8 +65,14 @@ class Processing(QObject):
     def output_to_signalmodel(self):
         self.parent.signalmodel.add_data(self.output)
 
-    def output_to_imagemodel(self):
-        self.parent.model.add_image(self.output)
+    def output_to_imagemodel(self, name = None):
+        image = InputData(
+            self.output,
+            memoryPersist=True,
+            name=self.layername.format(self.index),
+        )
+        image.loadImage()
+        self.parent.model.add_image(image, name)
 
     def display(self):
         if type(self.model.list_images()) is type(None):
@@ -88,9 +103,3 @@ class Processing(QObject):
         self.dockedWidget.setLayout(self.layout)
         self.dockUI.setFloating(True)
         self.parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dockUI)
-
-    def addMenuElement(self):
-        camosGUI = apptools.getGui()
-        analysisAct = QtWidgets.QAction("{}".format(self.analysis_name), camosGUI)
-        analysisAct.triggered.connect(self.display)
-        camosGUI.processMenu.addAction(analysisAct)
