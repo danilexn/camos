@@ -12,6 +12,9 @@ from PyQt5.QtCore import Qt, QSizeF, pyqtSignal
 
 import PIL
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 
 from camos.tasks.opening import Opening
 from camos.model.inputdata import InputData
@@ -48,10 +51,11 @@ class OpenCMOS(Opening):
             show=True,
         )
         self.parent = parent
-        self.model = MiniImageViewModel(parent=self)
-        self.viewport = ImageViewPort(self.model, self.parent)
-        self.model.newdata.connect(self.viewport.update_viewport)
-        self.gridReady.connect(self.model.draw_grid)
+        self.minimodel = MiniImageViewModel(parent=self)
+        self.viewport = ImageViewPort(self.minimodel)
+        self.minimodel.updated.connect(self.viewport.update_viewport)
+        self.minimodel.newdata.connect(self.viewport.load_image)
+        self.gridReady.connect(self.minimodel.draw_grid)
         self.cardinal = []
         self.grid = None
 
@@ -60,12 +64,10 @@ class OpenCMOS(Opening):
         PIL.Image.MAX_IMAGE_PIXELS = 933120000
         self.image = InputData(self.filename, memoryPersist=True)
         self.image.loadImage()
-        self.model.add_image(self.image)
-        # We restore this to the normal value
-        PIL.Image.MAX_IMAGE_PIXELS = 178956970
+        self.minimodel.add_image(self.image)
 
     def initialize_UI(self):
-        self.ydimlabel = QLabel("Electrodes Y", self.parent)
+        self.ydimlabel = QLabel("Electrodes Y")
         self.ydim = QLineEdit()
         self.onlyInt = QIntValidator()
         self.ydim.setValidator(self.onlyInt)
@@ -73,31 +75,38 @@ class OpenCMOS(Opening):
         self.layout.addWidget(self.ydimlabel)
         self.layout.addWidget(self.ydim)
 
-        self.xdimlabel = QLabel("Electrodes X", self.parent)
+        self.xdimlabel = QLabel("Electrodes X")
         self.xdim = QLineEdit()
         self.xdim.setValidator(self.onlyInt)
         self.xdim.setText("64")
         self.layout.addWidget(self.xdimlabel)
         self.layout.addWidget(self.xdim)
 
-        self.clearButton = QPushButton("Clear Grid", self.parent)
+        self.radiuslab = QLabel("Radius")
+        self.radius = QLineEdit()
+        self.radius.setValidator(self.onlyInt)
+        self.radius.setText("100")
+        self.layout.addWidget(self.radiuslab)
+        self.layout.addWidget(self.radius)
+
+        self.clearButton = QPushButton("Clear Grid")
         self.clearButton.clicked.connect(self.clear_grid)
         self.layout.addWidget(self.clearButton)
 
-        self.runButton = QPushButton("Create Grid", self.parent)
+        self.runButton = QPushButton("Create Grid")
         self.runButton.setToolTip("Create a grid from selected points")
         self.runButton.clicked.connect(self.calculate_grid)
 
         self.layout.addWidget(self.runButton)
 
-        self.runButton = QPushButton("Import now", self.parent)
+        self.runButton = QPushButton("Import now")
         self.runButton.setToolTip("Import the chip image and the coordinates")
         self.runButton.clicked.connect(self.import_chip)
 
         self.layout.addWidget(self.runButton)
 
     def _initialize_UI(self):
-        self.dockUI = QDockWidget(self.analysis_name, self.parent)
+        self.dockUI = QDockWidget(self.analysis_name)
         self.main_layout = QHBoxLayout()
         self.group_settings = QGroupBox("Parameters")
         self.group_plot = QGroupBox("Plots")
@@ -160,6 +169,7 @@ class OpenCMOS(Opening):
             [c[2][0], c[3][0]], [c[2][1], c[3][1]], ps, dim
         )
         ps_np = np.array(ps)
+        ps = []
         for i in range(dim[0]):
             self.createLineAndProjectHorizontal(
                 [ps_np[i + dim[1]][1], ps_np[i][1]],
@@ -173,29 +183,34 @@ class OpenCMOS(Opening):
 
     def clear_grid(self):
         self.cardinal = []
-        while len(self.viewport.view.addedItems) > 3:
+        while len(self.viewport.view.addedItems) > 4:
             self.viewport.view.removeItem(self.viewport.view.addedItems[-1])
 
     def import_chip(self):
-        self.parent.model.add_image(self.image)
-        del self
+        radius = int(self.radius.text())
+        img_dims = self.image._image._imgs[0].shape
+        grid_image = np.zeros((img_dims[0], img_dims[1]))
+        for i, c in enumerate(self.grid):
+            _min_y = int(c[0]) - radius if int(c[0]) - radius > 0 else 0
+            _max_y = int(c[0]) + radius if int(c[0]) - radius < img_dims[0] else img_dims[0]
+
+            _min_x = int(c[1]) - radius if int(c[1]) - radius > 0 else 0
+            _max_x = int(c[1]) + radius if int(c[1]) - radius < img_dims[1] else img_dims[1]
+            grid_image[_min_x:_max_x, _min_y:_max_y] = i + 0
+
+        self.grid_image = InputData(grid_image, memoryPersist=True)
+        self.grid_image.loadImage()
+        self.parent.model.add_image(self.grid_image)
 
 
 class MiniImageViewModel(ImageViewModel):
 
-    newdata = pyqtSignal(str)
-
     def __init__(self, images=[], parent=None):
+        super(MiniImageViewModel, self).__init__()
         self.images = images
         self.currentlayer = 0
         self.curr_x, self.curr_y = 0, 0
         self.parent = parent
-        super(MiniImageViewModel, self).__init__()
-
-    @pyqtSlot()
-    def add_image(self, image):
-        self.images.append(image)
-        self.newdata.emit("CMOS")
 
     def trigger_select_cells(self):
         pass
@@ -218,10 +233,9 @@ class MiniImageViewModel(ImageViewModel):
             self.parent.viewport.view.addItem(item)
 
     def select_cells(self, **kwargs):
-        coord = np.array([self.curr_x - 100 / 2, self.curr_y - 100 / 2])
+        coord = np.array([self.curr_y - 100 / 2, self.curr_x - 100 / 2])
         self.draw_grid(np.array([coord]))
         self.parent.cardinal.append(coord)
-
 
 class Square(QGraphicsWidget):
     def __init__(self, size=100, *args, name=None, **kvps):

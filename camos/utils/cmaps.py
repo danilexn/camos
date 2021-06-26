@@ -7,7 +7,7 @@
 import cv2
 
 cmaps = {
-    "bw": cv2.COLORMAP_BONE,
+    "gray": cv2.COLORMAP_BONE,
     "jet": cv2.COLORMAP_JET,
     "viridis": cv2.COLORMAP_VIRIDIS,
     "winter": cv2.COLORMAP_WINTER,

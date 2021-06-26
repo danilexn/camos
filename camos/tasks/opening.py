@@ -62,8 +62,11 @@ class Opening(QObject):
         if not self.filename:
             ErrorMessages("Path was not selected!")
             return
-        self._run()
-        self.finished.emit()
+
+        try:
+            self._run()
+        finally:
+            self.finished.emit()
         pass
 
     def display(self):

@@ -4,12 +4,8 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-import numpy as np
 from PyQt5.QtWidgets import *
 from camos.tasks.analysis import Analysis
-import camos.utils.apptools as apptools
-import matplotlib.pyplot as plt
-from matplotlib.collections import PatchCollection
 
 
 class InterspikeInterval(Analysis):

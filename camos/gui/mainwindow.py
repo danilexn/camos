@@ -33,7 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Global variables of the program, models and viewports
 
         self.title = "CaMOS"
-        self.model = ImageViewModel(parent=self)
+        self.setup_model(ImageViewModel(parent=self))
         self.signalmodel = SignalViewModel(parent=self)
         self.setObjectName("camosGUI")
         self.camosApp = camosApp
@@ -45,6 +45,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.signalmodel.newdata.connect(self.signalviewport.add_last_track)
         self.model.newdata.connect(self.viewport.load_image)
         self.model.updated.connect(self.viewport.update_viewport)
+        self.model.axes.connect(self.viewport.translate_position)
         self.model.updatedframe.connect(self.viewport.update_viewport_frame)
 
         # Layout of the UI
@@ -57,6 +58,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.model.newdata.connect(self.container._update_layer_elements)
         self.model.removedata.connect(self.viewport.remove_image)
         self.model.updatepos.connect(self._update_statusbar)
+
+    def setup_model(self, model):
+        self.model = model
 
     def init_UI(self):
         """Basic appearance properties; title, geometry and statusbar. Eventually, shows the window.

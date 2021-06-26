@@ -35,6 +35,9 @@ class ImageViewModel(QObject):
     # For new image (data) being added
     newdata = pyqtSignal(int)
 
+    # For axis being reset
+    axes = pyqtSignal(int, tuple)
+
     # For data being removed
     removedata = pyqtSignal(int)
 
@@ -80,7 +83,7 @@ class ImageViewModel(QObject):
         super(ImageViewModel, self).__init__()
 
     @pyqtSlot()
-    def add_image(self, image, name = None):
+    def add_image(self, image, name = None, cmap = "gray"):
         """Any image, once it has been loaded within a InputData object, can be loaded onto the ImageViewModel through this function. It will read all the features for the loaded image, and recalculate the global (shared) features (maximum number of frames overall, ROIs...)
 
         Args:
@@ -93,7 +96,7 @@ class ImageViewModel(QObject):
         self.opacities.append(50)
         self.brightnesses.append(0)
         self.contrasts.append(0)
-        self.colormaps.append("bw")
+        self.colormaps.append(cmap)
 
         if name == None:
             name = "Layer {}".format(len(self.images) - 1)
@@ -206,6 +209,13 @@ class ImageViewModel(QObject):
         self.images[index].crop = [0, 0, rotated[0].shape]
         self.updatedframe.emit(index)
 
+    def reset_position(self, index=0):
+        self.translate_position(index, (0, 0))
+
+    @pyqtSlot()
+    def translate_position(self, index=0, position=(0, 0)):
+        self.axes.emit(index, position)
+
     @pyqtSlot()
     def duplicate_image(self, index=0):
         """Duplicates the current layer, by copying the InputData object, and calls the self.add_image method.
@@ -295,13 +305,22 @@ class ImageViewModel(QObject):
         Returns:
             QPixmap: icon that has been generated as a thumbnail of the input layer
         """
-        original = cv2.resize(
-            self.images[index]._image._imgs[0], (50, 50)
-        )
-        height, width = original.shape
-        bytesPerLine = 3 * width
-        icon_image = QImage(
-            original.data, width, height, bytesPerLine, QImage.Format_RGB888
-        )
-        icon_pixmap = QPixmap.fromImage(icon_image)
+        try:
+            original = cv2.resize(
+                self.images[index]._image._imgs[0], (50, 50)
+            )
+            height, width = original.shape
+            bytesPerLine = 3 * width
+            icon_image = QImage(
+                original.data, width, height, bytesPerLine, QImage.Format_RGB888
+            )
+            icon_pixmap = QPixmap.fromImage(icon_image)
+        except:
+            icon_pixmap = QPixmap()
         return icon_pixmap
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d):
+        self.__dict__ = d

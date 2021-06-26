@@ -5,6 +5,10 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 import pyqtgraph as pg
+import inspect
+import matplotlib.pyplot as plt
+
+import camos.viewport.mpl_cmaps_in_ImageItem as cmaps
 
 
 class ImageViewPort(pg.ImageView):
@@ -33,12 +37,18 @@ class ImageViewPort(pg.ImageView):
         else:
             self.model.viewitems[layer] = item
         self.view.addItem(self.model.viewitems[layer])
-        self.view.addedItems[-1].setOpts(opacity = 0.5)
+        self.view.addedItems[-1].setOpts(opacity = 0.5, axisOrder='row-major')
+
+        cmap = self.model.colormaps[-1]
+        lut = cmaps.cmapToColormap(cmap).getLookupTable()
+        self.view.addedItems[-1].setLookupTable(lut)
         # self.view.addedItems[-1].setLevels([0, 210])
 
     def update_viewport(self, layer = 0):
         op = self.model.opacities[layer]
-        self.view.addedItems[layer + 3].setOpts(opacity = op/100)
+        cmap = self.model.colormaps[layer]
+        lut = cmaps.cmapToColormap(cmap).getLookupTable()
+        self.view.addedItems[layer + 3].setOpts(opacity = op/100, lut = lut)
         # self.view.addedItems[layer + 3].setLevels([0, 210])
 
     def update_viewport_frame(self, layer = 0):
@@ -50,8 +60,9 @@ class ImageViewPort(pg.ImageView):
         self.view.removeItem(self.view.addedItems[layer + 3])
 
     def mouse_moved(self, event):
-        scenePos = self.getImageItem().mapFromScene(event)
-        row, col = int(scenePos.y()), int(scenePos.x())
+        layer = self.model.currentlayer
+        scenePos = self.view.addedItems[layer + 3].mapFromScene(event)
+        row, col = int(scenePos.x()), int(scenePos.y())
         self.model.set_currpos(col, row)
 
     def mouse_clicked(self, event):
@@ -60,13 +71,18 @@ class ImageViewPort(pg.ImageView):
 
     def roiChanged(self, event):
         roi_coord = [
-            [event.pos().x(), event.pos().y()],
+            [event.pos().y(), event.pos().x()],
             [
-                event.pos().x() + event.size().x(),
                 event.pos().y() + event.size().y(),
+                event.pos().x() + event.size().x(),
             ],
         ]
         self.model.roi_coord = roi_coord
+
+    def translate_position(self, layer, position):
+        x = position[0]
+        y = position[1]
+        self.view.addedItems[layer + 3].translate(x, y)
 
     def toggle_roi(self):
         if self.roi.isVisible():
@@ -82,17 +98,11 @@ class DrawingImage(pg.ImageItem):
     def mouseDragEvent(self, event):
         if event.isStart():
             self.setBorder(pg.mkPen(cosmetic=False, width=4.5, color='r'))
-            # ScenePos is where it is
-            self.initialposition = self.scenePos()
         elif event.isFinish():
-            self.border = None
-            self.updateImage()
+            self.setBorder(None)
         else:
-            tr = pg.QtGui.QTransform()
-            tr.scale(1.0, 1.0)
-            p = 2*event._scenePos - self.initialposition
-            tr.translate(p.x(), p.y())
-            self.setTransform(tr)
+            p =  event.pos()
+            self.translate(p.x(), p.y())
 
     def hoverEvent(self, event):
         if not event.isExit():
@@ -100,3 +110,9 @@ class DrawingImage(pg.ImageItem):
             # will receive left click/drag events from here.
             event.acceptDrags(pg.QtCore.Qt.LeftButton)
             event.acceptClicks(pg.QtCore.Qt.LeftButton)
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d):
+        self.__dict__ = d

@@ -46,7 +46,7 @@ class FrameContainer(QtWidgets.QWidget):
         self.box_layout1_1 = QtWidgets.QVBoxLayout()
         self.box_layout1.setContentsMargins(0, 0, 0, 0)
         self.box_layout1.setSpacing(0)
-        self.opened_layers_widget = QListWidget()
+        self.opened_layers_widget = QLayerWidget()
         self.opened_layers_widget.setSpacing(15)
         self._createLayersControls()
         self.opened_layers_widget.currentRowChanged.connect(
@@ -55,6 +55,10 @@ class FrameContainer(QtWidgets.QWidget):
 
         self.opened_layers_widget.currentRowChanged.connect(
             self._change_current_layer
+        )
+
+        self.opened_layers_widget.itemDoubleClicked.connect(
+            self._setup_current_layer
         )
 
         self.box_layout1_1.addWidget(self.opened_layers_widget, 1)
@@ -93,6 +97,15 @@ class FrameContainer(QtWidgets.QWidget):
         maxframe = self.parent.model.maxframe
         self.current_frame_slider.setRange(0, maxframe - 1)
 
+    def _setup_current_layer(self, layerName):
+        text, okPressed = QInputDialog.getText(self, "Change '{}' name".format(layerName),"New name:", QLineEdit.Normal, "")
+        if okPressed and text != '':
+            layer = self.opened_layers_widget.selectedIndexes()
+            self.parent.model.names[layer[0].row()] = text
+            items = self.opened_layers_widget.selectedItems()
+            for item in items:
+                item.setText(text)
+
     def _createLayersControls(self):
         """For the lateral layer control, creates the upper view of layers, and the bottom individual controls per layer
         """
@@ -122,7 +135,7 @@ class FrameContainer(QtWidgets.QWidget):
     def _populate_colormaps(self):
         """Inside the Layers Controls, populates the colormap controls with those available
         """
-        self.colormap_layer_selector.addItems(cmaps.keys())
+        self.colormap_layer_selector.addItems(cmaps)
 
     def _set_frame(self, t):
         """Configures the current frame, selected in the Layers Controls, to the image model
@@ -198,6 +211,10 @@ class FrameContainer(QtWidgets.QWidget):
             QIcon("resources/icon-neuron.svg"), "&Select Cell", self
         )
         self.cellSelect.triggered.connect(self._select_cells)
+        self.resetAxis = QAction(
+            QIcon("resources/reset-axis.svg"), "&Reset axis", self
+        )
+        self.resetAxis.triggered.connect(self._reset_axis)
 
     def _layer_remove(self):
         """Handles the removal of the currently selected layer in self.currentlayer, which is updated, in the image model
@@ -220,6 +237,13 @@ class FrameContainer(QtWidgets.QWidget):
         self.currentlayer = self.opened_layers_widget.currentRow()
         idx = self.currentlayer
         self.parent.model.crop_image(idx)
+
+    def _reset_axis(self):
+        """Handles the call to ImageViewModel.reset_position in the parent image model, so it can reset the current coordinates of self.currentlayer
+        """
+        self.currentlayer = self.opened_layers_widget.currentRow()
+        idx = self.currentlayer
+        self.parent.model.reset_position(idx)
 
     def _select_cells(self):
         """Handles the call to ImageViewModel.trigger_select_cells in the parent image model, so it can enable the selection of cells for any layer selected at any moment
@@ -249,3 +273,14 @@ class FrameContainer(QtWidgets.QWidget):
         layersToolBar.addAction(self.toggleROIAction)
         layersToolBar.addAction(self.cropAction)
         layersToolBar.addAction(self.cellSelect)
+        layersToolBar.addAction(self.resetAxis)
+
+
+class QLayerWidget(QtWidgets.QListWidget):
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Delete:
+            row = self.currentRow()
+            self.parent()._layer_remove()
+        else:
+            super().keyPressEvent(event)

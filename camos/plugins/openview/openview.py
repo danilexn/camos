@@ -4,14 +4,13 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
 from camos.tasks.opening import Opening
-from camos.model.inputdata import InputData
+import camos.utils.apptools as apptools
 
-import PIL
+import pickle
 
 class OpenImage(Opening):
-    analysis_name = "Open Image"
+    analysis_name = "Open View"
 
     def __init__(self, model=None, signal=None, parent=None, file=None):
         super(OpenImage, self).__init__(
@@ -19,13 +18,11 @@ class OpenImage(Opening):
             parent,
             signal,
             name=self.analysis_name,
-            extensions="tif File (*.tif);; png File (*.png);; jpeg File (*.jpeg);; tiff File (*.tiff)",
+            extensions="cms File (*.cms)",
         )
         self.model = model
 
     def _run(self):
         # Added so we can load CMOS chip image
-        PIL.Image.MAX_IMAGE_PIXELS = 933120000
-        image = InputData(self.filename, memoryPersist=True)
-        image.loadImage()
-        self.model.add_image(image)
+        dp = pickle.load(open(self.filename, 'rb'))
+        apptools.getApp().gui.setup_model(dp)

@@ -31,7 +31,7 @@ class InputData:
         self.opacity = 50
         self.brightness = 0
         self.contrast = 0
-        self.colormap = "bw"
+        self.colormap = "gray"
 
     def image(self, index):
         """Returns the current frame for an image

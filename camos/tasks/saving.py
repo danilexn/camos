@@ -11,7 +11,6 @@ from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 import numpy as np
 from camos.tasks.runtask import RunTask
 from camos.utils.errormessages import ErrorMessages
-import camos.utils.apptools as apptools
 
 
 class Saving(QObject):
@@ -43,8 +42,11 @@ class Saving(QObject):
         if not self.filename:
             ErrorMessages("Path was not selected!")
             return
-        self._run()
-        self.finished.emit()
+        try:
+            self._run()
+            self.handler.success = True
+        finally:
+            self.finished.emit()
         pass
 
     def display(self):
@@ -60,6 +62,8 @@ class Saving(QObject):
             self._initialize_UI()
             self.initialize_UI()
             self._final_initialize_UI()
+        else:
+            self.run()
 
     def initialize_UI(self):
         pass

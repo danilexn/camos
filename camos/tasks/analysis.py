@@ -38,8 +38,11 @@ class Analysis(QObject):
 
     @pyqtSlot()
     def run(self):
-        self._run()
-        self.finished.emit()
+        try:
+            self._run()
+            self.handler.success = True
+        finally:
+            self.finished.emit()
         pass
 
     def plot(self):

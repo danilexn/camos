@@ -39,6 +39,9 @@ def nparray(arr):
             elif len(arr.shape) == 2:
                 frames.append(np.array(arr[:, :]))
                 break
+            elif len(arr.shape) == 4:
+                frames.append(np.array(arr[i, :, :, :]))
+                i += 1
     except:
         pass
 

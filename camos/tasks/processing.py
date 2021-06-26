@@ -42,7 +42,7 @@ class Processing(QObject):
         self.parent = parent
         self.output = np.zeros((1, 1))
         self.analysis_name = name
-        sys.stdout = Stream(newText=self.onUpdateOutput)
+        # sys.stdout = Stream(newText=self.onUpdateOutput)
 
     def onUpdateOutput(self, text):
         self._onUpdateOutput(text)
@@ -55,8 +55,11 @@ class Processing(QObject):
 
     @pyqtSlot()
     def run(self):
-        self._run()
-        self.finished.emit()
+        try:
+            self._run()
+            self.handler.success = True
+        finally:
+            self.finished.emit()
         pass
 
     def plot(self):
