@@ -7,11 +7,16 @@
 import numpy as np
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIntValidator
-from camos.tasks.processing import Processing
+from PyQt5.QtCore import pyqtSignal
+from PyQt5 import QtCore, QtWidgets
 
+from camos.tasks.runtask import RunTask
+from camos.tasks.analysis import Analysis
+from camos.viewport.signalviewport import SignalViewPort
 
-class ExtractSignal(Processing):
-    analysis_name = "Extract signal"
+class ExtractSignal(Analysis):
+    analysis_name = "Extract Signal"
+    plotReady = pyqtSignal()
 
     def __init__(self, model=None, parent=None, signal=None):
         super(ExtractSignal, self).__init__(
@@ -19,7 +24,10 @@ class ExtractSignal(Processing):
         )
         self.mask = None
         self.image = None
+        self.signalviewport = SignalViewPort(self.signal, self.parent)
         self.finished.connect(self.output_to_signalmodel)
+        self.finished.connect(self.update_plot)
+        self.finished.connect(self.signalviewport.add_last_track)
 
     def _run(self):
         # Get the ROIs from the mask
@@ -69,6 +77,10 @@ class ExtractSignal(Processing):
 
         self.output = dF_cell
 
+    def output_to_signalmodel(self):
+        name = self.cbimage.currentText()
+        self.parent.signalmodel.add_data(self.output, "Signal from {}".format(name), self)
+
     def initialize_UI(self):
         self.masklabel = QLabel("Mask image", self.dockUI)
         self.imagelabel = QLabel("Fluorescence image", self.dockUI)
@@ -105,6 +117,21 @@ class ExtractSignal(Processing):
         self.layout.addWidget(self.cbmask)
         self.layout.addWidget(self.imagelabel)
         self.layout.addWidget(self.cbimage)
+
+    def _initialize_UI(self):
+        self.dockUI = QDockWidget(self.analysis_name, self.parent)
+        self.main_layout = QHBoxLayout()
+        self.group_settings = QGroupBox("Parameters")
+        self.group_plot = QGroupBox("Plot")
+        self.layout = QVBoxLayout()
+        self.plot_layout = QVBoxLayout()
+        self.plot_layout.addWidget(
+            self.signalviewport.scene.canvas.native
+        )
+        self.group_settings.setLayout(self.layout)
+        self.group_plot.setLayout(self.plot_layout)
+        self.main_layout.addWidget(self.group_settings, 1)
+        self.main_layout.addWidget(self.group_plot, 4)
 
     def _set_mask(self, text):
         index = self.cbmask.currentIndex()

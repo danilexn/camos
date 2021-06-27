@@ -12,7 +12,7 @@ import sys
 from camos.model.imageviewmodel import ImageViewModel
 from camos.model.signalviewmodel import SignalViewModel
 from camos.viewport.imageviewport import ImageViewPort
-from camos.viewport.signalviewport import SignalViewPort
+# from camos.viewport.signalviewport import SignalViewPort
 from camos.gui.framecontainer import FrameContainer
 
 
@@ -39,10 +39,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.camosApp = camosApp
 
         self.viewport = ImageViewPort(self.model, self.parent)
-        self.signalviewport = SignalViewPort(self.signalmodel, self.parent)
+        # self.signalviewport = SignalViewPort(self.signalmodel, self.parent)
 
         # Connect events
-        self.signalmodel.newdata.connect(self.signalviewport.add_last_track)
+        # self.signalmodel.newdata.connect(self.signalviewport.add_last_track)
         self.model.newdata.connect(self.viewport.load_image)
         self.model.updated.connect(self.viewport.update_viewport)
         self.model.axes.connect(self.viewport.translate_position)
@@ -96,6 +96,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fileMenu = menubar.addMenu("&File")
         self.processMenu = menubar.addMenu("&Process")
         self.analysisMenu = menubar.addMenu("&Analyze")
+        self.datasetsMenu = menubar.addMenu("&Datasets")
 
         # File menu
         # Sublevels

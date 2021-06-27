@@ -21,14 +21,13 @@ class SaveSignal(Saving):
             name=self.analysis_name,
             extensions="hdf5 File (*.h5)",
         )
-        self.file = file
         self.image = None
-        self.signalmodel = signal
+        self.signal = signal
 
     def _run(self):
-        h5f = h5py.File(self.file, "w")
-        for i, data in enumerate(self.signal):
-            h5f.create_dataset("signal_{}".format(i), data=data)
+        h5f = h5py.File(self.filename, "w")
+        for (name, data) in self.signal:
+            h5f.create_dataset("{}".format(name), data=data)
         h5f.close()
 
     def initialize_UI(self):

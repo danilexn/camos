@@ -5,10 +5,9 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 import pyqtgraph as pg
-import inspect
-import matplotlib.pyplot as plt
 
 import camos.viewport.mpl_cmaps_in_ImageItem as cmaps
+import camos.utils.apptools as apptools
 
 
 class ImageViewPort(pg.ImageView):
@@ -43,6 +42,10 @@ class ImageViewPort(pg.ImageView):
         lut = cmaps.cmapToColormap(cmap).getLookupTable()
         self.view.addedItems[-1].setLookupTable(lut)
         # self.view.addedItems[-1].setLevels([0, 210])
+
+    def center_position(self, **kwargs):
+        print("Updating position")
+        pass
 
     def update_viewport(self, layer = 0):
         op = self.model.opacities[layer]
@@ -82,7 +85,9 @@ class ImageViewPort(pg.ImageView):
     def translate_position(self, layer, position):
         x = position[0]
         y = position[1]
-        self.view.addedItems[layer + 3].translate(x, y)
+        x_t, y_t = self.model.translation[layer]
+        self.view.addedItems[layer + 3].translate(x - x_t, y - y_t)
+        self.model.translation[layer] = [x, y]
 
     def toggle_roi(self):
         if self.roi.isVisible():
@@ -92,16 +97,36 @@ class ImageViewPort(pg.ImageView):
 
 
 class DrawingImage(pg.ImageItem):
+    accpos = [0, 0]
     def mouseClickEvent(self, event):
         print("Click", event.pos())
 
     def mouseDragEvent(self, event):
         if event.isStart():
+            model = apptools.getApp().gui.model
+            viewitems = model.viewitems
+            idx = viewitems.index(self)
+            self.initial_pos = model.translation[idx]
             self.setBorder(pg.mkPen(cosmetic=False, width=4.5, color='r'))
+            self.accpos = model.translation[idx]
+
         elif event.isFinish():
+            model = apptools.getApp().gui.model
+            viewitems = model.viewitems
+            idx = viewitems.index(self)
+
+            x, y = event.pos().x(), event.pos().y()
+            self.accpos[0] = self.accpos[0] + x
+            self.accpos[1] = self.accpos[1] + y
+            apptools.getApp().gui.model.translation[idx] = [self.accpos[0], self.accpos[1]]
+
             self.setBorder(None)
+
         else:
             p =  event.pos()
+            x, y = event.pos().x(), event.pos().y()
+            self.accpos[0] = self.accpos[0] + x
+            self.accpos[1] = self.accpos[1] + y
             self.translate(p.x(), p.y())
 
     def hoverEvent(self, event):

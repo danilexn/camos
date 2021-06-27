@@ -91,4 +91,6 @@ class Correlation(Analysis):
             width=2,
             ax=self.plot.axes,
         )
-        self.plot.axes.imshow(self.mask[0], cmap="gray", origin="lower")
+        self.plot.axes.imshow(self.mask[0], cmap="gray", origin="upper")
+        self.plot.axes.set_ylabel('Frame number')
+        self.plot.axes.set_xlabel('Frame number')

@@ -65,8 +65,11 @@ class Processing(QObject):
     def plot(self):
         pass
 
+    def show(self):
+        self.dockUI.show()
+
     def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(self.output)
+        self.parent.signalmodel.add_data(self.output, "", self)
 
     def output_to_imagemodel(self, name = None):
         image = InputData(

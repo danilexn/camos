@@ -96,4 +96,6 @@ class MeanFiringRate(Analysis):
             width=2,
             ax=self.plot.axes,
         )
-        self.plot.axes.imshow(self.mask[0], cmap="gray", origin="lower")
+        self.plot.axes.imshow(self.mask[0], cmap="gray", origin="upper")
+        self.plot.axes.set_ylabel('Y coordinate')
+        self.plot.axes.set_xlabel('X coordinate')

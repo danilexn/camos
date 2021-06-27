@@ -27,8 +27,11 @@ class SaveImage(Saving):
     def _run(self):
         currentlayer = self.model.currentlayer
         self.image = self.model.images[currentlayer]._image._imgs
-        print(self.image.shape)
-        tifffile.imsave(self.filename, self.image, metadata={"axes": "TXY"})
+        shape = self.image.shape
+        if shape[0] == 1:
+            tifffile.imsave(self.filename, self.image[0])
+        else:
+            tifffile.imsave(self.filename, self.image, metadata={"axes": "TXY"})
 
     def initialize_UI(self):
         self.fpslabel = QLabel("Frames per second", self.dockUI)

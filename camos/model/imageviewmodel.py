@@ -53,6 +53,9 @@ class ImageViewModel(QObject):
     # For intensities being updated
     updateint = pyqtSignal(int)
 
+    # For communicating to plots being updated
+    imagetoplot = pyqtSignal(list)
+
     def __init__(self, images=[], parent=None):
         """Initialization of the class
 
@@ -69,6 +72,7 @@ class ImageViewModel(QObject):
         self.colormaps = []
         self.names = []
         self.viewitems = []
+        self.translation = []
 
         self.maxframe = 0
         self.frame = 0
@@ -102,6 +106,7 @@ class ImageViewModel(QObject):
             name = "Layer {}".format(len(self.images) - 1)
 
         self.names.append(name)
+        self.translation.append([0, 0])
         self.newdata.emit(-1)
 
     def crop_image(self, index):
@@ -120,6 +125,23 @@ class ImageViewModel(QObject):
         )
         image.loadImage()
         self.add_image(image, "Cropped from Layer {}".format(index))
+        # self.translate_position(-1, (x_min, y_min))
+
+    def flip_image(self, index):
+        """Horizontally flips the image contained in this model for which the index is provided
+
+        Args:
+            index (int): position of the InputData object containing the image, in the list self.images
+        """
+
+        flipped = np.flip(self.images[index]._image._imgs, axis = 2)
+        image = InputData(
+            flipped,
+            memoryPersist=True,
+            name="Flipped from Layer {}".format(index),
+        )
+        image.loadImage()
+        self.add_image(image, "Flipped from Layer {}".format(index))
 
     def trigger_select_cells(self):
         """Toggles on or off the selection of cells in the current layer after a "double click" mouse event
@@ -132,6 +154,7 @@ class ImageViewModel(QObject):
         """Selects the cells in the currently selected layer if cell selection is enabled. See the method self.trigger_select_cells
         """
         if not self._enable_select_cells:
+            self.update_plots()
             return
         x, y = self.curr_x, self.curr_y
         mask = self.images[self.currentlayer]._image._imgs[0]
@@ -142,6 +165,13 @@ class ImageViewModel(QObject):
         )
         image.loadImage()
         self.add_image(image, "Cell {} from Layer {}".format(cell_ID, self.currentlayer))
+
+    def update_plots(self, layer = None):
+        if layer == None:
+            self.imagetoplot.emit([self.get_currint()])
+        else:
+            idx = np.unique(self.images[self.currentlayer]._image._imgs[0]).tolist()
+            self.imagetoplot.emit(idx)
 
     @pyqtSlot()
     def layer_remove(self, index):
@@ -156,6 +186,7 @@ class ImageViewModel(QObject):
         self.opacities.pop(index)
         self.colormaps.pop(index)
         self.names.pop(index)
+        self.translation.pop(index)
         self.removedata.emit(index)
 
     def list_images(self):
@@ -178,23 +209,7 @@ class ImageViewModel(QObject):
             return np.zeros((1, 1))
         _frame = int(self.frame / (self.maxframe / self.frames[layer]))
         _img = self.images[layer]._image._imgs[_frame]
-        #_img = np.int16(_img)
-        #_img = (
-        #    _img * (self.contrasts[layer] / 127 + 1)
-        #    - self.contrasts[layer]
-        #    + self.brightnesses[layer]
-        #)
-        #_img = cv2.normalize(
-        #    _img, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U
-        #)
-        #_img =  cv2.applyColorMap(
-        #    _img, cmaps[self.colormaps[layer]]
-        #)
 
-        #b, g, r = cv2.split(_img)
-        #a = np.ones(b.shape, dtype=b.dtype) * self.opacities[layer]
-
-        #img = cv2.merge((b, g, r, a))
         return _img
 
     @pyqtSlot()
@@ -215,6 +230,12 @@ class ImageViewModel(QObject):
     @pyqtSlot()
     def translate_position(self, index=0, position=(0, 0)):
         self.axes.emit(index, position)
+
+    def align_layers(self, layer=0):
+        curr = self.currentlayer
+        delta_x = self.translation[curr][0]
+        delta_y = self.translation[curr][1]
+        self.translate_position(layer, (delta_x, delta_y))
 
     @pyqtSlot()
     def duplicate_image(self, index=0):

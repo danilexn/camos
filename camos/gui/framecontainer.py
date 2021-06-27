@@ -4,7 +4,7 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
 
@@ -34,12 +34,12 @@ class FrameContainer(QtWidgets.QWidget):
         self.mainlayout.setContentsMargins(0, 0, 0, 0)
         self.verticalwidgets()
 
-        self.mainlayout.addLayout(self.box_layout1, 2)
-        self.mainlayout.addLayout(self.box_layout2, 1)
+        self.mainlayout.addLayout(self.box_layout1, 1) # was 2 before
+        # self.mainlayout.addLayout(self.box_layout2, 1)
         pg.QtGui.QApplication.processEvents()
 
     def verticalwidgets(self):
-        """ViewPorts for the images (box_layout1) and signals (box_layout2)
+        """ViewPorts for the images (box_layout1)
         """
         # Left side
         self.box_layout1 = QtWidgets.QHBoxLayout()
@@ -70,11 +70,11 @@ class FrameContainer(QtWidgets.QWidget):
         self._createLayersToolBar()
 
         # Right side plot values selected!
-        self.box_layout2 = QtWidgets.QVBoxLayout()
-        self.box_layout2.setContentsMargins(0, 0, 0, 0)
-        self.box_layout2.addWidget(
-            self.parent.signalviewport.scene.canvas.native
-        )
+        # self.box_layout2 = QtWidgets.QVBoxLayout()
+        # self.box_layout2.setContentsMargins(0, 0, 0, 0)
+        # self.box_layout2.addWidget(
+        #    self.parent.signalviewport.scene.canvas.native
+        # )
 
     def _change_current_layer(self, index):
         """Internal representation of the current layer selected
@@ -199,6 +199,10 @@ class FrameContainer(QtWidgets.QWidget):
             QIcon("resources/icon-rotate.svg"), "&Rotate", self
         )
         self.rotateAction.triggered.connect(self._rotate_layer)
+        self.flipAction = QAction(
+            QIcon("resources/icon-flip.svg"), "&Flip", self
+        )
+        self.flipAction.triggered.connect(self._flip_layer)
         self.toggleROIAction = QAction(
             QIcon("resources/icon-roi.svg"), "&Toggle ROI", self
         )
@@ -215,6 +219,14 @@ class FrameContainer(QtWidgets.QWidget):
             QIcon("resources/reset-axis.svg"), "&Reset axis", self
         )
         self.resetAxis.triggered.connect(self._reset_axis)
+        self.sendMask = QAction(
+            QIcon("resources/icon-all.svg"), "&Send mask", self
+        )
+        self.sendMask.triggered.connect(self._send_mask)
+        self.alignImage = QAction(
+            QIcon("resources/icon-align.svg"), "&Send mask", self
+        )
+        self.alignImage.triggered.connect(self._align_image)
 
     def _layer_remove(self):
         """Handles the removal of the currently selected layer in self.currentlayer, which is updated, in the image model
@@ -245,6 +257,18 @@ class FrameContainer(QtWidgets.QWidget):
         idx = self.currentlayer
         self.parent.model.reset_position(idx)
 
+    def _send_mask(self):
+        self.currentlayer = self.opened_layers_widget.currentRow()
+        idx = self.currentlayer
+        self.parent.model.update_plots(idx)
+
+    def _align_image(self):
+        self.currentlayer = self.opened_layers_widget.currentRow()
+        idx = self.currentlayer
+        dialog = LayerDialog(self.parent)
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            self.parent.model.align_layers(dialog.combo.currentIndex())
+
     def _select_cells(self):
         """Handles the call to ImageViewModel.trigger_select_cells in the parent image model, so it can enable the selection of cells for any layer selected at any moment
         """
@@ -262,6 +286,13 @@ class FrameContainer(QtWidgets.QWidget):
         idx = self.currentlayer
         self.parent.model.rotate_image(idx)
 
+    def _flip_layer(self):
+        """Handles the call to ImageViewModel.rotate_image in the parent image model, so it can perform anticlockwise rotation for the selected self.currentlayer
+        """
+        self.currentlayer = self.opened_layers_widget.currentRow()
+        idx = self.currentlayer
+        self.parent.model.flip_image(idx)
+
     def _createLayersToolBar(self):
         """Creates the toolbar inside the layers sidebar containing the buttons for Remove, Duplicate, Rotate, Toggle ROI, Crop and Select Cell actions.
         """
@@ -274,6 +305,9 @@ class FrameContainer(QtWidgets.QWidget):
         layersToolBar.addAction(self.cropAction)
         layersToolBar.addAction(self.cellSelect)
         layersToolBar.addAction(self.resetAxis)
+        layersToolBar.addAction(self.sendMask)
+        layersToolBar.addAction(self.alignImage)
+        layersToolBar.addAction(self.flipAction)
 
 
 class QLayerWidget(QtWidgets.QListWidget):
@@ -284,3 +318,27 @@ class QLayerWidget(QtWidgets.QListWidget):
             self.parent()._layer_remove()
         else:
             super().keyPressEvent(event)
+
+class LayerDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        super(LayerDialog, self).__init__(parent)
+
+        label = QtGui.QLabel("Text")
+        self.combo = QtGui.QComboBox()
+        self.parent = parent
+        self.combo.addItems(self.parent.model.list_images())
+
+        box = QtGui.QDialogButtonBox(
+            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+            centerButtons=True,
+        )
+
+        box.accepted.connect(self.accept)
+        box.rejected.connect(self.reject)
+
+        lay = QtGui.QGridLayout(self)
+        lay.addWidget(label, 0, 0)
+        lay.addWidget(self.combo, 0, 1)
+        lay.addWidget(box, 2, 0, 1, 2)
+
+        self.resize(640, 240)

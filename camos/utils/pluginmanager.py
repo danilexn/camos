@@ -22,6 +22,7 @@ import camos.utils.apptools as apptools
 PLUGIN_GROUP = "camos.plugins"
 
 log = logging.getLogger(__name__)
+plugin_instances = []
 
 
 def _create_instance(plugin_class, attribute_name, base):
@@ -29,7 +30,7 @@ def _create_instance(plugin_class, attribute_name, base):
     try:
         gui = apptools.getApp().gui
         analysisAct = QtWidgets.QAction("{}".format(plugin_class.analysis_name), gui)
-        analysisAct.triggered.connect(lambda: make_instance(plugin_class))
+        analysisAct.triggered.connect(lambda: make_instance(plugin_class, base))
         if Analysis in base:
             gui.analysisMenu.addAction(analysisAct)
         elif Processing in base:
@@ -46,12 +47,13 @@ def _create_instance(plugin_class, attribute_name, base):
     return instance
 
 
-def make_instance(_class):
+def make_instance(_class, base):
     gui = apptools.getApp().gui
     model = gui.model
     signalmodel = gui.signalmodel
     instance = _class(model=model, parent=gui, signal=signalmodel)
-    instance.display()
+    plugin_instances.append(instance)
+    plugin_instances[-1].display()
 
 
 class PluginManager(object):

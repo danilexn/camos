@@ -67,15 +67,8 @@ class OpenCMOS(Opening):
         self.minimodel.add_image(self.image)
 
     def initialize_UI(self):
-        self.ydimlabel = QLabel("Electrodes Y")
-        self.ydim = QLineEdit()
         self.onlyInt = QIntValidator()
-        self.ydim.setValidator(self.onlyInt)
-        self.ydim.setText("64")
-        self.layout.addWidget(self.ydimlabel)
-        self.layout.addWidget(self.ydim)
-
-        self.xdimlabel = QLabel("Electrodes X")
+        self.xdimlabel = QLabel("Grid edge size (N)")
         self.xdim = QLineEdit()
         self.xdim.setValidator(self.onlyInt)
         self.xdim.setText("64")
@@ -160,7 +153,7 @@ class OpenCMOS(Opening):
     @pyqtSlot()
     def calculate_grid(self):
         ps = []
-        dim = (int(self.xdim.text()), int(self.ydim.text()))
+        dim = (int(self.xdim.text()), int(self.xdim.text()))
         c = self.cardinal
         self.createLineAndProject(
             [c[0][0], c[1][0]], [c[0][1], c[1][1]], ps, dim
@@ -186,17 +179,23 @@ class OpenCMOS(Opening):
         while len(self.viewport.view.addedItems) > 4:
             self.viewport.view.removeItem(self.viewport.view.addedItems[-1])
 
+    def rotated_matrix_indexes(self, N):
+        replacement = np.flip(np.array(np.arange(1, N*N + 1, 1)).reshape(N, N).T, axis = 1).flatten()
+        return replacement
+
     def import_chip(self):
+        N = int(self.xdim.text())
         radius = int(self.radius.text())
         img_dims = self.image._image._imgs[0].shape
         grid_image = np.zeros((img_dims[0], img_dims[1]))
+        replacement = self.rotated_matrix_indexes(N)
         for i, c in enumerate(self.grid):
             _min_y = int(c[0]) - radius if int(c[0]) - radius > 0 else 0
             _max_y = int(c[0]) + radius if int(c[0]) - radius < img_dims[0] else img_dims[0]
 
             _min_x = int(c[1]) - radius if int(c[1]) - radius > 0 else 0
             _max_x = int(c[1]) + radius if int(c[1]) - radius < img_dims[1] else img_dims[1]
-            grid_image[_min_x:_max_x, _min_y:_max_y] = i + 0
+            grid_image[_min_x:_max_x, _min_y:_max_y] = replacement[i]
 
         self.grid_image = InputData(grid_image, memoryPersist=True)
         self.grid_image.loadImage()

@@ -1,1 +1,1 @@
-__all__ = ["aboutpage", "generatemask"]
+__all__ = ["aboutpage", "stackregistration"]

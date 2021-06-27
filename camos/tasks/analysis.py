@@ -8,6 +8,10 @@ from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
+from matplotlib.backends.backend_qt5agg import (
+    NavigationToolbar2QT as NavigationToolbar,
+)
+
 import numpy as np
 from camos.tasks.runtask import RunTask
 from camos.utils.errormessages import ErrorMessages
@@ -28,7 +32,8 @@ class Analysis(QObject):
         self.parent = parent
         self.output = np.zeros((1, 1))
         self.analysis_name = name
-        self.finished.connect(self.plot)
+        self.finished.connect(self.update_plot)
+        self.model.imagetoplot.connect(self.update_values_plot)
 
     def _run(self):
         pass
@@ -45,31 +50,41 @@ class Analysis(QObject):
             self.finished.emit()
         pass
 
-    def plot(self):
+    def update_plot(self):
         self._plot()
         self.plot.draw()
         self.plotReady.emit()
         pass
 
     def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(self.output)
+        self.parent.signalmodel.add_data(self.output, "", self)
 
     def output_to_imagemodel(self):
         self.parent.model.add_image(self.output)
 
     def display(self):
-        # TODO: change to signal...
         if type(self.model.list_images()) is type(None):
-            # Handle error that there are no images
             ErrorMessages("There are no images!")
-        if type(self.input.list_datasets()) is type(None):
-            # Handle error that there are no images
-            ErrorMessages("There are no images!")
+        if type(self.signal.list_datasets()) is type(None):
+            ErrorMessages("There is no data!")
+
         self._initialize_UI()
         self.initialize_UI()
         self._final_initialize_UI()
 
+    def show(self):
+        self.dockUI.show()
+
     def initialize_UI(self):
+        pass
+
+    def update_values_plot(self, values):
+        self._update_values_plot(values)
+        self.plot.axes.clear()
+        self.update_plot()
+        pass
+
+    def _update_values_plot(self, values):
         pass
 
     def _initialize_UI(self):
@@ -80,6 +95,9 @@ class Analysis(QObject):
         self.layout = QVBoxLayout()
         self.plot_layout = QVBoxLayout()
         self.plot = AnalysisPlot(self, width=5, height=4, dpi=100)
+        self.plot.plottoimage.connect(self.parent.viewport.center_position)
+        self.toolbar = NavigationToolbar(self.plot, None)
+        self.plot_layout.addWidget(self.toolbar)
         self.plot_layout.addWidget(self.plot)
         self.group_settings.setLayout(self.layout)
         self.group_plot.setLayout(self.plot_layout)

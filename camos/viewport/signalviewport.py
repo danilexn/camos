@@ -21,10 +21,15 @@ class SignalViewPort:
                 event: the trigger event
             """
             print(event.pos)
+            print(event.source.position)
             print(event.button)
             pass
 
-    def add_last_track(self, title="Calcium signal"):
-        data = self.model.data[-1]
+    def add_last_track(self, **kwargs):
+        self.add_track(-1, **kwargs)
+
+    def add_track(self, layer = 0, title="Calcium signal"):
+        data = self.model.data[layer]
+        name = self.model.names[layer]
         g_obj_grid = GridSignalsObj("2d", data, plt_as="col")
-        self.scene.add_to_subplot(g_obj_grid, title=title)
+        self.scene.add_to_subplot(g_obj_grid, title=name)

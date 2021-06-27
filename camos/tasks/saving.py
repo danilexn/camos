@@ -32,6 +32,7 @@ class Saving(QObject):
         self.analysis_name = name
         self.show = show
         self.extensions = extensions
+        self.handler = None
         # self.finished.connect(self.plot)
 
     def _run(self):
@@ -44,7 +45,8 @@ class Saving(QObject):
             return
         try:
             self._run()
-            self.handler.success = True
+            if self.handler != None:
+                self.handler.success = True
         finally:
             self.finished.emit()
         pass
