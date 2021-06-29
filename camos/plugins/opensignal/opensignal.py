@@ -29,7 +29,7 @@ class OpenSignal(Opening):
         h5f = h5py.File(self.filename, "r")
         for name in list(h5f.keys()):
             data = np.array(h5f[name])
-            _sv = SignalViewer(self.parent, self.signal)
+            _sv = SignalViewer(self.parent, data)
             self.signal.add_data(data, name, _sv)
             _sv.display()
 

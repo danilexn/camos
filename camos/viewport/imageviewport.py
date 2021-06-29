@@ -37,10 +37,13 @@ class ImageViewPort(pg.ImageView):
             self.model.viewitems[layer] = item
         self.view.addItem(self.model.viewitems[layer])
         self.view.addedItems[-1].setOpts(opacity = 0.5, axisOrder='row-major')
-
+        if image.shape[0] > 10000 or image.shape[1] > 10000:
+            return
         cmap = self.model.colormaps[-1]
         lut = cmaps.cmapToColormap(cmap).getLookupTable()
         self.view.addedItems[-1].setLookupTable(lut)
+        scale_x, scale_y = self.model.scales[-1]
+        self.view.addedItems[-1].scale(scale_x, scale_y)
         # self.view.addedItems[-1].setLevels([0, 210])
 
     def center_position(self, **kwargs):
@@ -63,6 +66,8 @@ class ImageViewPort(pg.ImageView):
         self.view.removeItem(self.view.addedItems[layer + 3])
 
     def mouse_moved(self, event):
+        if len(self.view.addedItems) <= 3:
+            return
         layer = self.model.currentlayer
         scenePos = self.view.addedItems[layer + 3].mapFromScene(event)
         row, col = int(scenePos.x()), int(scenePos.y())

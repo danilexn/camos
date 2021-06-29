@@ -82,6 +82,13 @@ class OpenCMOS(Opening):
         self.layout.addWidget(self.radiuslab)
         self.layout.addWidget(self.radius)
 
+        self.scalelab = QLabel("Output Scale")
+        self.scale = QLineEdit()
+        self.scale.setValidator(self.onlyInt)
+        self.scale.setText("10")
+        self.layout.addWidget(self.scalelab)
+        self.layout.addWidget(self.scale)
+
         self.clearButton = QPushButton("Clear Grid")
         self.clearButton.clicked.connect(self.clear_grid)
         self.layout.addWidget(self.clearButton)
@@ -184,22 +191,26 @@ class OpenCMOS(Opening):
         return replacement
 
     def import_chip(self):
+        scale = 1/int(self.scale.text())
         N = int(self.xdim.text())
-        radius = int(self.radius.text())
+        radius = int(int(self.radius.text())*scale)
         img_dims = self.image._image._imgs[0].shape
-        grid_image = np.zeros((img_dims[0], img_dims[1]))
+        grid_image = np.zeros((int(img_dims[0]*scale), int(img_dims[1]*scale)))
         replacement = self.rotated_matrix_indexes(N)
+        pos = {}
         for i, c in enumerate(self.grid):
-            _min_y = int(c[0]) - radius if int(c[0]) - radius > 0 else 0
-            _max_y = int(c[0]) + radius if int(c[0]) - radius < img_dims[0] else img_dims[0]
+            _min_y = int(c[0]*scale) - radius if int(c[0]*scale) - radius > 0 else 0
+            _max_y = int(c[0]*scale) + radius if int(c[0]*scale) - radius < img_dims[0] else img_dims[0]
 
-            _min_x = int(c[1]) - radius if int(c[1]) - radius > 0 else 0
-            _max_x = int(c[1]) + radius if int(c[1]) - radius < img_dims[1] else img_dims[1]
+            _min_x = int(c[1]*scale) - radius if int(c[1]*scale) - radius > 0 else 0
+            _max_x = int(c[1]*scale) + radius if int(c[1]*scale) - radius < img_dims[1] else img_dims[1]
+            pos[replacement[i]] = [np.average([_max_x, _min_x]), np.average([_max_y, _min_y])]
             grid_image[_min_x:_max_x, _min_y:_max_y] = replacement[i]
 
         self.grid_image = InputData(grid_image, memoryPersist=True)
         self.grid_image.loadImage()
-        self.parent.model.add_image(self.grid_image)
+        self.grid_image.coords = pos
+        self.parent.model.add_image(self.grid_image, scale = [1/scale, 1/scale])
 
 
 class MiniImageViewModel(ImageViewModel):

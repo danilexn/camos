@@ -10,62 +10,57 @@ from camos.tasks.analysis import Analysis
 import matplotlib.cm as cm
 
 import networkx as nx
-from camos.plugins.detectpeaks import oopsi
 
 
 class MeanFiringRate(Analysis):
     analysis_name = "Mean Firing Rate"
+    input_type = "summary"
 
     def __init__(self, model=None, parent=None, signal=None):
         super(MeanFiringRate, self).__init__(
             model, parent, signal, name=self.analysis_name
         )
         self.data = None
+        self.finished.connect(self.output_to_signalmodel)
 
     def _run(self):
         self.pos = {}
-        self.events = np.array([])
-        self.cells = np.array([])
-        signal_output = self.data
-        for i in range(signal_output.shape[0]):
-            F = np.diff(signal_output[i])
-            db, Cz = oopsi.fast(F, dt=0.1, iter_max=50)
-            idx = np.where(db >= 1)
-            self.events = np.append(self.events, idx)
-            self.cells = np.append(self.cells, np.repeat(i, len(idx[0])))
-            self.intReady.emit(i * 100 / signal_output.shape[0])
+        duration = 100
+        output_type = [('CellID', 'int'), ('MFR', 'float')]
 
-        self.G_mfr = nx.Graph()
-        # Calculate the positions
-        for i in range(1, len(signal_output)):
-            cell = self.mask[0] == i
-            p = np.average(np.where(cell > 0), axis=1)
-            self.pos[i - 1] = np.flip(p)
-            self.intReady.emit(i * 100 / signal_output.shape[0])
+        # data should be provided in format of peaks
+        data = self.data
+        if not ("Active" in data.dtype.names):
+            return
+
+        ROIs = np.unique(data[:]["CellID"])
 
         # Calculate mean firing rate per cell
-        for i in range(1, len(signal_output) - 1):
-            self.G_mfr.add_node(
-                i,
-                weight=np.sum(np.diff(self.events[np.where(self.cells == i)])),
-            )
-            self.intReady.emit(i * 100 / signal_output.shape[0])
+        self.output = np.zeros(shape = (len(ROIs), 1), dtype = output_type)
+        unique, counts = np.unique(data[:]["CellID"], return_counts=True)
+        self.output[:]["CellID"] = unique.reshape(-1, 1)
+        self.output[:]["MFR"] = counts.reshape(-1, 1)
+        
 
-        self.finished.emit()
+        self.output = self.output[1:]
+        self.foutput = self.output
 
     def display(self):
-        if type(self.signal.list_datasets()) is type(None):
+        if type(self.signal.list_datasets(self.input_type)) is type(None):
             # Handle error that there are no images
             return
         self._initialize_UI()
         self.initialize_UI()
         self._final_initialize_UI()
 
+    def output_to_signalmodel(self):
+        self.parent.signalmodel.add_data(self.output, "MFR of {}".format(self.dataname), self)
+
     def initialize_UI(self):
         self.datalabel = QLabel("Source dataset", self.dockUI)
         self.cbdata = QComboBox()
         self.cbdata.currentIndexChanged.connect(self._set_data)
-        self.cbdata.addItems(self.signal.list_datasets())
+        self.cbdata.addItems(self.signal.list_datasets(self.input_type))
         self.masklabel = QLabel("Mask image", self.dockUI)
         self.cbmask = QComboBox()
         self.cbmask.currentIndexChanged.connect(self._set_mask)
@@ -79,23 +74,26 @@ class MeanFiringRate(Analysis):
     def _set_data(self, index):
         dataset = self.signal.data[index]
         self.data = dataset
+        self.dataname = self.signal.names[index]
 
     def _set_mask(self, text):
         index = self.cbmask.currentIndex()
         self.mask = self.model.images[index]._image
 
     def _plot(self):
-        colors = [self.G_mfr.nodes[n]["weight"] for n in self.G_mfr.nodes]
-        colors = [float(i) / max(colors) for i in colors]
-        colors = cm.viridis(colors)
-        nx.draw(
-            self.G_mfr,
-            self.pos,
-            node_color=colors,
-            alpha=0.6,
-            width=2,
-            ax=self.plot.axes,
-        )
-        self.plot.axes.imshow(self.mask[0], cmap="gray", origin="upper")
+        mask = self.mask._imgs[0].astype(int)
+        MFR_dict = {}
+        for i in range(1, self.foutput.shape[0]):
+            MFR_dict[int(self.foutput[i]["CellID"][0])] = self.foutput[i]["MFR"][0]
+
+        k = np.array(list(MFR_dict.keys()))
+        v = np.array(list(MFR_dict.values()))
+
+        dim = max(k.max(), np.max(mask))
+        mapping_ar = np.zeros(dim+1,dtype=v.dtype)
+        mapping_ar[k] = v
+        MFR_mask = mapping_ar[mask]
+
+        self.plot.axes.imshow(MFR_mask, cmap="inferno", origin="upper")
         self.plot.axes.set_ylabel('Y coordinate')
         self.plot.axes.set_xlabel('X coordinate')

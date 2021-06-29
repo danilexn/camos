@@ -19,22 +19,23 @@ class DetectPeaks(Analysis):
         )
         self.model = model
         self.signal = signal
+        self.finished.connect(self.output_to_signalmodel)
 
     def _run(self):
-        self.events = np.array([])
-        self.cells = np.array([])
-        signal_output = self.data
-        for i in range(signal_output.shape[0]):
-            F = np.diff(signal_output[i])
-            db, Cz = oopsi.fast(F, dt=0.1, iter_max=50)
-            idx = np.where(db >= 1)
-            self.events = np.append(self.events, idx)
-            self.cells = np.append(self.cells, np.repeat(i, len(idx[0])))
-            self.intReady.emit(i * 100 / signal_output.shape[0])
+        output_type = [('CellID', 'int'), ('Active', 'float')]
+        self.output = np.zeros(shape = (1, 1), dtype = output_type)
 
-        self._events = self.events
-        self._cells = self.cells
-        self.finished.emit()
+        data = self.data
+        for i in range(data.shape[0]):
+            F = np.diff(data[i])
+            db, Cz = oopsi.fast(F, dt=0.1, iter_max=50)
+            idxs = np.where(db >= 1)[0]/self.sampling
+            for idx in idxs:
+                row = np.array([(i, idx)], dtype = output_type)
+                self.output = np.append(self.output, row)
+            self.intReady.emit(i * 100 / data.shape[0])
+
+        self.foutput = self.output
 
     def display(self):
         if type(self.signal.list_datasets()) is type(None):
@@ -43,6 +44,9 @@ class DetectPeaks(Analysis):
         self._initialize_UI()
         self.initialize_UI()
         self._final_initialize_UI()
+
+    def output_to_signalmodel(self):
+        self.parent.signalmodel.add_data(self.output, "Peaks from {}".format(self.dataname), self, self.sampling)
 
     def initialize_UI(self):
         self.datalabel = QLabel("Source dataset", self.dockUI)
@@ -56,13 +60,14 @@ class DetectPeaks(Analysis):
     def _set_data(self, index):
         dataset = self.signal.data[index]
         self.data = dataset
+        self.dataname = self.signal.names[index]
+        self.sampling = self.signal.sampling[index]
 
     def _update_values_plot(self, values):
-        idx = np.isin(self._cells, np.array(values))
-        self.events = self._events[idx]
-        self.cells = self._cells[idx]
+        idx = np.isin(self.output[:]["CellID"], np.array(values))
+        self.foutput = self.output[idx]
 
     def _plot(self):
-        self.plot.axes.scatter(self.events, self.cells, s=10)
+        self.plot.axes.scatter(y = self.foutput[:]["CellID"], x = self.foutput[:]["Active"], s=0.5)
         self.plot.axes.set_ylabel('ROI ID')
         self.plot.axes.set_xlabel('Time (s)')

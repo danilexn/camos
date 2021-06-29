@@ -13,9 +13,11 @@ from matplotlib.backends.backend_qt5agg import (
 )
 
 import numpy as np
+
 from camos.tasks.runtask import RunTask
 from camos.utils.errormessages import ErrorMessages
 from camos.tasks.plotting import AnalysisPlot
+from camos.model.inputdata import InputData
 
 
 class Analysis(QObject):
@@ -31,6 +33,8 @@ class Analysis(QObject):
         self.signal = signal
         self.parent = parent
         self.output = np.zeros((1, 1))
+        self.foutput = np.zeros((1, 1))
+        self.sampling = 1
         self.analysis_name = name
         self.finished.connect(self.update_plot)
         self.model.imagetoplot.connect(self.update_values_plot)
@@ -46,6 +50,7 @@ class Analysis(QObject):
         try:
             self._run()
             self.handler.success = True
+            self.foutput = self.output
         finally:
             self.finished.emit()
         pass
@@ -57,7 +62,7 @@ class Analysis(QObject):
         pass
 
     def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(self.output, "", self)
+        self.parent.signalmodel.add_data(self.output, "", self, self.sampling)
 
     def output_to_imagemodel(self):
         self.parent.model.add_image(self.output)
@@ -95,7 +100,7 @@ class Analysis(QObject):
         self.layout = QVBoxLayout()
         self.plot_layout = QVBoxLayout()
         self.plot = AnalysisPlot(self, width=5, height=4, dpi=100)
-        self.plot.plottoimage.connect(self.parent.viewport.center_position)
+        self.plot.plottoimage.connect(self.parent.model.select_cells)
         self.toolbar = NavigationToolbar(self.plot, None)
         self.plot_layout.addWidget(self.toolbar)
         self.plot_layout.addWidget(self.plot)
@@ -110,10 +115,30 @@ class Analysis(QObject):
         self.handler = RunTask(self)
         self.runButton.clicked.connect(self.handler.start_progress)
 
+        self.savePlot = QPushButton("To viewport", self.parent)
+        self.savePlot.setToolTip("Click to move plot to viewport")
+        self.savePlot.clicked.connect(self.export_plot_to_viewport)
+
         self.layout.addWidget(self.runButton)
+        self.layout.addWidget(self.savePlot)
 
         self.dockedWidget = QtWidgets.QWidget()
         self.dockUI.setWidget(self.dockedWidget)
         self.dockedWidget.setLayout(self.main_layout)
         self.dockUI.setFloating(True)
         self.parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dockUI)
+
+    def export_plot_to_viewport(self):
+        try:
+            data = np.fromstring(self.plot.fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+            data = data.reshape(self.plot.fig.canvas.get_width_height()[::-1] + (3,))
+            rgb_weights = [0.2989, 0.5870, 0.1140]
+            data = np.dot(data, rgb_weights)
+            image = InputData(
+                data,
+                memoryPersist=True
+            )
+            image.loadImage()
+            self.parent.model.add_image(image, "Viewport Export")
+        except:
+            pass

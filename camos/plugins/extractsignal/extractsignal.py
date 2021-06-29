@@ -8,11 +8,8 @@ import numpy as np
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtCore import pyqtSignal
-from PyQt5 import QtCore, QtWidgets
 
-from camos.tasks.runtask import RunTask
 from camos.tasks.analysis import Analysis
-from camos.viewport.signalviewport import SignalViewPort
 
 class ExtractSignal(Analysis):
     analysis_name = "Extract Signal"
@@ -24,12 +21,13 @@ class ExtractSignal(Analysis):
         )
         self.mask = None
         self.image = None
-        self.signalviewport = SignalViewPort(self.signal, self.parent)
+        self.sampling = 1
         self.finished.connect(self.output_to_signalmodel)
         self.finished.connect(self.update_plot)
-        self.finished.connect(self.signalviewport.add_last_track)
 
     def _run(self):
+        # Set the sampling rate from the UI
+        self.sampling = int(self.F0_fps.text())
         # Get the ROIs from the mask
         ROIs = np.unique(self.mask.image(0))[1:]
         self.raw = np.zeros((len(ROIs), self.image.frames))
@@ -118,20 +116,18 @@ class ExtractSignal(Analysis):
         self.layout.addWidget(self.imagelabel)
         self.layout.addWidget(self.cbimage)
 
-    def _initialize_UI(self):
-        self.dockUI = QDockWidget(self.analysis_name, self.parent)
-        self.main_layout = QHBoxLayout()
-        self.group_settings = QGroupBox("Parameters")
-        self.group_plot = QGroupBox("Plot")
-        self.layout = QVBoxLayout()
-        self.plot_layout = QVBoxLayout()
-        self.plot_layout.addWidget(
-            self.signalviewport.scene.canvas.native
-        )
-        self.group_settings.setLayout(self.layout)
-        self.group_plot.setLayout(self.plot_layout)
-        self.main_layout.addWidget(self.group_settings, 1)
-        self.main_layout.addWidget(self.group_plot, 4)
+    def _plot(self):
+        offset = 0
+        cellID = []
+        for i in range(self.foutput.shape[0]):
+            t = np.arange(0, self.foutput.shape[1], 1)
+            self.plot.axes.plot(t, self.foutput[i] + offset)
+            cellID.append(str(i + 1))
+            offset += 1
+
+        self.plot.axes.set_yticks(np.arange(0, len(cellID)), cellID)
+        self.plot.axes.set_ylabel('ROI ID')
+        self.plot.axes.set_xlabel('Time (s)')
 
     def _set_mask(self, text):
         index = self.cbmask.currentIndex()

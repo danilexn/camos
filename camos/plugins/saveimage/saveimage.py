@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import *
 from camos.tasks.saving import Saving
 
 import tifffile
+from PIL import Image
 
 
 class SaveImage(Saving):
@@ -19,7 +20,7 @@ class SaveImage(Saving):
             parent,
             signal,
             name=self.analysis_name,
-            show=True,
+            show=False,
             extensions="tif File (*.tif)",
         )
         self.image = None
@@ -29,13 +30,7 @@ class SaveImage(Saving):
         self.image = self.model.images[currentlayer]._image._imgs
         shape = self.image.shape
         if shape[0] == 1:
-            tifffile.imsave(self.filename, self.image[0])
+            im = Image.fromarray(self.image[0])
+            im.save(self.filename)
         else:
             tifffile.imsave(self.filename, self.image, metadata={"axes": "TXY"})
-
-    def initialize_UI(self):
-        self.fpslabel = QLabel("Frames per second", self.dockUI)
-        self.fps = QLineEdit()
-
-        self.layout.addWidget(self.fpslabel)
-        self.layout.addWidget(self.fps)

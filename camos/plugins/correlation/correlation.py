@@ -24,25 +24,30 @@ class Correlation(Analysis):
         self.pos = {}
         self.events = np.array([])
         self.cells = np.array([])
-        signal_output = self.data
+        data = self.data
 
         self.G = nx.Graph()
-        self.G.add_nodes_from(list(range(1, len(signal_output))))
+        self.G.add_nodes_from(list(range(1, len(data))))
 
-        # Calculate node positions in the image
-        for i in range(1, len(signal_output)):
-            cell = self.mask[0] == i
-            p = np.average(np.where(cell > 0), axis=1)
-            self.pos[i] = np.flip(p)
-            self.intReady.emit(i * 100 / len(signal_output))
+        ROIs = np.unique(data[:]["CellID"])
+        # Calculate the positions
+        if self.mask_coords == None:
+            mask = self.mask[0]
+            for i in ROIs:
+                cell = mask == i
+                p = np.average(np.where(cell > 0), axis=1)
+                self.pos[i] = np.flip(p)
+                self.intReady.emit(i * 100 / len(ROIs))
+        else:
+            self.pos = self.mask_coords
 
         # Calculate cross correlation
-        for i in range(1, len(signal_output) - 1):
-            for j in range(i + 1, len(signal_output)):
-                cc = np.corrcoef(signal_output[i], signal_output[j])[0, 1]
+        for i in range(1, len(data) - 1):
+            for j in range(i + 1, len(data)):
+                cc = np.corrcoef(data[i], data[j])[0, 1]
                 if cc >= float(self.corrthreshold.text()):
                     self.G.add_edge(i, j, weight=cc)
-            self.intReady.emit(i * 100 / len(signal_output))
+            self.intReady.emit(i * 100 / len(data))
 
         self.finished.emit()
 

@@ -34,6 +34,9 @@ def nparray(arr):
     try:
         while True:
             if len(arr.shape) == 3:
+                if (arr.shape[2]) <= 3:
+                    frames.append(np.array(arr))
+                    break
                 frames.append(np.array(arr[i, :, :]))
                 i += 1
             elif len(arr.shape) == 2:
@@ -83,6 +86,7 @@ class Stack(Sequence):
         self.title = title
         self.units = units
         self.z_label = z_label
+        self.coords = []
 
     def reverse(self):
         self._imgs = self.pages[::-1]

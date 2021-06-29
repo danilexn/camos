@@ -73,6 +73,8 @@ class ImageViewModel(QObject):
         self.names = []
         self.viewitems = []
         self.translation = []
+        self.scales = []
+        self.samplingrate = []
 
         self.maxframe = 0
         self.frame = 0
@@ -87,7 +89,7 @@ class ImageViewModel(QObject):
         super(ImageViewModel, self).__init__()
 
     @pyqtSlot()
-    def add_image(self, image, name = None, cmap = "gray"):
+    def add_image(self, image, name = None, cmap = "gray", scale = [1, 1]):
         """Any image, once it has been loaded within a InputData object, can be loaded onto the ImageViewModel through this function. It will read all the features for the loaded image, and recalculate the global (shared) features (maximum number of frames overall, ROIs...)
 
         Args:
@@ -107,6 +109,8 @@ class ImageViewModel(QObject):
 
         self.names.append(name)
         self.translation.append([0, 0])
+        self.scales.append(scale)
+        self.samplingrate.append(1)
         self.newdata.emit(-1)
 
     def crop_image(self, index):
@@ -115,8 +119,9 @@ class ImageViewModel(QObject):
         Args:
             index (int): position of the InputData object containing the image, in the list self.images
         """
-        x_min, x_max = int(self.roi_coord[0][0]), int(self.roi_coord[1][0])
-        y_min, y_max = int(self.roi_coord[0][1]), int(self.roi_coord[1][1])
+        scale = self.scales[index]
+        x_min, x_max = int(self.roi_coord[0][0]/scale[0]), int(self.roi_coord[1][0]/scale[0])
+        y_min, y_max = int(self.roi_coord[0][1]/scale[1]), int(self.roi_coord[1][1]/scale[1])
         cropped = self.images[index]._image._imgs[:, x_min:x_max, y_min:y_max]
         image = InputData(
             cropped,
@@ -124,7 +129,7 @@ class ImageViewModel(QObject):
             name="Cropped from Layer {}".format(index),
         )
         image.loadImage()
-        self.add_image(image, "Cropped from Layer {}".format(index))
+        self.add_image(image, "Cropped from Layer {}".format(index), scale = scale)
         # self.translate_position(-1, (x_min, y_min))
 
     def flip_image(self, index):
@@ -133,7 +138,7 @@ class ImageViewModel(QObject):
         Args:
             index (int): position of the InputData object containing the image, in the list self.images
         """
-
+        scale = self.scales[index]
         flipped = np.flip(self.images[index]._image._imgs, axis = 2)
         image = InputData(
             flipped,
@@ -141,7 +146,7 @@ class ImageViewModel(QObject):
             name="Flipped from Layer {}".format(index),
         )
         image.loadImage()
-        self.add_image(image, "Flipped from Layer {}".format(index))
+        self.add_image(image, "Flipped from Layer {}".format(index), scale = scale)
 
     def trigger_select_cells(self):
         """Toggles on or off the selection of cells in the current layer after a "double click" mouse event
@@ -150,21 +155,25 @@ class ImageViewModel(QObject):
             False if self._enable_select_cells else True
         )
 
-    def select_cells(self):
+    def select_cells(self, cell_ID = None, scale = [1, 1]):
         """Selects the cells in the currently selected layer if cell selection is enabled. See the method self.trigger_select_cells
         """
-        if not self._enable_select_cells:
-            self.update_plots()
-            return
-        x, y = self.curr_x, self.curr_y
         mask = self.images[self.currentlayer]._image._imgs[0]
-        cell_ID = mask[x, y]
+        if cell_ID == None:
+            if not self._enable_select_cells:
+                self.update_plots()
+                return
+            x, y = self.curr_x, self.curr_y
+            cell_ID = mask[x, y]
+        else:
+            cell_ID = int(cell_ID[2])
         cell = np.where(mask == cell_ID, mask, 0)
         image = InputData(
             cell, memoryPersist=True, name="Selected Cell {}".format(cell_ID)
         )
         image.loadImage()
-        self.add_image(image, "Cell {} from Layer {}".format(cell_ID, self.currentlayer))
+        scale = self.scales[self.currentlayer]
+        self.add_image(image, "Cell {} from Layer {}".format(cell_ID, self.currentlayer), scale = scale)
 
     def update_plots(self, layer = None):
         if layer == None:
@@ -300,14 +309,19 @@ class ImageViewModel(QObject):
             x (int): X-coordinate of the current selected layer, by index
             y (int): Y-coordinate of the current selected layer, by index
         """
-        self.curr_x = x
-        self.curr_y = y
-        self.updatepos.emit(
-            self.curr_x, self.curr_y, self.frame, self.get_currint()
-        )
+        try:
+            self.curr_x = x
+            self.curr_y = y
+            self.updatepos.emit(
+                self.curr_x, self.curr_y, self.frame, self.get_currint()
+            )
+        except:
+            pass
 
     def get_currint(self):
         try:
+            if (self.curr_x < 0) or (self.curr_y < 0):
+                return 0
             frame = int(
                 self.frame / (self.maxframe / self.frames[self.currentlayer])
             )
@@ -315,7 +329,7 @@ class ImageViewModel(QObject):
                 frame, self.curr_x, self.curr_y
             ]
         except:
-            pass
+            return 0
 
     def get_icon(self, index):
         """This creates an icon for the corresponding layer
