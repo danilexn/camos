@@ -54,7 +54,7 @@ class MeanFiringRate(Analysis):
         self._final_initialize_UI()
 
     def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(self.output, "MFR of {}".format(self.dataname), self)
+        self.parent.signalmodel.add_data(self.output, "MFR of {}".format(self.dataname), self, mask = self.mask)
 
     def initialize_UI(self):
         self.datalabel = QLabel("Source dataset", self.dockUI)
@@ -78,10 +78,10 @@ class MeanFiringRate(Analysis):
 
     def _set_mask(self, text):
         index = self.cbmask.currentIndex()
-        self.mask = self.model.images[index]._image
+        self.mask = self.model.images[index]._image._imgs[0].astype(int)
 
     def _plot(self):
-        mask = self.mask._imgs[0].astype(int)
+        mask = self.mask
         MFR_dict = {}
         for i in range(1, self.foutput.shape[0]):
             MFR_dict[int(self.foutput[i]["CellID"][0])] = self.foutput[i]["MFR"][0]

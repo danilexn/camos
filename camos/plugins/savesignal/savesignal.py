@@ -21,13 +21,18 @@ class SaveSignal(Saving):
             name=self.analysis_name,
             extensions="hdf5 File (*.h5)",
         )
-        self.image = None
         self.signal = signal
 
     def _run(self):
         h5f = h5py.File(self.filename, "w")
-        for (name, data) in self.signal:
-            h5f.create_dataset("{}".format(name), data=data)
+        for i, (name, data) in enumerate(self.signal):
+            if len(self.signal.masks[i]) > 0:
+                group_name = "{}".format(name)
+                h5f.create_group(group_name)
+                h5f[group_name].create_dataset(group_name, data = data)
+                h5f[group_name].create_dataset("mask", data = self.signal.masks[i])
+            else:
+                h5f.create_dataset("{}".format(name), data=data)
         h5f.close()
 
     def initialize_UI(self):

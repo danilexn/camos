@@ -196,6 +196,7 @@ class ImageViewModel(QObject):
         self.colormaps.pop(index)
         self.names.pop(index)
         self.translation.pop(index)
+        self.scales.pop(index)
         self.removedata.emit(index)
 
     def list_images(self):
@@ -257,7 +258,7 @@ class ImageViewModel(QObject):
         self.add_image(image, "Duplicate of Layer {}".format(index))
 
     @pyqtSlot()
-    def set_values(self, opacity, brightness, contrast, cmap, index=0):
+    def set_values(self, opacity, brightness, contrast, cmap, scale, index=0):
         """Configures the properties for the selected layer; emits an event, i.e., so the ViewPort knows that it has to call the self.get_current_view method.
 
         Args:
@@ -268,6 +269,8 @@ class ImageViewModel(QObject):
         self.brightnesses[index] = brightness
         self.contrasts[index] = contrast
         self.colormaps[index] = cmap
+        scale = 1/(scale/self.scales[index][0])
+        self.scales[index] = [scale, scale]
         self.updated.emit(index)
 
     def get_opacity(self, index=0):
@@ -281,6 +284,9 @@ class ImageViewModel(QObject):
 
     def get_contrast(self, index=0):
         return self.contrasts[index]
+
+    def get_scale(self, index=0):
+        return self.scales[index][0]
 
     def get_frame(self, index):
         return self.frame

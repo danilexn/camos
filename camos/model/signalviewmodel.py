@@ -23,15 +23,17 @@ class SignalViewModel(QObject):
         self.parent = parent
         self.names = []
         self.sampling = []
+        self.masks = []
         super(SignalViewModel, self).__init__()
 
     @pyqtSlot()
-    def add_data(self, data, name = "New signal", _class = None, sampling = 10):
+    def add_data(self, data, name = "New signal", _class = None, sampling = 10, mask = []):
         self.data.append(data)
         if name in self.names or name == "":
             name = "New_{}_{}".format(name, len(self.names))
         self.names.append(name)
         self.sampling.append(sampling)
+        self.masks.append(mask)
         self.newdata.emit()
         if _class != None:
             self.add_menu(_class, self.names[-1])

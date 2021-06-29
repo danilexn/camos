@@ -124,7 +124,11 @@ class FrameContainer(QtWidgets.QWidget):
         layout.addRow(QLabel("Brightness:"), self.brightness_layer_slider)
         self.brightness_layer_slider.setRange(-127, 127)
         self.brightness_layer_slider.setValue(0)
+        self.scale_slider = QSlider(QtCore.Qt.Horizontal)
         self.apply_changes_layer_bt = QPushButton("Change")
+        layout.addRow(QLabel("X-Y scale:"), self.scale_slider)
+        self.scale_slider.setRange(-90, 100)
+        self.scale_slider.setValue(10)
         self.apply_changes_layer_bt.clicked.connect(self._apply_changes_layer)
         layout.addRow(self.apply_changes_layer_bt)
         self.current_frame_slider = QScrollBar(QtCore.Qt.Horizontal)
@@ -167,21 +171,27 @@ class FrameContainer(QtWidgets.QWidget):
         self.contrast_layer_slider.setValue(co)
         br = self.parent.model.get_brightness(index)
         self.brightness_layer_slider.setValue(br)
+        sc = self.parent.model.get_scale(index)
+        self.scale_slider.setValue(sc)
         cm = self.parent.model.get_colormap(index)
         self.colormap_layer_selector.setCurrentIndex(
             list(cmaps.keys()).index(cm)
         )
         self.parent.model.currentlayer = index
 
-    def _apply_changes_layer(self):
+    def _apply_changes_layer(self, **kwargs):
         """Retrieves the values from the layer controls, and puts them in the model. so it can refresh the representation of the image in the ViewPort
         """
         index = self.opened_layers_widget.currentRow()
         op = self.opacity_layer_slider.value()
         br = self.brightness_layer_slider.value()
         co = self.contrast_layer_slider.value()
+        sc = self.scale_slider.value()
+        sc = sc if sc != 0 else 10
+        sc = 1/abs(sc) if sc < 0 else sc
+        sc = sc/10
         cm = self.colormap_layer_selector.currentText()
-        self.parent.model.set_values(op, br, co, cm, index)
+        self.parent.model.set_values(op, br, co, cm, sc, index)
 
     def _createLayersActions(self):
         """Creates the UI elements (buttons) to handle Removal, Duplication, ROI toggling, Cropping and Cell Selection for the currently selected layer
@@ -204,7 +214,7 @@ class FrameContainer(QtWidgets.QWidget):
         )
         self.flipAction.triggered.connect(self._flip_layer)
         self.toggleROIAction = QAction(
-            QIcon("resources/icon-roi.svg"), "&Toggle ROI", self
+            QIcon("resources/icon-roi.svg"), "&ROI", self
         )
         self.toggleROIAction.triggered.connect(self._toggle_roi)
         self.cropAction = QAction(
@@ -216,15 +226,15 @@ class FrameContainer(QtWidgets.QWidget):
         )
         self.cellSelect.triggered.connect(self._select_cells)
         self.resetAxis = QAction(
-            QIcon("resources/reset-axis.svg"), "&Reset axis", self
+            QIcon("resources/reset-axis.svg"), "&Align zero", self
         )
         self.resetAxis.triggered.connect(self._reset_axis)
         self.sendMask = QAction(
-            QIcon("resources/icon-all.svg"), "&Send mask", self
+            QIcon("resources/icon-all.svg"), "&Select All", self
         )
         self.sendMask.triggered.connect(self._send_mask)
         self.alignImage = QAction(
-            QIcon("resources/icon-align.svg"), "&Send mask", self
+            QIcon("resources/icon-align.svg"), "&Align to", self
         )
         self.alignImage.triggered.connect(self._align_image)
 
@@ -298,16 +308,17 @@ class FrameContainer(QtWidgets.QWidget):
         """
         # File toolbar
         layersToolBar = self.parent.addToolBar("layers")
+        layersToolBar.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
         layersToolBar.addAction(self.removeAction)
         layersToolBar.addAction(self.duplicateAction)
         layersToolBar.addAction(self.rotateAction)
+        layersToolBar.addAction(self.flipAction)
         layersToolBar.addAction(self.toggleROIAction)
         layersToolBar.addAction(self.cropAction)
-        layersToolBar.addAction(self.cellSelect)
         layersToolBar.addAction(self.resetAxis)
-        layersToolBar.addAction(self.sendMask)
         layersToolBar.addAction(self.alignImage)
-        layersToolBar.addAction(self.flipAction)
+        layersToolBar.addAction(self.cellSelect)
+        layersToolBar.addAction(self.sendMask)
 
 
 class QLayerWidget(QtWidgets.QListWidget):

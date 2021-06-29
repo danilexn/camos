@@ -52,9 +52,11 @@ class ImageViewPort(pg.ImageView):
 
     def update_viewport(self, layer = 0):
         op = self.model.opacities[layer]
+        sc = self.model.scales[layer]
         cmap = self.model.colormaps[layer]
         lut = cmaps.cmapToColormap(cmap).getLookupTable()
         self.view.addedItems[layer + 3].setOpts(opacity = op/100, lut = lut)
+        self.view.addedItems[layer + 3].scale(sc[0], sc[1])
         # self.view.addedItems[layer + 3].setLevels([0, 210])
 
     def update_viewport_frame(self, layer = 0):
