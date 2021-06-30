@@ -5,7 +5,7 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import pyqtSignal, pyqtSignal
+from PyQt5.QtCore import pyqtSignal
 
 import numpy as np
 import h5py
@@ -46,29 +46,36 @@ class OpenBXR(Opening):
 
     def _run(self):
         filehdf5_bxr = h5py.File(self.filename)
-        samplingRate = np.asarray(filehdf5_bxr["3BRecInfo"]["3BRecVars"]["SamplingRate"])[0]
+        samplingRate = np.asarray(
+            filehdf5_bxr["3BRecInfo"]["3BRecVars"]["SamplingRate"]
+        )[0]
         SpikeChIDs = np.asarray(filehdf5_bxr["3BResults"]["3BChEvents"]["SpikeChIDs"])
-        SpikeTimes = np.asarray(filehdf5_bxr["3BResults"]["3BChEvents"]["SpikeTimes"])/samplingRate
+        SpikeTimes = (
+            np.asarray(filehdf5_bxr["3BResults"]["3BChEvents"]["SpikeTimes"])
+            / samplingRate
+        )
 
-        output_type = [('CellID', 'int'), ('Active', 'float')]
-        self.output = np.zeros(shape = (len(SpikeChIDs), 1), dtype = output_type)
+        output_type = [("CellID", "int"), ("Active", "float")]
+        self.output = np.zeros(shape=(len(SpikeChIDs), 1), dtype=output_type)
         self.output[:]["CellID"] = SpikeChIDs.reshape(-1, 1)
         self.output[:]["Active"] = SpikeTimes.reshape(-1, 1)
 
         _sv = SignalViewer(self.parent, self.output)
 
-        self.parent.signalmodel.add_data(self.output, "Events from BXR".format(), _sv, samplingRate)
+        self.parent.signalmodel.add_data(
+            self.output, "Events from BXR".format(), _sv, samplingRate
+        )
         _sv.display()
 
-    def h5printR(self, item, leading=''):
+    def h5printR(self, item, leading=""):
         for key in item:
             if isinstance(item[key], h5py.Dataset):
-                print(leading + key + ' : ' + str(item[key].shape))
+                print(leading + key + " : " + str(item[key].shape))
             else:
                 print(leading + key)
-                self.h5printR(item[key], leading + ' ')
+                self.h5printR(item[key], leading + " ")
 
     def h5print(self, filename):
-        with h5py.File(filename, 'r') as h:
+        with h5py.File(filename, "r") as h:
             print(filename)
-            self.h5printR(h, '  ')
+            self.h5printR(h, "  ")

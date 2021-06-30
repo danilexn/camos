@@ -26,7 +26,7 @@ class MeanFiringRate(Analysis):
     def _run(self):
         self.pos = {}
         duration = 100
-        output_type = [('CellID', 'int'), ('MFR', 'float')]
+        output_type = [("CellID", "int"), ("MFR", "float")]
 
         # data should be provided in format of peaks
         data = self.data
@@ -36,11 +36,10 @@ class MeanFiringRate(Analysis):
         ROIs = np.unique(data[:]["CellID"])
 
         # Calculate mean firing rate per cell
-        self.output = np.zeros(shape = (len(ROIs), 1), dtype = output_type)
+        self.output = np.zeros(shape=(len(ROIs), 1), dtype=output_type)
         unique, counts = np.unique(data[:]["CellID"], return_counts=True)
         self.output[:]["CellID"] = unique.reshape(-1, 1)
         self.output[:]["MFR"] = counts.reshape(-1, 1)
-        
 
         self.output = self.output[1:]
         self.foutput = self.output
@@ -54,7 +53,9 @@ class MeanFiringRate(Analysis):
         self._final_initialize_UI()
 
     def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(self.output, "MFR of {}".format(self.dataname), self, mask = self.mask)
+        self.parent.signalmodel.add_data(
+            self.output, "MFR of {}".format(self.dataname), self, mask=self.mask
+        )
 
     def initialize_UI(self):
         self.datalabel = QLabel("Source dataset", self.dockUI)
@@ -90,10 +91,11 @@ class MeanFiringRate(Analysis):
         v = np.array(list(MFR_dict.values()))
 
         dim = max(k.max(), np.max(mask))
-        mapping_ar = np.zeros(dim+1,dtype=v.dtype)
+        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
         mapping_ar[k] = v
         MFR_mask = mapping_ar[mask]
 
-        self.plot.axes.imshow(MFR_mask, cmap="inferno", origin="upper")
-        self.plot.axes.set_ylabel('Y coordinate')
-        self.plot.axes.set_xlabel('X coordinate')
+        im = self.plot.axes.imshow(MFR_mask, cmap="inferno", origin="upper")
+        self.plot.fig.colorbar(im, ax=self.plot.axes)
+        self.plot.axes.set_ylabel("Y coordinate")
+        self.plot.axes.set_xlabel("X coordinate")

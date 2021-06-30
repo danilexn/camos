@@ -12,9 +12,9 @@ from PyQt5.QtCore import Qt, QSizeF, pyqtSignal
 
 import PIL
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 
 from camos.tasks.opening import Opening
 from camos.model.inputdata import InputData
@@ -150,9 +150,7 @@ class OpenCMOS(Opening):
             pts_projected.append(
                 np.flip(
                     self.projection(
-                        np.array([v_x[0], v_y[0]]),
-                        np.array([v_x[1], v_y[1]]),
-                        p,
+                        np.array([v_x[0], v_y[0]]), np.array([v_x[1], v_y[1]]), p,
                     )
                 )
             )
@@ -162,12 +160,8 @@ class OpenCMOS(Opening):
         ps = []
         dim = (int(self.xdim.text()), int(self.xdim.text()))
         c = self.cardinal
-        self.createLineAndProject(
-            [c[0][0], c[1][0]], [c[0][1], c[1][1]], ps, dim
-        )
-        self.createLineAndProject(
-            [c[2][0], c[3][0]], [c[2][1], c[3][1]], ps, dim
-        )
+        self.createLineAndProject([c[0][0], c[1][0]], [c[0][1], c[1][1]], ps, dim)
+        self.createLineAndProject([c[2][0], c[3][0]], [c[2][1], c[3][1]], ps, dim)
         ps_np = np.array(ps)
         ps = []
         for i in range(dim[0]):
@@ -187,34 +181,46 @@ class OpenCMOS(Opening):
             self.viewport.view.removeItem(self.viewport.view.addedItems[-1])
 
     def rotated_matrix_indexes(self, N):
-        replacement = np.flip(np.array(np.arange(1, N*N + 1, 1)).reshape(N, N).T, axis = 1).flatten()
+        replacement = np.flip(
+            np.array(np.arange(1, N * N + 1, 1)).reshape(N, N).T, axis=1
+        ).flatten()
         return replacement
 
     def import_chip(self):
-        scale = 1/int(self.scale.text())
+        scale = 1 / int(self.scale.text())
         N = int(self.xdim.text())
-        radius = int(int(self.radius.text())*scale)
+        radius = int(int(self.radius.text()) * scale)
         img_dims = self.image._image._imgs[0].shape
-        grid_image = np.zeros((int(img_dims[0]*scale), int(img_dims[1]*scale)))
+        grid_image = np.zeros((int(img_dims[0] * scale), int(img_dims[1] * scale)))
         replacement = self.rotated_matrix_indexes(N)
         pos = {}
         for i, c in enumerate(self.grid):
-            _min_y = int(c[0]*scale) - radius if int(c[0]*scale) - radius > 0 else 0
-            _max_y = int(c[0]*scale) + radius if int(c[0]*scale) - radius < img_dims[0] else img_dims[0]
+            _min_y = int(c[0] * scale) - radius if int(c[0] * scale) - radius > 0 else 0
+            _max_y = (
+                int(c[0] * scale) + radius
+                if int(c[0] * scale) - radius < img_dims[0]
+                else img_dims[0]
+            )
 
-            _min_x = int(c[1]*scale) - radius if int(c[1]*scale) - radius > 0 else 0
-            _max_x = int(c[1]*scale) + radius if int(c[1]*scale) - radius < img_dims[1] else img_dims[1]
-            pos[replacement[i]] = [np.average([_max_x, _min_x]), np.average([_max_y, _min_y])]
+            _min_x = int(c[1] * scale) - radius if int(c[1] * scale) - radius > 0 else 0
+            _max_x = (
+                int(c[1] * scale) + radius
+                if int(c[1] * scale) - radius < img_dims[1]
+                else img_dims[1]
+            )
+            pos[replacement[i]] = [
+                np.average([_max_x, _min_x]),
+                np.average([_max_y, _min_y]),
+            ]
             grid_image[_min_x:_max_x, _min_y:_max_y] = replacement[i]
 
         self.grid_image = InputData(grid_image, memoryPersist=True)
         self.grid_image.loadImage()
         self.grid_image.coords = pos
-        self.parent.model.add_image(self.grid_image, scale = [1/scale, 1/scale])
+        self.parent.model.add_image(self.grid_image, scale=[1 / scale, 1 / scale])
 
 
 class MiniImageViewModel(ImageViewModel):
-
     def __init__(self, images=[], parent=None):
         super(MiniImageViewModel, self).__init__()
         self.images = images
@@ -246,6 +252,7 @@ class MiniImageViewModel(ImageViewModel):
         coord = np.array([self.curr_y - 100 / 2, self.curr_x - 100 / 2])
         self.draw_grid(np.array([coord]))
         self.parent.cardinal.append(coord)
+
 
 class Square(QGraphicsWidget):
     def __init__(self, size=100, *args, name=None, **kvps):

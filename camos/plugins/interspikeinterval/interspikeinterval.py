@@ -26,7 +26,7 @@ class InterspikeInterval(Analysis):
     def _run(self):
         self.pos = {}
         duration = 100
-        output_type = [('CellID', 'int'), ('ISI', 'float')]
+        output_type = [("CellID", "int"), ("ISI", "float")]
 
         # data should be provided in format of peaks
         data = self.data
@@ -36,7 +36,7 @@ class InterspikeInterval(Analysis):
         ROIs = np.unique(data[:]["CellID"])
 
         # Create the output matrix
-        self.output = np.zeros(shape = (len(ROIs), 1), dtype = output_type)
+        self.output = np.zeros(shape=(len(ROIs), 1), dtype=output_type)
 
         # Save Cell IDs in the output matrix
         self.output[:]["CellID"] = ROIs.reshape(-1, 1)
@@ -46,9 +46,16 @@ class InterspikeInterval(Analysis):
         dict_events = defaultdict(list)
 
         # This explores all events
-        for i in range(len(IDs_all)):
-            dict_events[IDs_all[i][0]] += [data[i]["Active"][0]]
-            self.intReady.emit(i * 100 / len(IDs_all))
+        # TODO: review why spikes from CMOS and Ca have different structure
+        if type(IDs_all[0]) == np.ndarray:
+            for i in range(len(IDs_all)):
+                dict_events[IDs_all[i][0]] += [data[i]["Active"][0]]
+                self.intReady.emit(i * 100 / len(IDs_all))
+
+        else:
+            for i in range(len(IDs_all)):
+                dict_events[IDs_all[i]] += [data[i]["Active"]]
+                self.intReady.emit(i * 100 / len(IDs_all))
 
         ISI = np.zeros(len(ROIs))
         for i, ROI in enumerate(ROIs):
@@ -65,7 +72,9 @@ class InterspikeInterval(Analysis):
         self._final_initialize_UI()
 
     def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(self.output, "ISI of {}".format(self.dataname), self, mask = self.mask)
+        self.parent.signalmodel.add_data(
+            self.output, "ISI of {}".format(self.dataname), self, mask=self.mask
+        )
 
     def initialize_UI(self):
         self.datalabel = QLabel("Source dataset", self.dockUI)
@@ -101,10 +110,11 @@ class InterspikeInterval(Analysis):
         v = np.array(list(ISI_dict.values()))
 
         dim = max(k.max(), np.max(mask))
-        mapping_ar = np.zeros(dim+1,dtype=v.dtype)
+        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
         mapping_ar[k] = v
         ISI_mask = mapping_ar[mask]
 
-        self.plot.axes.imshow(ISI_mask, cmap="inferno", origin="upper")
-        self.plot.axes.set_ylabel('Y coordinate')
-        self.plot.axes.set_xlabel('X coordinate')
+        im = self.plot.axes.imshow(ISI_mask, cmap="inferno", origin="upper")
+        self.plot.fig.colorbar(im, ax=self.plot.axes)
+        self.plot.axes.set_ylabel("Y coordinate")
+        self.plot.axes.set_xlabel("X coordinate")

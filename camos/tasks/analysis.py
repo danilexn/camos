@@ -8,9 +8,7 @@ from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
-from matplotlib.backends.backend_qt5agg import (
-    NavigationToolbar2QT as NavigationToolbar,
-)
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import numpy as np
 
@@ -25,9 +23,7 @@ class Analysis(QObject):
     plotReady = pyqtSignal()
     intReady = pyqtSignal(int)
 
-    def __init__(
-        self, model=None, parent=None, signal=None, name="No name processing"
-    ):
+    def __init__(self, model=None, parent=None, signal=None, name="No name processing"):
         super(Analysis, self).__init__()
         self.model = model
         self.signal = signal
@@ -98,6 +94,7 @@ class Analysis(QObject):
         self.group_settings = QGroupBox("Parameters")
         self.group_plot = QGroupBox("Plots")
         self.layout = QVBoxLayout()
+        self.layout.addStretch(1)
         self.plot_layout = QVBoxLayout()
         self.plot = AnalysisPlot(self, width=5, height=4, dpi=100)
         self.plot.plottoimage.connect(self.parent.model.select_cells)
@@ -130,14 +127,13 @@ class Analysis(QObject):
 
     def export_plot_to_viewport(self):
         try:
-            data = np.fromstring(self.plot.fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+            data = np.fromstring(
+                self.plot.fig.canvas.tostring_rgb(), dtype=np.uint8, sep=""
+            )
             data = data.reshape(self.plot.fig.canvas.get_width_height()[::-1] + (3,))
             rgb_weights = [0.2989, 0.5870, 0.1140]
             data = np.dot(data, rgb_weights)
-            image = InputData(
-                data,
-                memoryPersist=True
-            )
+            image = InputData(data, memoryPersist=True)
             image.loadImage()
             self.parent.model.add_image(image, "Viewport Export")
         except:

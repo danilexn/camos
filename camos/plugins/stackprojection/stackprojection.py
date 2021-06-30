@@ -20,7 +20,6 @@ class StackProjection(Processing):
         self.output = None
         self.layername = "Projection of Layer {}"
         self.image = None
-        self._method = None
         self.axis = 0
         self.finished.connect(self.output_to_imagemodel)
         self.methodname = ""

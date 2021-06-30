@@ -20,6 +20,10 @@ class ImageViewPort(pg.ImageView):
         self.parent = parent
         self.scene.sigMouseMoved.connect(self.mouse_moved)
         self.scene.sigMouseClicked.connect(self.mouse_clicked)
+        self.view.pixelSize = (0.001, 0.001)
+        self.scale = pg.ScaleBar(size=10)
+        self.scale.setParentItem(self.view)
+        self.scale.anchor((1, 1), (1, 1), offset=(-50, -50))
 
         # This will hide some UI elements that will be handled by us
         self.ui.histogram.hide()

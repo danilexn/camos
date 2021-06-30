@@ -4,14 +4,17 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtGui import QIcon
+
+# TODO: should we import everything?
 from PyQt5.QtWidgets import *
 import sys
 
 from camos.model.imageviewmodel import ImageViewModel
 from camos.model.signalviewmodel import SignalViewModel
 from camos.viewport.imageviewport import ImageViewPort
+
 # from camos.viewport.signalviewport import SignalViewPort
 from camos.gui.framecontainer import FrameContainer
 
@@ -69,6 +72,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowIcon(QIcon("resources/icon-app.png"))
         self.setGeometry(100, 100, 800, 600)
         self.statusBar().showMessage("Statusbar - awaiting user control")
+
+        # This fixes the tooltip, so text is visible
+        self.setStyleSheet(
+            """QToolTip {
+                           background-color: black;
+                           color: white;
+                           border: black solid 1px
+                           }"""
+        )
         self.show()
 
     def _update_statusbar(self, x, y, t, v):
@@ -105,14 +117,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.openMenu = QMenu("Open", self)
         self.saveMenu = QMenu("Save", self)
 
-        self.exitAct = QtWidgets.QAction(
-            QIcon("exit.png"), "&Exit program", self
-        )
+        self.exitAct = QtWidgets.QAction(QIcon("exit.png"), "&Exit program", self)
         self.exitAct.setShortcut("Ctrl+Q")
         self.exitAct.setStatusTip("Exit application")
-        self.exitAct.triggered.connect(
-            lambda: self.closeEvent(QtGui.QCloseEvent())
-        )
+        self.exitAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
 
         self.fileMenu.addMenu(self.openMenu)
         self.fileMenu.addMenu(self.saveMenu)
