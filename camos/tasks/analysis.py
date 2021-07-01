@@ -1,32 +1,21 @@
-#
+# -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-#
-# The MIT License (MIT)
-# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial
-# portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+# Last modified on Mon Jun 07 2021
+# Copyright (c) CaMOS Development Team. All Rights Reserved.
+# Distributed under a MIT License. See LICENSE for more info.
+
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+
 import numpy as np
+
 from camos.tasks.runtask import RunTask
 from camos.utils.errormessages import ErrorMessages
-import camos.utils.apptools as apptools
 from camos.tasks.plotting import AnalysisPlot
+from camos.model.inputdata import InputData
 
 
 class Analysis(QObject):
@@ -34,15 +23,17 @@ class Analysis(QObject):
     plotReady = pyqtSignal()
     intReady = pyqtSignal(int)
 
-    def __init__(self, model=None, parent=None, input=None, name="No name processing"):
+    def __init__(self, model=None, parent=None, signal=None, name="No name processing"):
         super(Analysis, self).__init__()
         self.model = model
-        self.input = input
+        self.signal = signal
         self.parent = parent
         self.output = np.zeros((1, 1))
+        self.foutput = np.zeros((1, 1))
+        self.sampling = 1
         self.analysis_name = name
-        self.addMenuElement()
-        self.finished.connect(self.plot)
+        self.finished.connect(self.update_plot)
+        self.model.imagetoplot.connect(self.update_values_plot)
 
     def _run(self):
         pass
@@ -52,33 +43,49 @@ class Analysis(QObject):
 
     @pyqtSlot()
     def run(self):
-        self._run()
-        self.finished.emit()
+        try:
+            self._run()
+            self.handler.success = True
+            self.foutput = self.output
+        finally:
+            self.finished.emit()
         pass
 
-    def plot(self):
+    def update_plot(self):
         self._plot()
         self.plot.draw()
         self.plotReady.emit()
         pass
 
     def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(self.output)
+        self.parent.signalmodel.add_data(self.output, "", self, self.sampling)
 
     def output_to_imagemodel(self):
         self.parent.model.add_image(self.output)
 
     def display(self):
-        # TODO: change to signal...
         if type(self.model.list_images()) is type(None):
-            # Handle error that there are no images
-            ErrorMessages("There are no datasets!")
-            return
+            ErrorMessages("There are no images!")
+        if type(self.signal.list_datasets()) is type(None):
+            ErrorMessages("There is no data!")
+
         self._initialize_UI()
         self.initialize_UI()
         self._final_initialize_UI()
 
+    def show(self):
+        self.dockUI.show()
+
     def initialize_UI(self):
+        pass
+
+    def update_values_plot(self, values):
+        self._update_values_plot(values)
+        self.plot.axes.clear()
+        self.update_plot()
+        pass
+
+    def _update_values_plot(self, values):
         pass
 
     def _initialize_UI(self):
@@ -87,8 +94,12 @@ class Analysis(QObject):
         self.group_settings = QGroupBox("Parameters")
         self.group_plot = QGroupBox("Plots")
         self.layout = QVBoxLayout()
+        self.layout.addStretch(1)
         self.plot_layout = QVBoxLayout()
         self.plot = AnalysisPlot(self, width=5, height=4, dpi=100)
+        self.plot.plottoimage.connect(self.parent.model.select_cells)
+        self.toolbar = NavigationToolbar(self.plot, None)
+        self.plot_layout.addWidget(self.toolbar)
         self.plot_layout.addWidget(self.plot)
         self.group_settings.setLayout(self.layout)
         self.group_plot.setLayout(self.plot_layout)
@@ -101,7 +112,12 @@ class Analysis(QObject):
         self.handler = RunTask(self)
         self.runButton.clicked.connect(self.handler.start_progress)
 
+        self.savePlot = QPushButton("To viewport", self.parent)
+        self.savePlot.setToolTip("Click to move plot to viewport")
+        self.savePlot.clicked.connect(self.export_plot_to_viewport)
+
         self.layout.addWidget(self.runButton)
+        self.layout.addWidget(self.savePlot)
 
         self.dockedWidget = QtWidgets.QWidget()
         self.dockUI.setWidget(self.dockedWidget)
@@ -109,8 +125,16 @@ class Analysis(QObject):
         self.dockUI.setFloating(True)
         self.parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dockUI)
 
-    def addMenuElement(self):
-        camosGUI = apptools.getGui()
-        analysisAct = QtWidgets.QAction("{}".format(self.analysis_name), camosGUI)
-        analysisAct.triggered.connect(self.display)
-        camosGUI.analysisMenu.addAction(analysisAct)
+    def export_plot_to_viewport(self):
+        try:
+            data = np.fromstring(
+                self.plot.fig.canvas.tostring_rgb(), dtype=np.uint8, sep=""
+            )
+            data = data.reshape(self.plot.fig.canvas.get_width_height()[::-1] + (3,))
+            rgb_weights = [0.2989, 0.5870, 0.1140]
+            data = np.dot(data, rgb_weights)
+            image = InputData(data, memoryPersist=True)
+            image.loadImage()
+            self.parent.model.add_image(image, "Viewport Export")
+        except:
+            pass

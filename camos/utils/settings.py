@@ -6,8 +6,8 @@ import camos.utils.apptools as apptools
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-__docformat__ = 'restructuredtext'
-__version__ = '0.1a'
+__docformat__ = "restructuredtext"
+__version__ = "0.1a"
 
 translate = QtWidgets.QApplication.translate
 
@@ -33,17 +33,21 @@ class Config(QtCore.QSettings):
         product = QtWidgets.qApp.applicationName()
         version = QtWidgets.qApp.applicationVersion()
 
-        if sys.platform.startswith('win'):
+        if sys.platform.startswith("win"):
             super(Config, self).__init__(product, version)
-            self.reg_path = 'HKEY_CURRENT_USER\\Software\\{0}\\{1}'.format(
-                product, version)
-            self.setPath(QtCore.QSettings.NativeFormat,
-                         QtCore.QSettings.UserScope, self.reg_path)
-        elif sys.platform.startswith('darwin'):
+            self.reg_path = "HKEY_CURRENT_USER\\Software\\{0}\\{1}".format(
+                product, version
+            )
+            self.setPath(
+                QtCore.QSettings.NativeFormat,
+                QtCore.QSettings.UserScope,
+                self.reg_path,
+            )
+        elif sys.platform.startswith("darwin"):
             super(Config, self).__init__(product, version)
         else:
             arg1 = organization
-            arg2 = '-'.join((product, version))
+            arg2 = "-".join((product, version))
             super(Config, self).__init__(arg1, arg2)
 
         self.setFallbacksEnabled(False)
@@ -64,7 +68,7 @@ class Config(QtCore.QSettings):
         """Returns the current application style."""
 
         # The property key and its default value
-        key = 'Look/currentStyle'
+        key = "Look/currentStyle"
         default_value = self.default_style
 
         # Read the entry from the configuration file/registry
@@ -88,7 +92,7 @@ class Config(QtCore.QSettings):
         in a setting with QSetting.setValue()
         """
 
-        key = 'Geometry/Position'
+        key = "Geometry/Position"
         default_value = None
         setting_value = self.value(key)
         if isinstance(setting_value, QtCore.QByteArray):
@@ -103,7 +107,7 @@ class Config(QtCore.QSettings):
         dockwidgets.
         """
 
-        key = 'Geometry/Layout'
+        key = "Geometry/Layout"
         default_value = None
         setting_value = self.value(key)
         if isinstance(setting_value, QtCore.QByteArray):
@@ -115,7 +119,7 @@ class Config(QtCore.QSettings):
         """Returns the list of enabled plugins.
         """
 
-        key = 'Plugins/Enabled'
+        key = "Plugins/Enabled"
         default_value = []
         setting_value = self.value(key)
         if isinstance(setting_value, list):
@@ -135,7 +139,8 @@ class Config(QtCore.QSettings):
             self.setValue(key, value)
             if self.status():
                 raise cfgexception.ConfigFileIOException(
-                    '{0}={1}'.format(key, value))
+                    "{0}={1}".format(key, value)
+                )
         except cfgexception.ConfigFileIOException as inst:
             log.error(inst.error_message)
 
@@ -152,10 +157,10 @@ class Config(QtCore.QSettings):
         """
 
         config = {}
-        config['Geometry/Position'] = self.windowPosition()
-        config['Geometry/Layout'] = self.windowLayout()
-        config['Look/currentStyle'] = self.readStyle()
-        config['Plugins/Enabled'] = self.enabledPlugins()
+        config["Geometry/Position"] = self.windowPosition()
+        config["Geometry/Layout"] = self.windowLayout()
+        config["Look/currentStyle"] = self.readStyle()
+        config["Plugins/Enabled"] = self.enabledPlugins()
         return config
 
     def applyConfiguration(self, config):
@@ -174,13 +179,13 @@ class Config(QtCore.QSettings):
         # Load the internal settings (if any)
         gui = self.camosApp.gui
         try:
-            key = 'Geometry/Position'
+            key = "Geometry/Position"
             value = config[key]
             if isinstance(value, QtCore.QByteArray):
                 # Default position is provided by the underlying window manager
                 gui.restoreGeometry(value)
 
-            key = 'Geometry/Layout'
+            key = "Geometry/Layout"
             value = config[key]
             if isinstance(value, QtCore.QByteArray):
                 # Default layout is provided by the underlying Qt installation
@@ -193,13 +198,13 @@ class Config(QtCore.QSettings):
         """Apply settings that can be setup via Settings dialog.
         :Parameter config: a dictionary with the settings to be (re)loaded
         """
-        key = 'Look/currentStyle'
+        key = "Look/currentStyle"
         if key in config:
             self.current_style = config[key]
             # Default style is provided by the underlying window manager
             QtWidgets.qApp.setStyle(self.current_style)
 
-        key = 'Plugins/Enabled'
+        key = "Plugins/Enabled"
         if key in config:
             self.enabled_plugins = config[key]
 
@@ -213,12 +218,13 @@ class Config(QtCore.QSettings):
 
         camosGUI = self.camosApp.gui
         # Style
-        self.writeValue('Look/currentStyle', self.current_style)
+        self.writeValue("Look/currentStyle", self.current_style)
         # Window geometry
-        self.writeValue('Geometry/Position', camosGUI.saveGeometry())
+        self.writeValue("Geometry/Position", camosGUI.saveGeometry())
         # Window layout
-        self.writeValue('Geometry/Layout', camosGUI.saveState())
+        self.writeValue("Geometry/Layout", camosGUI.saveState())
         # The list of enabled plugins
-        self.writeValue('Plugins/Enabled',
-                        self.camosApp.plugins_mgr.enabled_plugins)
+        self.writeValue(
+            "Plugins/Enabled", self.camosApp.plugins_mgr.enabled_plugins
+        )
         self.sync()

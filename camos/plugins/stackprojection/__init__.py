@@ -1,1 +1,1 @@
-__all__ = ['aboutpage', 'stackprojection']
+__all__ = ["aboutpage", "stackprojection"]

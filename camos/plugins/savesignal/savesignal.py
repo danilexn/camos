@@ -1,23 +1,9 @@
-#
+# -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-#
-# The MIT License (MIT)
-# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial
-# portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+# Last modified on Mon Jun 07 2021
+# Copyright (c) CaMOS Development Team. All Rights Reserved.
+# Distributed under a MIT License. See LICENSE for more info.
+
 from PyQt5.QtWidgets import *
 from camos.tasks.saving import Saving
 
@@ -25,19 +11,28 @@ import h5py
 
 
 class SaveSignal(Saving):
-    def __init__(self, model=None, signal=None, parent=None, input=None, file=None):
+    analysis_name = "Save Signals"
+
+    def __init__(self, model=None, signal=None, parent=None, file=None):
         super(SaveSignal, self).__init__(
-            model, parent, input, name="Save Signal", extensions="hdf5 File (*.h5)"
+            model,
+            parent,
+            signal,
+            name=self.analysis_name,
+            extensions="hdf5 File (*.h5)",
         )
-        self.file = file
-        self.image = None
-        self.signalmodel = signal
-        self.analysis_name = "Save Signals"
+        self.signal = signal
 
     def _run(self):
-        h5f = h5py.File(self.file, "w")
-        for i, data in enumerate(self.signal):
-            h5f.create_dataset("signal_{}".format(i), data=data)
+        h5f = h5py.File(self.filename, "w")
+        for i, (name, data) in enumerate(self.signal):
+            if len(self.signal.masks[i]) > 0:
+                group_name = "{}".format(name)
+                h5f.create_group(group_name)
+                h5f[group_name].create_dataset(group_name, data = data)
+                h5f[group_name].create_dataset("mask", data = self.signal.masks[i])
+            else:
+                h5f.create_dataset("{}".format(name), data=data)
         h5f.close()
 
     def initialize_UI(self):

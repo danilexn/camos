@@ -1,38 +1,28 @@
-#
+# -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-#
-# The MIT License (MIT)
-# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial
-# portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+# Last modified on Mon Jun 07 2021
+# Copyright (c) CaMOS Development Team. All Rights Reserved.
+# Distributed under a MIT License. See LICENSE for more info.
+
 import numpy as np
 from PyQt5.QtWidgets import *
 from camos.tasks.processing import Processing
+from camos.model.inputdata import InputData
 
 
 class StackProjection(Processing):
-    def __init__(self, model=None, parent=None, input=None):
+    analysis_name = "Stack Projection"
+
+    def __init__(self, model=None, parent=None, **kwargs):
         super(StackProjection, self).__init__(
-            model, parent, input, name="Stack Projection"
+            model, parent, input, name=self.analysis_name
         )
         self.output = None
+        self.layername = "Projection of Layer {}"
         self.image = None
-        self._method = None
         self.axis = 0
         self.finished.connect(self.output_to_imagemodel)
+        self.methodname = ""
         self._methods = {
             "maximum": np.max,
             "minimum": np.min,
@@ -43,12 +33,22 @@ class StackProjection(Processing):
         }
 
     def _run(self):
-        self.output = self.method(self.image, axis=self.axis)
+        self.output = self.method(self.image._image._imgs, axis=self.axis)
+        print(self.output.shape)
+
+    def output_to_imagemodel(self, name = None):
+        image = InputData(
+            self.output,
+            memoryPersist=True,
+            name=self.layername.format(self.index),
+        )
+        image.loadImage()
+        self.parent.model.add_image(image, "{} projection of {}".format(str.capitalize(self.methodname), self.imagename))
 
     def initialize_UI(self):
         self.projectlabel = QLabel("Projection method", self.dockUI)
         self.cbproject = QComboBox()
-        self.cbproject.currentIndexChanged.connect(self._set_image)
+        self.cbproject.currentIndexChanged.connect(self._set_proj)
         self.cbproject.addItems(self.methods)
 
         self.imagelabel = QLabel("Fluorescence image", self.dockUI)
@@ -61,12 +61,15 @@ class StackProjection(Processing):
         self.layout.addWidget(self.imagelabel)
         self.layout.addWidget(self.cbimage)
 
-    def _set_image(self, index):
+    def _set_image(self, text):
+        index = self.cbimage.currentIndex()
         self.image = self.model.images[index]
+        self.imagename = self.model.names[index]
 
     def _set_proj(self, index):
-        self.method = self._methods[index]
+        self.methodname = self.methods[index]
+        self.method = self._methods[self.methodname]
 
     @property
     def methods(self):
-        return self._methods.keys()
+        return list(self._methods.keys())

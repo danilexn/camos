@@ -1,30 +1,28 @@
-#
+# -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-#
-# The MIT License (MIT)
-# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial
-# portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+# Last modified on Mon Jun 07 2021
+# Copyright (c) CaMOS Development Team. All Rights Reserved.
+# Distributed under a MIT License. See LICENSE for more info.
+
 import numpy as np
-import multipagetiff as tiff
+import camos.model.image as img
 
 
 class InputData:
-    def __init__(self, file=None, type=None, memoryPersist=False):
+    """The InputData object.
+    This behaves as a container for the data, as a numpy array, and the main
+    properties of interest for the object to be handled in visualization and analysis.
+    """
+
+    def __init__(self, file=None, memoryPersist=False, name="New Layer"):
+        """Initialization of the object
+
+        Args:
+            file ([str, numpy.ndarray], optional): Can be a numpy array containing any numeric data, or a path to a file. The opening plugin must support this. Defaults to None.
+            memoryPersist (bool, optional): whether the data must be loaded into memory, at once, or can be loaded as required, from disk. Defaults to False.
+        """
         self.file = file
+        self.name = name
         self._image = None
         self.frames = 0
         self.data = None
@@ -33,29 +31,25 @@ class InputData:
         self.opacity = 50
         self.brightness = 0
         self.contrast = 0
-        self.colormap = "bw"
+        self.colormap = "gray"
 
     def image(self, index):
+        """Returns the current frame for an image
+
+        Args:
+            index (int): index corresponding to the frame
+
+        Returns:
+            np.ndarray: current frame of the image, with shape (height, width, channels)
+        """
         return self._image[index]
 
     def loadImage(self):
         # TODO: load all into memory?
-        # Make a setting for maximum memory usage
         if self.memoryPersist:
-            # TODO: reduce the dependency from multipagetiff
-            # WARNING: adapt the imageviewmodel if multipagetiff is not used anymore
-            self._image = tiff.Stack(self.file, dx=1, dz=1, units="nm")
+            self._image = img.Stack(self.file, dx=1, dz=1, units="nm")
         else:
             pass
 
         self.frames = len(self._image)
         self.max = self._image._imgs.max()
-
-    def addImage(self):
-        self._image = tiff.Stack(self.file, dx=1, dz=1, units="nm")
-        self.frames = len(self._image)
-        self.max = self._image._imgs.max()
-
-    def loadData(self):
-        # TODO: we could include the reference to the hdf5 reader here
-        self.data = np.random.random((64, 64))

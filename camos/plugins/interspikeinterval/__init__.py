@@ -1,1 +1,1 @@
-__all__ = ['aboutpage', 'interspikeinterval']
+__all__ = ["aboutpage", "interspikeinterval"]

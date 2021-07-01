@@ -1,56 +1,56 @@
-#
+# -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-#
-# The MIT License (MIT)
-# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial
-# portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
-from PyQt5 import QtCore, QtWidgets
+# Last modified on Mon Jun 07 2021
+# Copyright (c) CaMOS Development Team. All Rights Reserved.
+# Distributed under a MIT License. See LICENSE for more info.
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QThread
 
+from camos.utils.errormessages import ErrorMessages
+import camos.utils.apptools as apptools
 
 class RunTask(QWidget):
     def __init__(self, task):
         super().__init__()
         self.pbar = QProgressBar(self)
         self.pbar.setGeometry(30, 40, 500, 75)
+
+        self.cancelButton = QPushButton("Cancel", self)
+        self.cancelButton.setToolTip("Click to cancel this task")
+        self.cancelButton.clicked.connect(self.closeEvent)
+
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.pbar)
+        self.layout.addWidget(self.cancelButton)
         self.setLayout(self.layout)
         self.setGeometry(300, 300, 550, 100)
         self.setWindowTitle("Running {}".format("task"))
+        self.success = False
 
         self.obj = task
 
     def _init_thread(self):
-        self.thread = QThread()
+        self.thread = QThread(parent = apptools.getApp().gui)
         self.obj.intReady.connect(self.on_count_changed)
         self.obj.moveToThread(self.thread)
-        self.obj.finished.connect(self.thread.quit)
-        self.obj.finished.connect(self.hide)
         self.thread.started.connect(self.obj.run)
+        self.obj.finished.connect(self.finish_thread)
 
     def start_progress(self):
         self._init_thread()
         self.show()
         self.thread.start()
 
+    def finish_thread(self):
+        if not self.success:
+            ErrorMessages("The task failed to execute")
+        self.hide()
+
     def on_count_changed(self, value):
         self.pbar.setValue(value)
 
     def closeEvent(self, event):
-        self.obj.finished.emit()
+        if self.thread.isRunning():
+            self.thread.quit()
+            self.thread.wait()

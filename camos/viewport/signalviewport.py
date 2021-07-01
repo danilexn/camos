@@ -1,23 +1,9 @@
-#
+# -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-#
-# The MIT License (MIT)
-# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial
-# portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+# Last modified on Mon Jun 07 2021
+# Copyright (c) CaMOS Development Team. All Rights Reserved.
+# Distributed under a MIT License. See LICENSE for more info.
+
 from visbrain.objects import GridSignalsObj, SceneObj
 
 
@@ -31,14 +17,19 @@ class SignalViewPort:
         @canvas.events.mouse_double_click.connect
         def on_mouse_double_click(event):
             """Executed function when double click mouse over Brain canvas.
-            :event: the trigger event
+            Args:
+                event: the trigger event
             """
-            print("Double clicked hehe!")
             print(event.pos)
+            print(event.source.position)
             print(event.button)
             pass
 
-    def add_last_track(self, title="Calcium signal"):
-        data = self.model.data[-1]
+    def add_last_track(self, **kwargs):
+        self.add_track(-1, **kwargs)
+
+    def add_track(self, layer = 0, title="Calcium signal"):
+        data = self.model.data[layer]
+        name = self.model.names[layer]
         g_obj_grid = GridSignalsObj("2d", data, plt_as="col")
-        self.scene.add_to_subplot(g_obj_grid, title=title)
+        self.scene.add_to_subplot(g_obj_grid, title=name)

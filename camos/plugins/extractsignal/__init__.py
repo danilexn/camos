@@ -1,1 +1,1 @@
-__all__ = ['aboutpage', 'extractsignal']
+__all__ = ["aboutpage", "extractsignal"]

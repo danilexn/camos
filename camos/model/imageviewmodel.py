@@ -1,24 +1,11 @@
-#
+# -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-#
-# The MIT License (MIT)
-# Copyright (c) 2021 Daniel León, Josua Seidel, Hani Al Hawasli
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-# and associated documentation files (the "Software"), to deal in the Software without restriction,
-# including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-# subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial
-# portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-# TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
+# Last modified on Mon Jun 07 2021
+# Copyright (c) CaMOS Development Team. All Rights Reserved.
+# Distributed under a MIT License. See LICENSE for more info.
+
 import copy
+from operator import le
 
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import *
@@ -33,51 +20,81 @@ from camos.model.inputdata import InputData
 
 
 class ImageViewModel(QObject):
-    newdata = pyqtSignal(str)
-    removedata = pyqtSignal()
-    updated = pyqtSignal()
+    """The ImageViewModel object. This contains information regarding image data, without considering format.
+    Images are stored in self.images as InputData objects. They are accessible by index, which corresponds to the rest of
+    properties, such as self.frames, self.opacities...
+
+    This class also handles the basic modifications of the images before they are sent to the ViewPort.
+
+    Args:
+        QObject: inherit a parent PyQt5 QObject class
+    """
+
+    # Signals that the class emits
+
+    # For new image (data) being added
+    newdata = pyqtSignal(int)
+
+    # For axis being reset
+    axes = pyqtSignal(int, tuple)
+
+    # For data being removed
+    removedata = pyqtSignal(int)
+
+    # For data being updated, layer number
+    updated = pyqtSignal(int)
+
+    # For data being updated, layer number
+    updatedframe = pyqtSignal(int)
+
+    # For positions being updated
     updatepos = pyqtSignal(float, float, int, int)
+
+    # For intensities being updated
     updateint = pyqtSignal(int)
 
+    # For communicating to plots being updated
+    imagetoplot = pyqtSignal(list)
+
     def __init__(self, images=[], parent=None):
+        """Initialization of the class
+
+        Args:
+            images (list, optional): this can be passed from any list of InputData objects. Defaults to [].
+            parent (QMainWindow, optional): the parent PyQt5 object from which the model is created, so the model can interact with the UI. Defaults to None.
+        """
         self.images = images
-        # TODO: make a new image class containing all
-        # information below (frames, opacities, colormap)
+
         self.frames = []
         self.opacities = []
         self.contrasts = []
         self.brightnesses = []
         self.colormaps = []
+        self.names = []
+        self.viewitems = []
+        self.translation = []
+        self.scales = []
+        self.samplingrate = []
 
-        # TODO: treat these as properties
         self.maxframe = 0
-        self.lastlayer = 0
         self.frame = 0
         self.curr_x = 0
         self.curr_y = 0
         self.roi_coord = [[0, 0], [1, 1]]
 
-        # TODO: review this
         self.currentlayer = 0
+        self._enable_select_cells = False
+
+        # Initialize the parent QObject class
         super(ImageViewModel, self).__init__()
 
     @pyqtSlot()
-    def load_image(self, file):
-        image = InputData(file, memoryPersist=True)
-        image.loadImage()
-        if self.maxframe < image.frames:
-            self.maxframe = image.frames
-        self.images.append(image)
-        self.frames.append(image.frames)
-        self.opacities.append(50)
-        self.brightnesses.append(0)
-        self.contrasts.append(0)
-        self.colormaps.append("bw")
-        self.lastlayer += 1
-        self.newdata.emit("Layer {}".format(self.lastlayer))
+    def add_image(self, image, name=None, cmap="gray", scale=[1, 1]):
+        """Any image, once it has been loaded within a InputData object, can be loaded onto the ImageViewModel through this function. It will read all the features for the loaded image, and recalculate the global (shared) features (maximum number of frames overall, ROIs...)
 
-    @pyqtSlot()
-    def add_image(self, image):
+        Args:
+            image (InputData): the instance of InputData object to be appended to self.images; represents a image
+        """
         if self.maxframe < image.frames:
             self.maxframe = image.frames
         self.images.append(image)
@@ -85,120 +102,181 @@ class ImageViewModel(QObject):
         self.opacities.append(50)
         self.brightnesses.append(0)
         self.contrasts.append(0)
-        self.colormaps.append("bw")
-        self.lastlayer += 1
-        self.newdata.emit("Layer {}".format(self.lastlayer))
+        self.colormaps.append(cmap)
+
+        if name == None:
+            name = "Layer {}".format(len(self.images) - 1)
+
+        self.names.append(name)
+        self.translation.append([0, 0])
+        self.scales.append(scale)
+        self.samplingrate.append(1)
+        self.newdata.emit(-1)
 
     def crop_image(self, index):
-        x_min, x_max = int(self.roi_coord[0][0]), int(self.roi_coord[1][0])
-        y_min, y_max = int(self.roi_coord[0][1]), int(self.roi_coord[1][1])
+        """Crops the image contained in this model for which the index is provided
+
+        Args:
+            index (int): position of the InputData object containing the image, in the list self.images
+        """
+        scale = self.scales[index]
+        x_min, x_max = (
+            int(self.roi_coord[0][0] / scale[0]),
+            int(self.roi_coord[1][0] / scale[0]),
+        )
+        y_min, y_max = (
+            int(self.roi_coord[0][1] / scale[1]),
+            int(self.roi_coord[1][1] / scale[1]),
+        )
         cropped = self.images[index]._image._imgs[:, x_min:x_max, y_min:y_max]
-        image = copy.deepcopy(self.images[index])
-        image._image._imgs = cropped
-        image.crop = [0, 0, image._image._imgs[0].shape]
-        if self.maxframe < image.frames:
-            self.maxframe = image.frames
-        self.images.append(image)
-        self.frames.append(image.frames)
-        self.opacities.append(100)
-        self.brightnesses.append(0)
-        self.contrasts.append(0)
-        self.colormaps.append("bw")
-        self.lastlayer += 1
-        self.newdata.emit("Layer {}".format(self.lastlayer))
+        image = InputData(
+            cropped, memoryPersist=True, name="Cropped from Layer {}".format(index),
+        )
+        image.loadImage()
+        self.add_image(image, "Cropped from Layer {}".format(index), scale=scale)
+        # self.translate_position(-1, (x_min, y_min))
+
+    def flip_image(self, index):
+        """Horizontally flips the image contained in this model for which the index is provided
+
+        Args:
+            index (int): position of the InputData object containing the image, in the list self.images
+        """
+        scale = self.scales[index]
+        flipped = np.flip(self.images[index]._image._imgs, axis=2)
+        image = InputData(
+            flipped, memoryPersist=True, name="Flipped from Layer {}".format(index),
+        )
+        image.loadImage()
+        self.add_image(image, "Flipped from Layer {}".format(index), scale=scale)
+
+    def trigger_select_cells(self):
+        """Toggles on or off the selection of cells in the current layer after a "double click" mouse event
+        """
+        self._enable_select_cells = False if self._enable_select_cells else True
+
+    def select_cells(self, cell_ID=None, scale=[1, 1]):
+        """Selects the cells in the currently selected layer if cell selection is enabled. See the method self.trigger_select_cells
+        """
+        mask = self.images[self.currentlayer]._image._imgs[0]
+        if cell_ID == None:
+            if not self._enable_select_cells:
+                self.update_plots()
+                return
+            x, y = self.curr_x, self.curr_y
+            cell_ID = mask[x, y]
+        else:
+            cell_ID = int(cell_ID[2])
+        cell = np.where(mask == cell_ID, mask, 0)
+        image = InputData(
+            cell, memoryPersist=True, name="Selected Cell {}".format(cell_ID)
+        )
+        image.loadImage()
+        scale = self.scales[self.currentlayer]
+        self.add_image(
+            image,
+            "Cell {} from Layer {}".format(cell_ID, self.currentlayer),
+            scale=scale,
+        )
+
+    def update_plots(self, layer=None):
+        if layer == None:
+            self.imagetoplot.emit([self.get_currint()])
+        else:
+            idx = np.unique(self.images[self.currentlayer]._image._imgs[0]).tolist()
+            self.imagetoplot.emit(idx)
 
     @pyqtSlot()
     def layer_remove(self, index):
+        """Given an index, removes the InputData object from the self.images list, and all the metadata linked to that same index
+
+        Args:
+            index (int): position of the image in the self.images list
+        """
+        assert index != None
         self.images.pop(index)
         self.frames.pop(index)
         self.opacities.pop(index)
         self.colormaps.pop(index)
-        self.removedata.emit()
+        self.names.pop(index)
+        self.translation.pop(index)
+        self.scales.pop(index)
+        self.removedata.emit(index)
 
     def list_images(self):
+        """Gives a list of strings containing the names of the images loaded into this model
+
+        Returns:
+            list: list containing the names of the images, as str
+        """
         if len(self.images) == 0:
             return None
-        return map(str, range(len(self.images)))
+        return self.names
 
-    def get_current_view(self, index=0):
+    def get_layer(self, layer=0):
+        """This function generates the visualization of the indicated layer in the model, according to its properties (colormap, opacity...).
+
+        Returns:
+            np.ndarray: the merge of all layers in the model
+        """
         if len(self.images) == 0:
             return np.zeros((1, 1))
-        # TODO: rewrite this.
-        # Make access to images transparent, without _image and _imgs
-        # New class from scratch (see comments in self.__init__ method)
-        frame = int(self.frame / (self.maxframe / self.frames[0]))
-        _background = self.images[0]._image._imgs[frame]
-        _background = np.int16(_background)
-        _background = (
-            _background * (self.contrasts[0] / 127 + 1)
-            - self.contrasts[0]
-            + self.brightnesses[0]
-        )
-        background = cv2.normalize(
-            _background, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U
-        )
-        background = im_color = cv2.applyColorMap(background, cmaps[self.colormaps[0]])
-        if len(self.images) > 1:
-            for i in range(1, len(self.images)):
-                frame = int(self.frame / (self.maxframe / self.frames[i]))
-                _overlay = self.images[i]._image._imgs[frame]
-                _overlay = np.int16(_overlay)
-                _overlay = (
-                    _overlay * (self.contrasts[i] / 127 + 1)
-                    - self.contrasts[i]
-                    + self.brightnesses[i]
-                )
-                _overlay = np.clip(_overlay, 0, 255)
-                _overlay = np.uint8(_overlay)
-                overlay = cv2.normalize(
-                    _overlay, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U
-                )
-                overlay = cv2.applyColorMap(overlay, cmaps[self.colormaps[i]])
-                background = cv2.addWeighted(
-                    background, 1, overlay, self.opacities[i] / 100, 0, dtype=cv2.CV_64F
-                )
-        return background
+        _frame = int(self.frame / (self.maxframe / self.frames[layer]))
+        _img = self.images[layer]._image._imgs[_frame]
 
-    @pyqtSlot()
-    def set_opacity(self, opacity, index=0):
-        self.opacities[index] = opacity
-        self.updated.emit()
+        return _img
 
     @pyqtSlot()
     def rotate_image(self, index=0):
+        """Performs a counter-clockwise rotation on the selected layer (image)
+
+        Args:
+            index (int, optional): layer to configure. Defaults to 0.
+        """
         rotated = np.rot90(self.images[index]._image._imgs, axes=(1, 2))
         self.images[index]._image._imgs = rotated
         self.images[index].crop = [0, 0, rotated[0].shape]
-        self.updated.emit()
+        self.updatedframe.emit(index)
+
+    def reset_position(self, index=0):
+        self.translate_position(index, (0, 0))
+
+    @pyqtSlot()
+    def translate_position(self, index=0, position=(0, 0)):
+        self.axes.emit(index, position)
+
+    def align_layers(self, layer=0):
+        curr = self.currentlayer
+        delta_x = self.translation[curr][0]
+        delta_y = self.translation[curr][1]
+        self.translate_position(layer, (delta_x, delta_y))
 
     @pyqtSlot()
     def duplicate_image(self, index=0):
+        """Duplicates the current layer, by copying the InputData object, and calls the self.add_image method.
+
+        Args:
+            index (int, optional): index of the layer to duplicate, according to self.images. Defaults to 0.
+        """
         image = copy.deepcopy(self.images[index])
-        if self.maxframe < image.frames:
-            self.maxframe = image.frames
-        self.images.append(image)
-        self.frames.append(image.frames)
-        self.opacities.append(50)
-        self.brightnesses.append(0)
-        self.contrasts.append(0)
-        self.colormaps.append("bw")
-        self.lastlayer += 1
-        self.newdata.emit("Layer {}".format(self.lastlayer))
+        self.add_image(image, "Duplicate of Layer {}".format(index))
 
     @pyqtSlot()
-    def set_contrast(self, contrast, index=0):
-        self.contrasts[index] = contrast
-        self.updated.emit()
+    def set_values(self, opacity, brightness, contrast, cmap, scale, index=0):
+        """Configures the properties for the selected layer; emits an event, i.e., so the ViewPort knows that it has to call the self.get_current_view method.
 
-    @pyqtSlot()
-    def set_brightness(self, brightness, index=0):
+        Args:
+            cmap (cv2.ColormapTypes): colormap to be applied to the image
+            index (int, optional): index of the image in the self.images list. Defaults to 0.
+        """
+        self.opacities[index] = opacity
         self.brightnesses[index] = brightness
-        self.updated.emit()
-
-    @pyqtSlot()
-    def set_colormap(self, cmap, index=0):
+        self.contrasts[index] = contrast
         self.colormaps[index] = cmap
-        self.updated.emit()
+        # TODO: fix scales!!!
+        # scale = 1/(scale/self.scales[index][0])
+        # self.scales[index] = [scale, scale]
+        self.updated.emit(index)
 
     def get_opacity(self, index=0):
         return self.opacities[index]
@@ -212,7 +290,9 @@ class ImageViewModel(QObject):
     def get_contrast(self, index=0):
         return self.contrasts[index]
 
-    # TODO: rewrite these methods as properties
+    def get_scale(self, index=0):
+        return self.scales[index][0]
+
     def get_frame(self, index):
         return self.frame
 
@@ -221,32 +301,66 @@ class ImageViewModel(QObject):
 
     @pyqtSlot()
     def set_frame(self, t):
+        """Once a frame has been configured in the model, this emits an event so it can be handled, i.e., by the UI to update the statusbar.
+
+        Args:
+            t (int): number of the frame to be configured
+        """
         self.frame = t
-        self.updated.emit()
+        self.updatedframe.emit(self.currentlayer)
         self.updatepos.emit(self.curr_x, self.curr_y, self.frame, self.get_currint())
 
     @pyqtSlot()
     def set_currpos(self, x, y):
-        self.curr_x = x
-        self.curr_y = y
-        self.updatepos.emit(self.curr_x, self.curr_y, self.frame, self.get_currint())
+        """Once a position has been selected or hovered on the image, this emits an event, i.e., so the UI can be updated.
+
+        Args:
+            x (int): X-coordinate of the current selected layer, by index
+            y (int): Y-coordinate of the current selected layer, by index
+        """
+        try:
+            self.curr_x = x
+            self.curr_y = y
+            self.updatepos.emit(
+                self.curr_x, self.curr_y, self.frame, self.get_currint()
+            )
+        except:
+            pass
 
     def get_currint(self):
         try:
+            if (self.curr_x < 0) or (self.curr_y < 0):
+                return 0
             frame = int(self.frame / (self.maxframe / self.frames[self.currentlayer]))
             return self.images[self.currentlayer]._image._imgs[
                 frame, self.curr_x, self.curr_y
             ]
         except:
-            pass
+            return 0
 
-    # TODO: make it interactive and more efficient
     def get_icon(self, index):
-        original = cv2.resize(self.images[index]._image._imgs[0], None, fx=0.2, fy=0.2)
-        height, width = original.shape
-        bytesPerLine = 3 * width
-        icon_image = QImage(
-            original.data, width, height, bytesPerLine, QImage.Format_RGB888
-        )
-        icon_pixmap = QPixmap.fromImage(icon_image)
+        """This creates an icon for the corresponding layer
+
+        Args:
+            index (int): index of the image in the self.images list
+
+        Returns:
+            QPixmap: icon that has been generated as a thumbnail of the input layer
+        """
+        try:
+            original = cv2.resize(self.images[index]._image._imgs[0], (50, 50))
+            height, width = original.shape
+            bytesPerLine = 3 * width
+            icon_image = QImage(
+                original.data, width, height, bytesPerLine, QImage.Format_RGB888
+            )
+            icon_pixmap = QPixmap.fromImage(icon_image)
+        except:
+            icon_pixmap = QPixmap()
         return icon_pixmap
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d):
+        self.__dict__ = d

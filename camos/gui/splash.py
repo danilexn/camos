@@ -3,7 +3,7 @@ import time
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-__docformat__ = 'restructuredtext'
+__docformat__ = "restructuredtext"
 
 
 class SplashScreen(QtWidgets.QSplashScreen):
@@ -20,7 +20,7 @@ class SplashScreen(QtWidgets.QSplashScreen):
         """
 
         super(SplashScreen, self).__init__(png)
-        self.msg = ''
+        self.msg = ""
 
     def drawContents(self, painter):
         """Draw the contents of the splash screen using the given painter.
