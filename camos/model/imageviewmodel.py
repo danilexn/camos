@@ -47,6 +47,9 @@ class ImageViewModel(QObject):
     # For data being updated, layer number
     updatedframe = pyqtSignal(int)
 
+    # For data being updated, layer number
+    updatedscale = pyqtSignal(float)
+
     # For positions being updated
     updatepos = pyqtSignal(float, float, int, int)
 
@@ -75,18 +78,29 @@ class ImageViewModel(QObject):
         self.translation = []
         self.scales = []
         self.samplingrate = []
+        self.pixelsize = []
 
         self.maxframe = 0
         self.frame = 0
         self.curr_x = 0
         self.curr_y = 0
+        self._currentlayer = 0
         self.roi_coord = [[0, 0], [1, 1]]
 
-        self.currentlayer = 0
         self._enable_select_cells = False
 
         # Initialize the parent QObject class
         super(ImageViewModel, self).__init__()
+
+    @property
+    def currentlayer(self):
+        return self._currentlayer
+
+    @currentlayer.setter
+    def currentlayer(self, value):
+        self._currentlayer = value
+        pxs = self.pixelsize[value]
+        self.update_prefs(layer=value, pxsize=pxs)
 
     @pyqtSlot()
     def add_image(self, image, name=None, cmap="gray", scale=[1, 1]):
@@ -111,6 +125,7 @@ class ImageViewModel(QObject):
         self.translation.append([0, 0])
         self.scales.append(scale)
         self.samplingrate.append(1)
+        self.pixelsize.append(image._image.dx)
         self.newdata.emit(-1)
 
     def crop_image(self, index):
@@ -187,6 +202,12 @@ class ImageViewModel(QObject):
             self.imagetoplot.emit(idx)
 
     @pyqtSlot()
+    def update_prefs(self, layer=None, sampling=1, pxsize=1):
+        self.samplingrate[layer] = sampling
+        self.pixelsize[layer] = pxsize
+        self.updatedscale.emit(pxsize)
+
+    @pyqtSlot()
     def layer_remove(self, index):
         """Given an index, removes the InputData object from the self.images list, and all the metadata linked to that same index
 
@@ -250,6 +271,59 @@ class ImageViewModel(QObject):
         delta_x = self.translation[curr][0]
         delta_y = self.translation[curr][1]
         self.translate_position(layer, (delta_x, delta_y))
+
+    def sum_layers(self, layer=0):
+        curr = self.currentlayer
+        a = self.images[curr].image(0)
+        b = self.images[layer].image(0)
+        assert a.shape == b.shape
+
+        summed = a + b
+        image = InputData(
+            summed,
+            memoryPersist=True,
+            name="Sum from {} and {}".format(self.names[layer], self.names[curr]),
+        )
+        image.loadImage()
+        self.add_image(
+            image, "Sum from {} and {}".format(self.names[layer], self.names[curr])
+        )
+
+    def subtract_layers(self, layer=0):
+        curr = self.currentlayer
+        a = self.images[curr].image(0)
+        b = self.images[layer].image(0)
+        assert a.shape == b.shape
+
+        subtracted = np.abs(a - b)
+        image = InputData(
+            subtracted,
+            memoryPersist=True,
+            name="Subtract from {} and {}".format(self.names[layer], self.names[curr]),
+        )
+        image.loadImage()
+        self.add_image(
+            image, "Subtract from {} and {}".format(self.names[layer], self.names[curr])
+        )
+
+    def intersect_layers(self, layer=0):
+        curr = self.currentlayer
+        a = self.images[curr].image(0)
+        b = self.images[layer].image(0)
+        assert a.shape == b.shape
+
+        multiplied = np.multiply(a, b)
+        intersect = np.where(multiplied != 0, a, 0)
+        image = InputData(
+            intersect,
+            memoryPersist=True,
+            name="Intersect from {} and {}".format(self.names[layer], self.names[curr]),
+        )
+        image.loadImage()
+        self.add_image(
+            image,
+            "Intersect from {} and {}".format(self.names[layer], self.names[curr]),
+        )
 
     @pyqtSlot()
     def duplicate_image(self, index=0):

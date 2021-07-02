@@ -12,9 +12,8 @@ import numpy as np
 
 from camos.tasks.plotting import AnalysisPlot
 
-from matplotlib.backends.backend_qt5agg import (
-    NavigationToolbar2QT as NavigationToolbar,
-)
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+
 
 class SignalViewer(QObject):
     window_title = "Signal Viewer"
@@ -27,7 +26,7 @@ class SignalViewer(QObject):
         self.mask = []
         super(SignalViewer, self).__init__()
 
-    def display(self, index = 0):
+    def display(self, index=0):
         self._initialize_UI()
         self._final_initialize_UI()
         self.update_plot()
@@ -68,10 +67,10 @@ class SignalViewer(QObject):
     def _plot(self):
         mask_plots = ["MFR", "ISI"]
         corr_plots = ["Cor"]
-        if self.foutput.dtype.names[0] == "Active":
-            self.event_plot()
-        elif self.foutput.dtype.names == None:
+        if self.foutput.dtype.names == None:
             self.signal_plot()
+        elif self.foutput.dtype.names[0] == "Active":
+            self.event_plot()
         elif self.foutput.dtype.names[1] == "Active":
             self.raster_plot()
         elif self.foutput.dtype.names[1] in mask_plots:
@@ -86,24 +85,29 @@ class SignalViewer(QObject):
         cellID = []
         for i in range(self.foutput.shape[0]):
             t = np.arange(0, self.foutput.shape[1], 1)
-            r = np.ptp(self.foutput[i])
             self.plot.axes.plot(t, self.foutput[i] + offset)
-            cellID.append(str(i))
-            offset += r
+            cellID.append(str(i + 1))
+            offset += 1
 
-        self.plot.axes.set_yticks(np.arange(0, len(cellID)), cellID)
-        self.plot.axes.set_ylabel('ROI ID')
-        self.plot.axes.set_xlabel('Time (s)')
+        self.plot.axes.set_yticks(np.arange(0, len(cellID)), minor=cellID)
+        self.plot.axes.set_ylabel("ROI ID")
+        self.plot.axes.set_xlabel("Time (s)")
 
     def raster_plot(self):
-        self.plot.axes.scatter(y = self.foutput[:]["CellID"], x = self.foutput[:]["Active"], s=0.5)
-        self.plot.axes.set_ylabel('ROI ID')
-        self.plot.axes.set_xlabel('Time (s)')
+        self.plot.axes.scatter(
+            y=self.foutput[:]["CellID"], x=self.foutput[:]["Active"], s=0.5
+        )
+        self.plot.axes.set_ylabel("ROI ID")
+        self.plot.axes.set_xlabel("Time (s)")
 
     def event_plot(self):
-        self.plot.axes.eventplot(self.foutput[:]["Active"], lineoffset = 0.5, color = "black")
+        self.plot.axes.eventplot(
+            self.foutput[:]["Active"], lineoffset=0.5, color="black"
+        )
         self.plot.axes.set_ylim(0, 1)
-        self.plot.axes.set_xlabel('Time (s)')
+        self.plot.axes.set_yticklabels([])
+        self.plot.axes.tick_params(axis=u"y", which=u"y", length=0)
+        self.plot.axes.set_xlabel("Time (s)")
 
     def mask_plot(self, name):
         mask = self.mask
@@ -115,10 +119,10 @@ class SignalViewer(QObject):
         v = np.array(list(mask_dict.values()))
 
         dim = max(k.max(), np.max(mask))
-        mapping_ar = np.zeros(dim+1,dtype=v.dtype)
+        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
         mapping_ar[k] = v
         mask_mask = mapping_ar[mask]
 
         self.plot.axes.imshow(mask_mask, cmap="inferno", origin="upper")
-        self.plot.axes.set_ylabel('Y coordinate')
-        self.plot.axes.set_xlabel('X coordinate')
+        self.plot.axes.set_ylabel("Y coordinate")
+        self.plot.axes.set_xlabel("X coordinate")

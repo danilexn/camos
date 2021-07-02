@@ -25,7 +25,7 @@ def tiff2nparray(patj):
     except EOFError:
         pass
 
-    return np.array(frames)
+    return np.array(frames), im
 
 
 def nparray(arr):
@@ -72,8 +72,14 @@ class Stack(Sequence):
         - start_frame, end_frame : int, defines the first and last frame to use
         - keyframe: the frame at which z=0
         """
+        self.dx = dx
+        self.dz = dz
         if type(path) == str:
-            self._imgs = tiff2nparray(path)
+            self._imgs, im = tiff2nparray(path)
+            try:
+                self.dx = im.info["resolution"][0]
+            except:
+                pass
         else:
             self._imgs = nparray(copy.deepcopy(path))
 
@@ -81,8 +87,6 @@ class Stack(Sequence):
         self.keyframe = len(self) // 2
         self.start_frame = 0
         self.end_frame = len(self) - 1
-        self.dx = dx
-        self.dz = dz
         self.title = title
         self.units = units
         self.z_label = z_label
@@ -125,10 +129,7 @@ class Stack(Sequence):
     def range_in_units(self):
         return (
             np.array(
-                [
-                    self.start_frame - self.keyframe,
-                    self.end_frame - self.keyframe,
-                ]
+                [self.start_frame - self.keyframe, self.end_frame - self.keyframe,]
             )
             * self.dz
         )
