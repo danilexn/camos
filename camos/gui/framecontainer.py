@@ -7,7 +7,8 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QIntValidator, QDoubleValidator
+from PyQt5.QtGui import QDoubleValidator
+import camos.utils.pluginmanager as PluginManager
 
 from camos.utils.cmaps import cmaps
 import pyqtgraph as pg
@@ -35,8 +36,7 @@ class FrameContainer(QtWidgets.QWidget):
         self.mainlayout.setContentsMargins(0, 0, 0, 0)
         self.verticalwidgets()
 
-        self.mainlayout.addLayout(self.box_layout1, 1)  # was 2 before
-        # self.mainlayout.addLayout(self.box_layout2, 1)
+        self.mainlayout.addLayout(self.box_layout1, 1)
         pg.QtGui.QApplication.processEvents()
 
     def verticalwidgets(self):
@@ -47,32 +47,28 @@ class FrameContainer(QtWidgets.QWidget):
         self.box_layout1_1 = QtWidgets.QVBoxLayout()
         self.box_layout1.setContentsMargins(0, 0, 0, 0)
         self.box_layout1.setSpacing(0)
+        self.opened_data = TabWidget()
         self.opened_layers_widget = QLayerWidget(self)
+        self.opened_data.addTab(self.opened_layers_widget, "Layers")
         self.opened_layers_widget.installEventFilter(self)
-        self.opened_layers_widget.setSpacing(15)
         self._createLayersControls()
         self.opened_layers_widget.currentRowChanged.connect(
             self._change_LayersControls_values
         )
-
+        self.opened_layers_widget.setSpacing(5)
         self.opened_layers_widget.currentRowChanged.connect(self._change_current_layer)
-
         self.opened_layers_widget.itemDoubleClicked.connect(self._setup_current_layer)
+        self.opened_data_widget = QDataWidget(self)
+        self.opened_data_widget.itemDoubleClicked.connect(self.open_data_layer)
+        self.opened_data.addTab(self.opened_data_widget, "Datasets")
 
-        self.box_layout1_1.addWidget(self.opened_layers_widget, 1)
+        self.box_layout1_1.addWidget(self.opened_data, 1)
         self.box_layout1_1.addWidget(self.layers_controls, 1)
         self.box_layout1.addLayout(self.box_layout1_1, 1)
         self.box_layout1.addWidget(self.parent.viewport, 4)
 
         self._createLayersActions()
         self._createLayersToolBar()
-
-        # Right side plot values selected!
-        # self.box_layout2 = QtWidgets.QVBoxLayout()
-        # self.box_layout2.setContentsMargins(0, 0, 0, 0)
-        # self.box_layout2.addWidget(
-        #    self.parent.signalviewport.scene.canvas.native
-        # )
 
     def _change_current_layer(self, index):
         """Internal representation of the current layer selected
@@ -96,13 +92,22 @@ class FrameContainer(QtWidgets.QWidget):
         maxframe = self.parent.model.maxframe
         self.current_frame_slider.setRange(0, maxframe - 1)
 
-    def _setup_current_layer(self, layerName):
+    def add_data_layer(self, name):
+        """When the ImageViewModel has updates in any of the elements, the layers list is updated
+
+        Args:
+            name (str): the name of the new layer to be added
+        """
+        item = QListWidgetItem(name)
+        self.opened_data_widget.addItem(item)
+
+    def open_data_layer(self):
+        idx = self.opened_data_widget.currentRow()
+        self.parent.signalmodel.viewers[idx]()
+
+    def _setup_current_layer(self):
         text, okPressed = QInputDialog.getText(
-            self,
-            "Change '{}' name".format(layerName),
-            "New name:",
-            QLineEdit.Normal,
-            "",
+            self, "Change name", "New name:", QLineEdit.Normal, "",
         )
         if okPressed and text != "":
             layer = self.opened_layers_widget.selectedIndexes()
@@ -114,7 +119,8 @@ class FrameContainer(QtWidgets.QWidget):
     def _createLayersControls(self):
         """For the lateral layer control, creates the upper view of layers, and the bottom individual controls per layer
         """
-        self.layers_controls = QGroupBox("Selected layer")
+        self.layers_controls = QGroupBox("  Selected layer")
+        self.layers_controls.setContentsMargins(50, 100, 50, 80)
         layout = QFormLayout()
         self.opacity_layer_slider = QSlider(QtCore.Qt.Horizontal)
         layout.addRow(QLabel("Opacity:"), self.opacity_layer_slider)
@@ -129,11 +135,7 @@ class FrameContainer(QtWidgets.QWidget):
         layout.addRow(QLabel("Brightness:"), self.brightness_layer_slider)
         self.brightness_layer_slider.setRange(-127, 127)
         self.brightness_layer_slider.setValue(0)
-        self.scale_slider = QSlider(QtCore.Qt.Horizontal)
-        self.apply_changes_layer_bt = QPushButton("Change")
-        layout.addRow(QLabel("X-Y scale:"), self.scale_slider)
-        self.scale_slider.setRange(-90, 100)
-        self.scale_slider.setValue(10)
+        self.apply_changes_layer_bt = QPushButton("Apply")
         self.apply_changes_layer_bt.clicked.connect(self._apply_changes_layer)
         layout.addRow(self.apply_changes_layer_bt)
         self.current_frame_slider = QScrollBar(QtCore.Qt.Horizontal)
@@ -176,8 +178,6 @@ class FrameContainer(QtWidgets.QWidget):
         self.contrast_layer_slider.setValue(co)
         br = self.parent.model.get_brightness(index)
         self.brightness_layer_slider.setValue(br)
-        sc = self.parent.model.get_scale(index)
-        self.scale_slider.setValue(sc)
         cm = self.parent.model.get_colormap(index)
         self.colormap_layer_selector.setCurrentIndex(list(cmaps.keys()).index(cm))
 
@@ -188,12 +188,8 @@ class FrameContainer(QtWidgets.QWidget):
         op = self.opacity_layer_slider.value()
         br = self.brightness_layer_slider.value()
         co = self.contrast_layer_slider.value()
-        sc = self.scale_slider.value()
-        sc = sc if sc != 0 else 10
-        sc = 1 / abs(sc) if sc < 0 else sc
-        sc = sc / 10
         cm = self.colormap_layer_selector.currentText()
-        self.parent.model.set_values(op, br, co, cm, sc, index)
+        self.parent.model.set_values(op, br, co, cm, index)
 
     def _createLayersActions(self):
         """Creates the UI elements (buttons) to handle Removal, Duplication, ROI toggling, Cropping and Cell Selection for the currently selected layer
@@ -219,6 +215,8 @@ class FrameContainer(QtWidgets.QWidget):
             QIcon("resources/icon-neuron.svg"), "&Select Cell", self
         )
         self.cellSelect.triggered.connect(self._select_cells)
+        self.findIDs = QAction(QIcon("resources/icon-find.svg"), "&Find IDs", self)
+        self.findIDs.triggered.connect(self._find_ids)
         self.resetAxis = QAction(QIcon("resources/reset-axis.svg"), "&Align zero", self)
         self.resetAxis.triggered.connect(self._reset_axis)
         self.sendMask = QAction(QIcon("resources/icon-all.svg"), "&Select All", self)
@@ -250,7 +248,17 @@ class FrameContainer(QtWidgets.QWidget):
         self.currentlayer = self.opened_layers_widget.currentRow()
         idx = self.currentlayer
         self.parent.viewport.toggle_visibility(idx)
-        self.opened_layers_widget.currentItem().setBackground(QtGui.QColor("#666666"))
+        current_c = (
+            self.opened_layers_widget.currentItem().background().color().getRgb()
+        )
+        if current_c[0] == 102:
+            self.opened_layers_widget.currentItem().setBackground(
+                QtGui.QColor("#191919")
+            )
+        else:
+            self.opened_layers_widget.currentItem().setBackground(
+                QtGui.QColor("#666666")
+            )
 
     def _layer_prefs(self):
         """Handles the removal of the currently selected layer in self.currentlayer, which is updated, in the image model
@@ -260,7 +268,10 @@ class FrameContainer(QtWidgets.QWidget):
         dialog = LayerPrefsDialog(self.parent, self.parent.model, idx)
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
             self.parent.model.update_prefs(
-                idx, float(dialog.samplRate.text()), float(dialog.pxSize.text())
+                idx,
+                float(dialog.samplRate.text()),
+                float(dialog.pxSize.text()),
+                float(dialog.scaleSize.text()),
             )
 
     def _duplicate_layer(self):
@@ -335,6 +346,12 @@ class FrameContainer(QtWidgets.QWidget):
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
             self.parent.model.intersect_layers(dialog.combo.currentIndex())
 
+    def _find_ids(self):
+        dialog = TextDialog(self.parent)
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            id_string = dialog.search.text().replace(" ", "").split(",")
+            self.parent.model.find_cells(id_string)
+
     def _createLayersToolBar(self):
         """Creates the toolbar inside the layers sidebar containing the buttons for Remove, Duplicate, Rotate, Toggle ROI, Crop and Select Cell actions.
         """
@@ -354,6 +371,7 @@ class FrameContainer(QtWidgets.QWidget):
         layersToolBar.addAction(self.alignImage)
         layersToolBar.addAction(self.cellSelect)
         layersToolBar.addAction(self.sendMask)
+        layersToolBar.addAction(self.findIDs)
 
     def eventFilter(self, source, event):
         if (
@@ -390,6 +408,15 @@ class QLayerWidget(QtWidgets.QListWidget):
             super().keyPressEvent(event)
 
 
+class QDataWidget(QtWidgets.QListWidget):
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Delete:
+            row = self.currentRow()
+            self.parent()._data_remove()
+        else:
+            super().keyPressEvent(event)
+
+
 class LayerDialog(QtGui.QDialog):
     def __init__(self, parent=None):
         super(LayerDialog, self).__init__(parent)
@@ -414,6 +441,28 @@ class LayerDialog(QtGui.QDialog):
         lay.addWidget(box, 2, 0, 1, 2)
 
 
+class TextDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        super(TextDialog, self).__init__(parent)
+
+        self.setWindowTitle("Find IDs")
+        self.search_label = QLabel("Write the IDs (comma separated)")
+        self.search = QLineEdit()
+
+        box = QtGui.QDialogButtonBox(
+            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+            centerButtons=True,
+        )
+
+        box.accepted.connect(self.accept)
+        box.rejected.connect(self.reject)
+
+        lay = QtGui.QGridLayout(self)
+        lay.addWidget(self.search_label, 0, 0)
+        lay.addWidget(self.search, 0, 1)
+        lay.addWidget(box, 2, 0, 1, 2)
+
+
 class LayerPrefsDialog(QtGui.QDialog):
     def __init__(self, parent=None, model=None, idx=None):
         super(LayerPrefsDialog, self).__init__(parent)
@@ -423,6 +472,7 @@ class LayerPrefsDialog(QtGui.QDialog):
         name = self.model.names[idx]
         sampling = self.model.samplingrate[idx]
         pixelsize = self.model.pixelsize[idx]
+        scale = self.model.scales[idx][0]
 
         self.setWindowTitle(name)
 
@@ -438,6 +488,12 @@ class LayerPrefsDialog(QtGui.QDialog):
         self.pxSize.setValidator(self.onlyDouble)
         self.pxSize.setText(str(pixelsize))
 
+        self.onlyDouble = QDoubleValidator()
+        self.scaleSize_label = QLabel("Scale")
+        self.scaleSize = QLineEdit()
+        self.scaleSize.setValidator(self.onlyDouble)
+        self.scaleSize.setText(str(scale))
+
         box = QtGui.QDialogButtonBox(
             QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
             centerButtons=True,
@@ -451,4 +507,33 @@ class LayerPrefsDialog(QtGui.QDialog):
         lay.addWidget(self.samplRate)
         lay.addWidget(self.pxSize_label)
         lay.addWidget(self.pxSize)
+        lay.addWidget(self.scaleSize_label)
+        lay.addWidget(self.scaleSize)
         lay.addWidget(box)
+
+
+class HorizontalTabBar(QtWidgets.QTabBar):
+    def paintEvent(self, event):
+
+        painter = QtWidgets.QStylePainter(self)
+        option = QtWidgets.QStyleOptionTab()
+        for index in range(self.count()):
+            self.initStyleOption(option, index)
+            painter.drawControl(QtWidgets.QStyle.CE_TabBarTabShape, option)
+            painter.drawText(
+                self.tabRect(index),
+                QtCore.Qt.AlignCenter | QtCore.Qt.TextDontClip,
+                self.tabText(index),
+            )
+
+    def tabSizeHint(self, index):
+        size = QtWidgets.QTabBar.tabSizeHint(self, index)
+        if size.width() < size.height():
+            size.transpose()
+        return size
+
+
+class TabWidget(QtWidgets.QTabWidget):
+    def __init__(self, parent=None):
+        QtWidgets.QTabWidget.__init__(self, parent)
+        self.setTabBar(HorizontalTabBar())

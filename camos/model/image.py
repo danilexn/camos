@@ -45,6 +45,8 @@ def nparray(arr):
             elif len(arr.shape) == 4:
                 frames.append(np.array(arr[i, :, :, :]))
                 i += 1
+            else:
+                raise NotImplementedError("Image shape is not valid")
     except:
         pass
 

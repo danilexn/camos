@@ -85,7 +85,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.show()
 
-    def _update_statusbar(self, x, y, t, v):
+    def _update_statusbar(self, x, y, t, v, pxs):
         """Updates the basic info about the current image being displayed in the ImageViewPort in the statusbar.
 
         Args:
@@ -93,9 +93,12 @@ class MainWindow(QtWidgets.QMainWindow):
             y (int): Y-coordinate of the pixel under the mouse for the current layer
             t (int): currently selected frame of the current layer
             v (int): RGB or gray value (any bit depth) of the pixel under the mouse for the current layer
+            pxs (int): pixel size for the current layer
         """
         self.statusBar().showMessage(
-            "Position: [{}, {}]; Frame: {}; Value: {}".format(x, y, t, v)
+            "Position (px): [{:.0f}, {:.0f}]; Position (μm): [{:.0f}, {:.0f}]; Frame: {}; Value: {}".format(
+                x, y, x / pxs, y / pxs, t, v
+            )
         )
 
     def create_menubar(self):
@@ -111,7 +114,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fileMenu = menubar.addMenu("&File")
         self.processMenu = menubar.addMenu("&Process")
         self.analysisMenu = menubar.addMenu("&Analyze")
-        self.datasetsMenu = menubar.addMenu("&Datasets")
+        self.helpMenu = menubar.addMenu("&Help")
 
         # File menu
         # Sublevels

@@ -114,6 +114,8 @@ class InterspikeInterval(Analysis):
         mapping_ar[k] = v
         ISI_mask = mapping_ar[mask]
 
+        self.outputimage = ISI_mask
+
         im = self.plot.axes.imshow(ISI_mask, cmap="inferno", origin="upper")
         self.plot.fig.colorbar(im, ax=self.plot.axes)
         self.plot.axes.set_ylabel("Y coordinate")

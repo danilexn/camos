@@ -5,15 +5,17 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
-from PyQt5 import QtWidgets
 
 import camos.utils.apptools as apptools
 import camos.utils.pluginmanager as PluginManager
 
-signal_types = {"timeseries":[3, "int"],
-                "correlation":[2, "object"],
-                "correlation_lag":[3, "object"],
-                "summary":[2, "int"]}
+signal_types = {
+    "timeseries": [3, "int"],
+    "correlation": [2, "object"],
+    "correlation_lag": [3, "object"],
+    "summary": [2, "int"],
+}
+
 
 class SignalViewModel(QObject):
     newdata = pyqtSignal()
@@ -24,10 +26,11 @@ class SignalViewModel(QObject):
         self.names = []
         self.sampling = []
         self.masks = []
+        self.viewers = []
         super(SignalViewModel, self).__init__()
 
     @pyqtSlot()
-    def add_data(self, data, name = "New signal", _class = None, sampling = 10, mask = []):
+    def add_data(self, data, name="New signal", _class=None, sampling=10, mask=[]):
         self.data.append(data)
         if name in self.names or name == "":
             name = "New_{}_{}".format(name, len(self.names))
@@ -38,17 +41,16 @@ class SignalViewModel(QObject):
         if _class != None:
             self.add_menu(_class, self.names[-1])
 
-    def list_datasets(self, _type = None):
+    def list_datasets(self, _type=None):
         if len(self.data) == 0:
             return None
         return self.names
 
     def add_menu(self, _class, name):
         gui = apptools.getApp().gui
-        datasetsAct = QtWidgets.QAction("{}".format(name), gui)
         PluginManager.plugin_instances.append(_class)
-        datasetsAct.triggered.connect(PluginManager.plugin_instances[-1].show)
-        gui.datasetsMenu.addAction(datasetsAct)
+        gui.container.add_data_layer(name)
+        self.viewers.append(PluginManager.plugin_instances[-1].show)
 
     def __iter__(self):
         self._it = 0

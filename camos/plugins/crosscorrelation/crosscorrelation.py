@@ -14,9 +14,7 @@ class Correlation(Analysis):
     analysis_name = "Calculate Correlation"
 
     def __init__(self, model=None, parent=None, signal=None):
-        super(Correlation, self).__init__(
-            model, parent, input, name=self.analysis_name
-        )
+        super(Correlation, self).__init__(model, parent, input, name=self.analysis_name)
         self.model = model
         self.signal = signal
 
@@ -71,6 +69,10 @@ class Correlation(Analysis):
         self.corrthresholdlabel = QLabel("Correlation threshold", self.dockUI)
         self.corrthreshold = QLineEdit()
         self.corrthreshold.setText("0.85")
+        self.methodlabel = QLabel("Correlation method", self.dockUI)
+        self.cbmethod = QComboBox()
+        self.cbmethod.currentIndexChanged.connect(self._set_method)
+        self.cbmethod.addItems(self.model.list_images())
 
         self.layout.addWidget(self.masklabel)
         self.layout.addWidget(self.cbmask)
@@ -78,6 +80,8 @@ class Correlation(Analysis):
         self.layout.addWidget(self.cbdata)
         self.layout.addWidget(self.corrthresholdlabel)
         self.layout.addWidget(self.corrthreshold)
+        self.layout.addWidget(self.methodlabel)
+        self.layout.addWidget(self.cbmethod)
 
     def _set_mask(self):
         index = self.cbmask.currentIndex()
@@ -89,13 +93,8 @@ class Correlation(Analysis):
 
     def _plot(self):
         nx.draw(
-            self.G,
-            self.pos,
-            edge_color="white",
-            alpha=0.3,
-            width=2,
-            ax=self.plot.axes,
+            self.G, self.pos, edge_color="white", alpha=0.3, width=2, ax=self.plot.axes,
         )
         self.plot.axes.imshow(self.mask[0], cmap="gray", origin="upper")
-        self.plot.axes.set_ylabel('Frame number')
-        self.plot.axes.set_xlabel('Frame number')
+        self.plot.axes.set_ylabel("Y coordinate")
+        self.plot.axes.set_xlabel("X coordinate")

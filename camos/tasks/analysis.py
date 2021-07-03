@@ -34,6 +34,7 @@ class Analysis(QObject):
         self.analysis_name = name
         self.finished.connect(self.update_plot)
         self.model.imagetoplot.connect(self.update_values_plot)
+        self.outputimage = np.zeros((1, 1))
 
     def _run(self):
         pass
@@ -127,14 +128,11 @@ class Analysis(QObject):
 
     def export_plot_to_viewport(self):
         try:
-            data = np.fromstring(
-                self.plot.fig.canvas.tostring_rgb(), dtype=np.uint8, sep=""
-            )
-            data = data.reshape(self.plot.fig.canvas.get_width_height()[::-1] + (3,))
-            rgb_weights = [0.2989, 0.5870, 0.1140]
-            data = np.dot(data, rgb_weights)
-            image = InputData(data, memoryPersist=True)
+            self.update_plot()
+            image = InputData(self.outputimage, memoryPersist=True)
             image.loadImage()
-            self.parent.model.add_image(image, "Viewport Export")
+            self.parent.model.add_image(
+                image, "Viewport of {}".format(self.analysis_name)
+            )
         except:
             pass

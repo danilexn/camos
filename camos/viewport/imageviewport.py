@@ -5,7 +5,7 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 import pyqtgraph as pg
-from PyQt5 import QtGui
+from PyQt5 import QtCore
 
 import camos.viewport.mpl_cmaps_in_ImageItem as cmaps
 import camos.utils.apptools as apptools
@@ -56,7 +56,7 @@ class ImageViewPort(pg.ImageView):
         lut = cmaps.cmapToColormap(cmap).getLookupTable()
         self.view.addedItems[-1].setLookupTable(lut)
         scale_x, scale_y = self.model.scales[-1]
-        self.view.addedItems[-1].scale(scale_x, scale_y)
+        self.view.addedItems[-1].changeScale(scale_x, scale_y)
         # self.view.addedItems[-1].setLevels([0, 210])
 
     def center_position(self, **kwargs):
@@ -68,7 +68,7 @@ class ImageViewPort(pg.ImageView):
         cmap = self.model.colormaps[layer]
         lut = cmaps.cmapToColormap(cmap).getLookupTable()
         self.view.addedItems[layer + 3].setOpts(opacity=op / 100, lut=lut)
-        self.view.addedItems[layer + 3].scale(sc[0], sc[1])
+        self.view.addedItems[layer + 3].changeScale(sc[0], sc[1])
         # self.view.addedItems[layer + 3].setLevels([0, 210])
 
     def change_background(self, color=(0, 0, 0)):
@@ -132,40 +132,49 @@ class ImageViewPort(pg.ImageView):
 
 class DrawingImage(pg.ImageItem):
     accpos = [0, 0]
+    previous_scale = [1, 1]
+
+    def changeScale(self, s_x, s_y):
+        p_x, p_y = self.previous_scale
+        n_x, n_y = s_x / p_x, s_y / p_y
+        self.scale(n_x, n_y)
+        self.previous_scale = [s_x, s_y]
 
     def mouseClickEvent(self, event):
         pass
 
     def mouseDragEvent(self, event):
-        if event.isStart():
-            model = apptools.getApp().gui.model
-            viewitems = model.viewitems
-            idx = viewitems.index(self)
-            self.initial_pos = model.translation[idx]
-            self.setBorder(pg.mkPen(cosmetic=False, width=4.5, color="r"))
-            self.accpos = model.translation[idx]
+        if event.modifiers() == QtCore.Qt.ControlModifier:
+            if event.isStart():
+                model = apptools.getApp().gui.model
+                viewitems = model.viewitems
+                idx = viewitems.index(self)
+                self.initial_pos = model.translation[idx]
+                self.setBorder(pg.mkPen(cosmetic=False, width=4.5, color="r"))
+                self.accpos = model.translation[idx]
 
-        elif event.isFinish():
-            model = apptools.getApp().gui.model
-            viewitems = model.viewitems
-            idx = viewitems.index(self)
+            elif event.isFinish():
+                model = apptools.getApp().gui.model
+                viewitems = model.viewitems
+                idx = viewitems.index(self)
 
-            x, y = event.pos().x(), event.pos().y()
-            self.accpos[0] = self.accpos[0] + x
-            self.accpos[1] = self.accpos[1] + y
-            apptools.getApp().gui.model.translation[idx] = [
-                self.accpos[0],
-                self.accpos[1],
-            ]
+                x, y = event.pos().x(), event.pos().y()
+                self.accpos[0] = self.accpos[0] + x
+                self.accpos[1] = self.accpos[1] + y
+                apptools.getApp().gui.model.translation[idx] = [
+                    self.accpos[0],
+                    self.accpos[1],
+                ]
 
-            self.setBorder(None)
+                self.setBorder(None)
 
-        else:
-            p = event.pos()
-            x, y = event.pos().x(), event.pos().y()
-            self.accpos[0] = self.accpos[0] + x
-            self.accpos[1] = self.accpos[1] + y
-            self.translate(p.x(), p.y())
+            else:
+                p = event.pos()
+                x, y = event.pos().x(), event.pos().y()
+                self.accpos[0] = self.accpos[0] + x
+                self.accpos[1] = self.accpos[1] + y
+                self.translate(p.x(), p.y())
+        pass
 
     def hoverEvent(self, event):
         if not event.isExit():

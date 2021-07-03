@@ -10,28 +10,36 @@ from PyQt5.QtCore import QThread
 from camos.utils.errormessages import ErrorMessages
 import camos.utils.apptools as apptools
 
+
 class RunTask(QWidget):
     def __init__(self, task):
         super().__init__()
+        try:
+            name = task.analysis_name
+        except:
+            name = "task"
+
         self.pbar = QProgressBar(self)
         self.pbar.setGeometry(30, 40, 500, 75)
 
+        self.waitLabel = QLabel("Wait while {} is running".format(name))
         self.cancelButton = QPushButton("Cancel", self)
         self.cancelButton.setToolTip("Click to cancel this task")
         self.cancelButton.clicked.connect(self.closeEvent)
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.pbar)
+        self.layout.addWidget(self.waitLabel)
         self.layout.addWidget(self.cancelButton)
         self.setLayout(self.layout)
         self.setGeometry(300, 300, 550, 100)
-        self.setWindowTitle("Running {}".format("task"))
+        self.setWindowTitle("Running {}".format(name))
         self.success = False
 
         self.obj = task
 
     def _init_thread(self):
-        self.thread = QThread(parent = apptools.getApp().gui)
+        self.thread = QThread(parent=apptools.getApp().gui)
         self.obj.intReady.connect(self.on_count_changed)
         self.obj.moveToThread(self.thread)
         self.thread.started.connect(self.obj.run)
