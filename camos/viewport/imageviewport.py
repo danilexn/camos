@@ -36,7 +36,7 @@ class ImageViewPort(pg.ImageView):
 
     def zoom_level_changed(self, event):
         x_min, x_max = event.viewRange()[0]
-        new_sz = max(round((x_max - x_min) / 10), 100)
+        new_sz = max(round((x_max - x_min) / 10), 10)
         self._update_scalebar(new_sz)
         pass
 

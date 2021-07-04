@@ -1,5 +1,5 @@
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QLabel, QComboBox
 from PyQt5.QtGui import QDoubleValidator
 
 import camos.utils.apptools as apptools

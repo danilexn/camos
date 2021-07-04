@@ -4,7 +4,7 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QLabel, QProgressBar, QPushButton, QVBoxLayout, QWidget
 from PyQt5.QtCore import QThread
 
 from camos.utils.errormessages import ErrorMessages

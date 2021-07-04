@@ -4,7 +4,16 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import (
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QDockWidget,
+    QGroupBox,
+    QHBoxLayout,
+    QGraphicsWidget,
+    QVBoxLayout,
+)
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -32,25 +41,12 @@ class OpenCMOS(Opening):
     intReady = pyqtSignal(int)
     analysis_name = "Open CMOS Chip"
 
-    def __init__(self, parent=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialization of the object
-
-        Args:
-            model ([type], optional): [description]. Defaults to None.
-            signal ([type], optional): [description]. Defaults to None.
-            parent ([type], optional): [description]. Defaults to None.
-            signal ([type], optional): [description]. Defaults to None.
-            file ([type], optional): [description]. Defaults to None.
         """
         super(OpenCMOS, self).__init__(
-            None,
-            parent,
-            None,
-            name=self.analysis_name,
-            extensions="tif File (*.tif)",
-            show=True,
+            extensions="tif File (*.tif)", show=True, *args, **kwargs
         )
-        self.parent = parent
         self.minimodel = MiniImageViewModel(parent=self)
         self.viewport = ImageViewPort(self.minimodel)
         self.minimodel.updated.connect(self.viewport.update_viewport)

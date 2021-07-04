@@ -4,19 +4,22 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QLabel, QComboBox
 from camos.tasks.processing import Processing
 from camos.model.inputdata import InputData
 
 import cv2
 
+
 class CAMOSImageReg(Processing):
     analysis_name = "Image Registration"
-    _methods = {"Correlation":cv2.TM_CCOEFF,
-               "Normed Correlation":cv2.TM_CCOEFF_NORMED,
-               "Cross Correlation":cv2.TM_CCORR,
-               "Normed Cross Correlation":cv2.TM_CCORR_NORMED,
-               "Quared Difference":cv2.TM_SQDIFF}
+    _methods = {
+        "Correlation": cv2.TM_CCOEFF,
+        "Normed Correlation": cv2.TM_CCOEFF_NORMED,
+        "Cross Correlation": cv2.TM_CCORR,
+        "Normed Cross Correlation": cv2.TM_CCORR_NORMED,
+        "Quared Difference": cv2.TM_SQDIFF,
+    }
 
     def __init__(self, model=None, parent=None, signal=None):
         super(CAMOSImageReg, self).__init__(
@@ -30,8 +33,8 @@ class CAMOSImageReg(Processing):
         self.finished.connect(self.image_align)
 
     def check8bit(self, image):
-        if image.dtype == 'uint16':
-            image = (image/256).astype('uint8')
+        if image.dtype == "uint16":
+            image = (image / 256).astype("uint8")
         return image
 
     def _run(self):
@@ -39,7 +42,7 @@ class CAMOSImageReg(Processing):
         image = self.check8bit(self.image)
         ref = self.check8bit(self.ref)
 
-        res = cv2.matchTemplate(ref,image,self.method)
+        res = cv2.matchTemplate(ref, image, self.method)
         _, _, min_loc, max_loc = cv2.minMaxLoc(res)
         # If the method is TM_SQDIFF or TM_SQDIFF_NORMED, take minimum
         if self.method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
@@ -54,12 +57,15 @@ class CAMOSImageReg(Processing):
 
     def output_to_imagemodel(self):
         image = InputData(
-            self.output,
-            memoryPersist=True,
-            name=self.layername.format(self.index),
+            self.output, memoryPersist=True, name=self.layername.format(self.index),
         )
         image.loadImage()
-        self.parent.model.add_image(image, "StackReg of Layer {} with Reference Layer {}".format(self.index_img, self.index_ref))
+        self.parent.model.add_image(
+            image,
+            "StackReg of Layer {} with Reference Layer {}".format(
+                self.index_img, self.index_ref
+            ),
+        )
 
     def initialize_UI(self):
         # TODO: Create a checkbox for GPU acceleration

@@ -4,7 +4,6 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
 from camos.tasks.saving import Saving
 
 import os
@@ -14,15 +13,8 @@ import numpy as np
 class SaveCSV(Saving):
     analysis_name = "Save as CSV"
 
-    def __init__(self, model=None, signal=None, parent=None, file=None):
-        super(SaveCSV, self).__init__(
-            model,
-            parent,
-            signal,
-            name=self.analysis_name,
-            extensions="csv File (*.csv)",
-        )
-        self.signal = signal
+    def __init__(self, *args, **kwargs):
+        super(SaveCSV, self).__init__(extensions="csv File (*.csv)", *args, **kwargs)
 
     def _run(self):
         s_path = os.path.splitext(self.filename)
@@ -35,6 +27,3 @@ class SaveCSV(Saving):
                 fmt="%s",
                 header=",".join(list(data.dtype.names)),
             )
-
-    def _set_signal(self, index):
-        self.signal = self.signalmodel.data[index]

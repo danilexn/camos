@@ -8,6 +8,7 @@ import signal
 import sys
 import locale
 import os
+import traceback
 
 from PyQt5 import QtWidgets, QtCore
 from darktheme.widget_template import DarkPalette
@@ -15,8 +16,65 @@ from darktheme.widget_template import DarkPalette
 from camos.app import camosApp
 import camos.utils.settings as settings
 import camos.utils.apptools
+from camos.utils.errormessages import ErrorMessages
+from camos.gui.notification import NapariQtNotification
+from camos.utils.notifications import Notification
 
 _I18N_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "i18n")
+
+style = """
+NapariQtNotification > QWidget {
+  background: #303030;
+}
+
+NapariQtNotification::hover{
+  background: {{ lighten(background, 5) }};
+}
+
+MultilineElidedLabel{
+  background: none;
+  color: {{ icon }};
+  font-size: 12px;
+}
+
+NapariQtNotification #expand_button {
+  background: none;
+  padding: 0px;
+  margin: 0px;
+  max-width: 20px;
+}
+
+NapariQtNotification[expanded="false"] #expand_button {
+  image: url(":/themes/{{ folder }}/chevron_up.svg");
+}
+
+NapariQtNotification[expanded="true"] #expand_button {
+  image: url(":/themes/{{ folder }}/chevron_down.svg");
+}
+
+
+NapariQtNotification #close_button {
+  background: none;
+  image: url(":/themes/{{ folder }}/delete_shape.svg");
+  padding: 0px;
+  margin: 0px;
+  max-width: 20px;
+}
+
+NapariQtNotification #source_label {
+  color: {{ primary }};
+  font-size: 11px;
+}
+
+NapariQtNotification #severity_icon {
+  padding: 0;
+  margin: 0 0 -3px 0;
+  min-width: 20px;
+  min-height: 18px;
+  font-size: 15px;
+  color: {{ icon }};
+}
+"""
 
 
 def sigint_handler(*args):
@@ -52,13 +110,23 @@ def _set_locale(app):
     return translator
 
 
+def excepthook(exc_type, exc_value, exc_tb):
+    tb = "\n".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    # ErrorMessages(tb)
+    error = Notification("\n; ".join([str(exc_value), tb]), "ERROR")
+    NapariQtNotification.from_notification(error)
+
+
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, sigint_handler)
+    sys.excepthook = excepthook
     app = QtWidgets.QApplication(sys.argv)
     _set_credentials(app)
     # translator = _set_locale(app)
     app.setStyle("Fusion")
     app.setPalette(DarkPalette())
+    # setup stylesheet
+    app.setStyleSheet(style)
     _app = camosApp()
     camosApp_second = camos.utils.apptools.getApp()
     sys.exit(app.exec_())

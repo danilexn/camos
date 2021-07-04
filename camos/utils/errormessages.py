@@ -7,12 +7,15 @@
 #
 from PyQt5 import QtWidgets
 
+from camos.utils.apptools import getGui
+
 translate = QtWidgets.QApplication.translate
 
 
 class ErrorMessages:
     def __init__(self, message="Generic error"):
-        self.error_dialog = QtWidgets.QErrorMessage()
+        self.error_dialog = QtWidgets.QErrorMessage(getGui())
+        self.error_dialog.setWindowTitle("CaMOS error!")
         self.error_dialog.showMessage(message)
 
 

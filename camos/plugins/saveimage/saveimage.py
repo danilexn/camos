@@ -4,26 +4,16 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
 from camos.tasks.saving import Saving
 
-import tifffile
 from PIL import Image
 
 
 class SaveImage(Saving):
     analysis_name = "Save Image"
 
-    def __init__(self, model=None, signal=None, parent=None):
-        super(SaveImage, self).__init__(
-            model,
-            parent,
-            signal,
-            name=self.analysis_name,
-            show=False,
-            extensions="tif File (*.tif)",
-        )
-        self.image = None
+    def __init__(self, *args, **kwargs):
+        super(SaveImage, self).__init__(extensions="tif File (*.tif)", *args, **kwargs)
 
     def _run(self):
         currentlayer = self.model.currentlayer

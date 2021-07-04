@@ -4,7 +4,7 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QLabel, QComboBox, QListWidgetItem, QLineEdit
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui
 from PyQt5.QtGui import QIntValidator, QDoubleValidator

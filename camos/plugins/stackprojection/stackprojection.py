@@ -5,7 +5,7 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 import numpy as np
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QLabel, QComboBox
 from camos.tasks.processing import Processing
 from camos.model.inputdata import InputData
 

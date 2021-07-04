@@ -5,7 +5,7 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 import numpy as np
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtCore import pyqtSignal
 

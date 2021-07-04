@@ -6,7 +6,6 @@
 
 import copy
 
-from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 from PyQt5.QtGui import QImage, QPixmap
 

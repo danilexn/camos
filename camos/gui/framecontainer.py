@@ -6,9 +6,21 @@
 
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import (
+    QListWidgetItem,
+    QInputDialog,
+    QLineEdit,
+    QGroupBox,
+    QFormLayout,
+    QSlider,
+    QLabel,
+    QComboBox,
+    QPushButton,
+    QScrollBar,
+    QAction,
+    QWidget,
+)
 from PyQt5.QtGui import QDoubleValidator
-import camos.utils.pluginmanager as PluginManager
 
 from camos.utils.cmaps import cmaps
 import pyqtgraph as pg

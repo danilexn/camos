@@ -4,7 +4,7 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
 import scipy.io
@@ -113,11 +113,26 @@ class DetectPeaks(Analysis):
         self.foutput = self.output[idx]
 
     def _plot(self):
-        self.plot.axes.scatter(
-            y=self.foutput[:]["CellID"], x=self.foutput[:]["Active"], s=0.5
-        )
-        self.plot.axes.set_ylabel("ROI ID")
+        ev_ids = self.foutput[:]["CellID"].flatten()
+        ids = np.unique(ev_ids)
+        ids = np.sort(ids)
+        ids_norm = np.arange(0, len(ids), 1)
+
+        k = np.array(list(ids))
+        v = np.array(list(ids_norm))
+
+        dim = max(k.max(), np.max(ids_norm))
+        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
+        mapping_ar[k] = v
+        ev_ids_norm = mapping_ar[ev_ids]
+        self.plot.axes.scatter(y=ev_ids_norm, x=self.foutput[:]["Active"], s=0.5)
+        self.plot.axes.set_ylabel("Normalized ID")
         self.plot.axes.set_xlabel("Time (s)")
+        # self.plot.axes.scatter(
+        #    y=self.foutput[:]["CellID"], x=self.foutput[:]["Active"], s=0.5
+        # )
+        # self.plot.axes.set_ylabel("ROI ID")
+        # self.plot.axes.set_xlabel("Time (s)")
 
     @property
     def methods(self):

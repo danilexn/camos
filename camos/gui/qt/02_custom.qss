@@ -1,0 +1,53 @@
+"""
+NapariQtNotification > QWidget {
+  background: none;
+}
+
+NapariQtNotification::hover{
+  background: {{ lighten(background, 5) }};
+}
+
+MultilineElidedLabel{
+  background: none;
+  color: {{ icon }};
+  font-size: 12px;
+}
+
+NapariQtNotification #expand_button {
+  background: none;
+  padding: 0px;
+  margin: 0px;
+  max-width: 20px;
+}
+
+NapariQtNotification[expanded="false"] #expand_button {
+  image: url(":/themes/{{ folder }}/chevron_up.svg");
+}
+
+NapariQtNotification[expanded="true"] #expand_button {
+  image: url(":/themes/{{ folder }}/chevron_down.svg");
+}
+
+
+NapariQtNotification #close_button {
+  background: none;
+  image: url(":/themes/{{ folder }}/delete_shape.svg");
+  padding: 0px;
+  margin: 0px;
+  max-width: 20px;
+}
+
+NapariQtNotification #source_label {
+  color: {{ primary }};
+  font-size: 11px;
+}
+
+NapariQtNotification #severity_icon {
+  padding: 0;
+  margin: 0 0 -3px 0;
+  min-width: 20px;
+  min-height: 18px;
+  font-size: 15px;
+  color: {{ icon }};
+}
+"""

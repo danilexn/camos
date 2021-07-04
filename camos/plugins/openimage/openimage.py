@@ -4,24 +4,22 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
 from camos.tasks.opening import Opening
 from camos.model.inputdata import InputData
 
 import PIL
 
+
 class OpenImage(Opening):
     analysis_name = "Open Image"
 
-    def __init__(self, model=None, signal=None, parent=None, file=None):
+    def __init__(self, *args, **kwargs):
         super(OpenImage, self).__init__(
-            model,
-            parent,
-            signal,
             name=self.analysis_name,
             extensions="tif File (*.tif);; png File (*.png);; jpeg File (*.jpeg);; tiff File (*.tiff)",
+            *args,
+            **kwargs
         )
-        self.model = model
 
     def _run(self):
         # Added so we can load CMOS chip image

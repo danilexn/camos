@@ -7,16 +7,13 @@
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtGui import QIcon
 
-# TODO: should we import everything?
-from PyQt5.QtWidgets import *
-import sys
+from PyQt5.QtWidgets import QHBoxLayout, QMenu, QMessageBox
 
 from camos.model.imageviewmodel import ImageViewModel
 from camos.model.signalviewmodel import SignalViewModel
 from camos.viewport.imageviewport import ImageViewPort
 from camos.gui.preferencespanel import CAMOSPreferences
 
-# from camos.viewport.signalviewport import SignalViewPort
 from camos.gui.framecontainer import FrameContainer
 
 
@@ -43,10 +40,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.camosApp = camosApp
 
         self.viewport = ImageViewPort(self.model, self.parent)
-        # self.signalviewport = SignalViewPort(self.signalmodel, self.parent)
 
         # Connect events
-        # self.signalmodel.newdata.connect(self.signalviewport.add_last_track)
         self.model.newdata.connect(self.viewport.load_image)
         self.model.updated.connect(self.viewport.update_viewport)
         self.model.updatedscale.connect(self.viewport.update_scalebar)

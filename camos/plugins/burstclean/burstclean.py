@@ -4,7 +4,7 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit
 from PyQt5.QtGui import QIntValidator
 
 import numpy as np
@@ -17,9 +17,7 @@ class BurstClean(Analysis):
     input_type = "summary"
 
     def __init__(self, model=None, parent=None, signal=None):
-        super(BurstClean, self).__init__(
-            model, parent, signal, name=self.analysis_name
-        )
+        super(BurstClean, self).__init__(model, parent, signal, name=self.analysis_name)
         self.data = None
         self.finished.connect(self.output_to_signalmodel)
 
@@ -27,7 +25,7 @@ class BurstClean(Analysis):
         _filter_min = float(self.minimumev.text())
         _filter_max = float(self.maximumev.text())
         self.pos = {}
-        output_type = [('CellID', 'int'), ('Active', 'float')]
+        output_type = [("CellID", "int"), ("Active", "float")]
 
         # data should be provided in format summary (active events)
         data = self.data
@@ -45,7 +43,7 @@ class BurstClean(Analysis):
         IDs_filter = IDs[idx]
 
         # Calculate mean firing rate per cell
-        self.output = np.zeros(shape = (len(active_filter), 1), dtype = output_type)
+        self.output = np.zeros(shape=(len(active_filter), 1), dtype=output_type)
         self.output[:]["CellID"] = IDs_filter.reshape(-1, 1)
         self.output[:]["Active"] = active_filter.reshape(-1, 1)
 
@@ -61,7 +59,9 @@ class BurstClean(Analysis):
         self._final_initialize_UI()
 
     def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(self.output, "Clean Events of {}".format(self.dataname), self)
+        self.parent.signalmodel.add_data(
+            self.output, "Clean Events of {}".format(self.dataname), self
+        )
 
     def initialize_UI(self):
         self.datalabel = QLabel("Source dataset", self.dockUI)
@@ -94,6 +94,21 @@ class BurstClean(Analysis):
         self.dataname = self.signal.names[index]
 
     def _plot(self):
-        self.plot.axes.scatter(y = self.foutput[:]["CellID"], x = self.foutput[:]["Active"], s=0.5)
-        self.plot.axes.set_ylabel('ROI ID')
-        self.plot.axes.set_xlabel('Time (s)')
+        ev_ids = self.foutput[:]["CellID"].flatten()
+        ids = np.unique(ev_ids)
+        ids = np.sort(ids)
+        ids_norm = np.arange(0, len(ids), 1)
+
+        k = np.array(list(ids))
+        v = np.array(list(ids_norm))
+
+        dim = max(k.max(), np.max(ids_norm))
+        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
+        mapping_ar[k] = v
+        ev_ids_norm = mapping_ar[ev_ids]
+        self.plot.axes.scatter(y=ev_ids_norm, x=self.foutput[:]["Active"], s=0.5)
+        self.plot.axes.set_ylabel("Normalized ID")
+        self.plot.axes.set_xlabel("Time (s)")
+        # self.plot.axes.scatter(y = self.foutput[:]["CellID"], x = self.foutput[:]["Active"], s=0.5)
+        # self.plot.axes.set_ylabel('ROI ID')
+        # self.plot.axes.set_xlabel('Time (s)')

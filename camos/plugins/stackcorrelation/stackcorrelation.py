@@ -4,15 +4,23 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import (
+    QLabel,
+    QComboBox,
+    QDockWidget,
+    QHBoxLayout,
+    QGroupBox,
+    QVBoxLayout,
+    QPushButton,
+)
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import pyqtSignal
 from camos.tasks.processing import Processing
 
 import numpy as np
 from camos.tasks.runtask import RunTask
-from camos.utils.errormessages import ErrorMessages
 from camos.tasks.plotting import AnalysisPlot
+
 
 class StackCorrelation(Processing):
     analysis_name = "Stack Correlation"
@@ -30,8 +38,8 @@ class StackCorrelation(Processing):
     def _run(self):
         image = self.image._image._imgs
         n = image.shape[0]
-        corr_a = np.corrcoef(image[0],image[int(n/2)])[0, 1]
-        corr_b = np.corrcoef(image[0],image[n - 1])[0, 1]
+        corr_a = np.corrcoef(image[0], image[int(n / 2)])[0, 1]
+        corr_b = np.corrcoef(image[0], image[n - 1])[0, 1]
         if (corr_a >= 0.85) and (corr_b >= 0.85):
             print("There seems to be no motion artifact!")
 
@@ -40,7 +48,7 @@ class StackCorrelation(Processing):
         for i in range(len(t)):
             self.intReady.emit(i * 100 / len(t))
             for j in range(i, len(t)):
-                corr = np.corrcoef(image[t[i]],image[t[j]])
+                corr = np.corrcoef(image[t[i]], image[t[j]])
                 self.output[i, j] = corr[0, 1]
 
         i_lower = np.tril_indices(len(t), -1)

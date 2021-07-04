@@ -4,7 +4,6 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal
 
 import numpy as np
@@ -18,13 +17,11 @@ class OpenBXR(Opening):
     """This is the plugin to load CMOS data into CaMOS, being able to select the electrodes
     """
 
-    finished = pyqtSignal()
     plotReady = pyqtSignal()
     gridReady = pyqtSignal(np.ndarray)
-    intReady = pyqtSignal(int)
     analysis_name = "Open bxr file"
 
-    def __init__(self, parent=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialization of the object
 
         Args:
@@ -35,14 +32,8 @@ class OpenBXR(Opening):
             file ([type], optional): [description]. Defaults to None.
         """
         super(OpenBXR, self).__init__(
-            None,
-            parent,
-            None,
-            name=self.analysis_name,
-            extensions="BXR File (*.bxr)",
-            show=False,
+            extensions="BXR File (*.bxr)", show=False, *args, **kwargs
         )
-        self.parent = parent
 
     def _run(self):
         filehdf5_bxr = h5py.File(self.filename)

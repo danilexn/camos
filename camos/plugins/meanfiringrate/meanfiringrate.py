@@ -5,11 +5,8 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 import numpy as np
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QLabel, QComboBox
 from camos.tasks.analysis import Analysis
-import matplotlib.cm as cm
-
-import networkx as nx
 
 
 class MeanFiringRate(Analysis):
