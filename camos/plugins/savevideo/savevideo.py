@@ -4,13 +4,11 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-
-from PyQt5.QtWidgets import QLabel, QLineEdit
-
 import numpy as np
 import cv2
 
 from camos.tasks.saving import Saving
+from camos.utils.generategui import NumericInput
 
 
 class SaveVideo(Saving):
@@ -20,11 +18,11 @@ class SaveVideo(Saving):
         super(SaveVideo, self).__init__(show=True, *args, **kwargs)
         self.image = None
 
-    def _run(self):
+    def _run(self, fps: NumericInput("Frames per second", 10)):
         height, width, layers = self.model.get_current_view(0).shape
         size = (width, height)
         out = cv2.VideoWriter(
-            self.filename, cv2.VideoWriter_fourcc(*"DIVX"), int(self.fps.text()), size,
+            self.filename, cv2.VideoWriter_fourcc(*"DIVX"), int(fps), size,
         )
         for i in range(self.model.maxframe):
             self.model.frame = i
@@ -32,10 +30,3 @@ class SaveVideo(Saving):
             self.intReady.emit(i * 100 / self.model.maxframe)
 
         out.release()
-
-    def initialize_UI(self):
-        self.fpslabel = QLabel("Frames per second", self.dockUI)
-        self.fps = QLineEdit()
-
-        self.layout.addWidget(self.fpslabel)
-        self.layout.addWidget(self.fps)

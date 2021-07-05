@@ -4,7 +4,7 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QDockWidget, QVBoxLayout
 from PyQt5.QtCore import QObject
 from PyQt5 import QtWidgets, QtCore
 

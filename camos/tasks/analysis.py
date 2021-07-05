@@ -24,6 +24,7 @@ from camos.tasks.base import BaseTask
 from camos.tasks.runtask import RunTask
 from camos.tasks.plotting import AnalysisPlot
 from camos.model.inputdata import InputData
+from camos.utils.generategui import CreateGUI
 
 
 class Analysis(BaseTask):
@@ -37,7 +38,7 @@ class Analysis(BaseTask):
         self.model.imagetoplot.connect(self.update_values_plot)
         self.outputimage = np.zeros((1, 1))
 
-    def _initialize_UI(self):
+    def buildUI(self):
         self.dockUI = QDockWidget(self.analysis_name, self.parent)
         self.main_layout = QHBoxLayout()
         self.group_settings = QGroupBox("Parameters")
@@ -54,8 +55,9 @@ class Analysis(BaseTask):
         self.group_plot.setLayout(self.plot_layout)
         self.main_layout.addWidget(self.group_settings, 1)
         self.main_layout.addWidget(self.group_plot, 4)
+        self.params_gui = CreateGUI(self.paramDict, self.layout, self._run)
+        self.params_gui.creategui()
 
-    def _final_initialize_UI(self):
         self.runButton = QPushButton("Run", self.parent)
         self.runButton.setToolTip("Click to run this task")
         self.handler = RunTask(self)

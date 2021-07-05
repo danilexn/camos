@@ -5,16 +5,16 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 import numpy as np
-from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit
-from PyQt5.QtGui import QIntValidator
 from PyQt5.QtCore import pyqtSignal
 
 from camos.tasks.analysis import Analysis
+from camos.utils.generategui import NumericInput, ImageInput
 
 
 class ExtractSignal(Analysis):
     analysis_name = "Extract Signal"
     plotReady = pyqtSignal()
+    required = ["image"]
 
     def __init__(self, model=None, parent=None, signal=None):
         super(ExtractSignal, self).__init__(
@@ -26,26 +26,34 @@ class ExtractSignal(Analysis):
         self.finished.connect(self.output_to_signalmodel)
         self.finished.connect(self.update_plot)
 
-    def _run(self):
-        # Set the sampling rate from the UI
-        self.sampling = int(self.F0_fps.text())
+    def _run(
+        self,
+        fps: NumericInput("Sampling Rate (Hz)", 10),
+        F0_time: NumericInput("Time Window (s)", 10),
+        F0_perc: NumericInput("Percentile", 50),
+        _i_mask: ImageInput("Mask Image", 0),
+        _i_fluor: ImageInput("Fluorescence Image", 0),
+    ):
+        # Set the variables from the UI
+        self.sampling = fps
+        mask = self.model.images[_i_mask].image(0)
+        image = self.model.images[_i_fluor]
+        self.imagename = self.model.names[_i_fluor]
+
         # Get the ROIs from the mask
-        ROIs = np.unique(self.mask.image(0))[1:]
-        self.raw = np.zeros((len(ROIs), self.image.frames))
+        ROIs = np.unique(mask)[1:]
+        self.raw = np.zeros((len(ROIs), image.frames))
         total = len(ROIs)
 
         # Extract raw signals
         for i, r in enumerate(ROIs):
-            cell = self.mask.image(0) == r
-            self.raw[i, :] = np.average(self.image._image._imgs[:, cell], axis=(1))
+            cell = mask == r
+            self.raw[i, :] = np.average(image._image._imgs[:, cell], axis=(1))
             self.intReady.emit(i * 100 / total)
 
         # Process raw signals to get dF/F0
         F = self.raw
         N, frames = F.shape
-        F0_time = int(self.F0_time.text())
-        F0_perc = int(self.F0_perc.text())
-        fps = int(self.F0_fps.text())
 
         # Code adapted from FluoroSNNAP
         # Determine deltaF/F by subtracting each value with the
@@ -75,47 +83,10 @@ class ExtractSignal(Analysis):
         self.output = dF_cell
 
     def output_to_signalmodel(self):
-        name = self.cbimage.currentText()
+        name = self.imagename
         self.parent.signalmodel.add_data(
             self.output, "Signal from {}".format(name), self
         )
-
-    def initialize_UI(self):
-        self.masklabel = QLabel("Mask image", self.dockUI)
-        self.imagelabel = QLabel("Fluorescence image", self.dockUI)
-        self.cbmask = QComboBox()
-        self.cbmask.currentIndexChanged.connect(self._set_mask)
-        self.cbmask.addItems(self.model.list_images())
-        self.cbimage = QComboBox()
-        self.cbimage.currentIndexChanged.connect(self._set_image)
-        self.cbimage.addItems(self.model.list_images())
-
-        self.onlyInt = QIntValidator()
-        self.F0_time_label = QLabel("Time Window", self.parent)
-        self.F0_time = QLineEdit()
-        self.F0_time.setValidator(self.onlyInt)
-        self.F0_time.setText("10")
-        self.layout.addWidget(self.F0_time_label)
-        self.layout.addWidget(self.F0_time)
-
-        self.F0_perc_label = QLabel("Percentile", self.parent)
-        self.F0_perc = QLineEdit()
-        self.F0_perc.setValidator(self.onlyInt)
-        self.F0_perc.setText("50")
-        self.layout.addWidget(self.F0_perc_label)
-        self.layout.addWidget(self.F0_perc)
-
-        self.F0_fps_label = QLabel("Sampling rate (Hz)", self.parent)
-        self.F0_fps = QLineEdit()
-        self.F0_fps.setValidator(self.onlyInt)
-        self.F0_fps.setText("10")
-        self.layout.addWidget(self.F0_fps_label)
-        self.layout.addWidget(self.F0_fps)
-
-        self.layout.addWidget(self.masklabel)
-        self.layout.addWidget(self.cbmask)
-        self.layout.addWidget(self.imagelabel)
-        self.layout.addWidget(self.cbimage)
 
     def _plot(self):
         offset = 0
@@ -129,11 +100,3 @@ class ExtractSignal(Analysis):
         self.plot.axes.set_yticks(np.arange(0, len(cellID)), minor=cellID)
         self.plot.axes.set_ylabel("ROI ID")
         self.plot.axes.set_xlabel("Time (s)")
-
-    def _set_mask(self, text):
-        index = self.cbmask.currentIndex()
-        self.mask = self.model.images[index]
-
-    def _set_image(self, text):
-        index = self.cbimage.currentIndex()
-        self.image = self.model.images[index]

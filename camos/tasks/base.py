@@ -12,6 +12,7 @@ import numpy as np
 
 from camos.tasks.runtask import RunTask
 from camos.model.inputdata import InputData
+from camos.utils.generategui import CreateGUI
 
 
 class BaseTask(QObject):
@@ -26,14 +27,15 @@ class BaseTask(QObject):
         self.signal = signal
         self.parent = parent
         self.output = np.zeros((1, 1))
+        self.paramDict = {}
 
-    def _run(self):
+    def _run(self, **kwargs):
         pass
 
     @pyqtSlot()
     def run(self):
         try:
-            self._run()
+            self._run(**self.paramDict)
             self.handler.success = True
             self.foutput = self.output
         except Exception as e:
@@ -78,30 +80,18 @@ class BaseTask(QObject):
         ):
             IndexError("The dataset model is empty")
 
-        self._initialize_UI()
-        self.initialize_UI()
-        self._final_initialize_UI()
-
-    def show(self):
-        self.dockUI.show()
+        self.buildUI()
+        self.show()
 
     def initialize_UI(self):
         pass
 
-    def update_values_plot(self, values):
-        self._update_values_plot(values)
-        self.plot.axes.clear()
-        self.update_plot()
-        pass
-
-    def _update_values_plot(self, values):
-        pass
-
-    def _initialize_UI(self):
+    def buildUI(self):
         self.dockUI = QDockWidget(self.analysis_name, self.parent)
         self.layout = QVBoxLayout()
+        self.params_gui = CreateGUI(self.paramDict, self.layout, self._run)
+        self.params_gui.creategui()
 
-    def _final_initialize_UI(self):
         self.runButton = QPushButton("Run", self.parent)
         self.runButton.setToolTip("Click to run this task")
         self.handler = RunTask(self)
@@ -114,3 +104,13 @@ class BaseTask(QObject):
         self.dockedWidget.setLayout(self.layout)
         self.dockUI.setFloating(True)
         self.parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dockUI)
+        pass
+
+    def update_values_plot(self, values):
+        self._update_values_plot(values)
+        self.plot.axes.clear()
+        self.update_plot()
+        pass
+
+    def _update_values_plot(self, values):
+        pass

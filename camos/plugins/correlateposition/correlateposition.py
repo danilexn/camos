@@ -9,6 +9,8 @@ from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit
 from camos.tasks.analysis import Analysis
 from rtree import index
 
+from camos.utils.generategui import NumericInput, ImageInput
+
 
 class CorrelatePosition(Analysis):
     analysis_name = "Correlate Positions"
@@ -21,11 +23,17 @@ class CorrelatePosition(Analysis):
         self.signal = signal
         self.finished.connect(self.output_to_signalmodel)
 
-    def _run(self):
-        # Retrieve the UI parameters
-        dist = float(self.distthreshold.text())
-        # Retrieve the CMOS mask
-        maskcmos = self.maskcmos
+    def _run(
+        self,
+        dist: NumericInput("Maximum distance (μm)", 100),
+        cmos: ImageInput("CMOS mask image", 0),
+        fl: ImageInput("Fluorescence mask image", 0),
+    ):
+        # The image input returns the index of the image model
+        maskcmos_scale = self.model.scales[cmos]
+        maskcmos_trans = self.model.translation[cmos]
+        maskcmos = self.model.images[cmos]._image
+
         ROIs = np.unique(maskcmos)
 
         # Setup the output variables
@@ -41,69 +49,34 @@ class CorrelatePosition(Analysis):
             self.intReady.emit(i * 100 / len(ROIs))
             cell = maskcmos[0] == i
             p = (
-                np.average(np.where(cell), axis=1) + self.maskcmos_trans
-            ) * self.maskcmos_scale[0]
+                np.average(np.where(cell), axis=1) + np.flip(maskcmos_trans)
+            ) * maskcmos_scale[0]
             idx.insert(i, (p[0], p[1], p[0], p[1]))
             idx_dic[i] = p
 
         # Retrieve the Calcium mask, find positions
-        maskfl = self.maskfl
+        maskfl_scale = self.model.scales[fl]
+        maskfl_trans = self.model.translation[fl]
+        maskfl = self.model.images[fl]._image
         ROIs = np.unique(maskfl)
 
         for i in ROIs[1:]:  # avoid the background 0 value
             self.intReady.emit(i * 100 / len(ROIs))
             cell = maskfl[0] == i
             p = (
-                np.average(np.where(cell), axis=1) + self.maskfl_trans
-            ) * self.maskfl_scale[0]
+                np.average(np.where(cell), axis=1) + np.flip(maskfl_trans)
+            ) * maskfl_scale[0]
             # Introduce checking the distance under the threshold
             nearest = list(idx.nearest((p[0], p[1], p[0], p[1]), 1))[0]
             if np.linalg.norm(idx_dic[nearest] - p) < dist:
                 row = np.array([(i, nearest)], dtype=output_type)
                 self.output = np.append(self.output, row)
 
+        self.maskimage = self.model.images[fl].image(0)
         self.finished.emit()
 
-    def display(self):
-        if type(self.model.list_images()) is type(None):
-            # Handle error that there are no images
-            return
-        self._initialize_UI()
-        self.initialize_UI()
-        self._final_initialize_UI()
-
-    def initialize_UI(self):
-        self.maskcmoslabel = QLabel("CMOS mask image", self.dockUI)
-        self.cbmaskcmos = QComboBox()
-        self.cbmaskcmos.currentIndexChanged.connect(self._set_maskcmos)
-        self.cbmaskcmos.addItems(self.model.list_images())
-        self.maskfllabel = QLabel("Fluorescence mask image", self.dockUI)
-        self.cbmaskfl = QComboBox()
-        self.cbmaskfl.currentIndexChanged.connect(self._set_maskfl)
-        self.cbmaskfl.addItems(self.model.list_images())
-        self.distthresholdlabel = QLabel("Maximum distance (μm)", self.dockUI)
-        self.distthreshold = QLineEdit()
-        self.distthreshold.setText("100")
-
-        self.layout.addWidget(self.maskcmoslabel)
-        self.layout.addWidget(self.cbmaskcmos)
-        self.layout.addWidget(self.maskfllabel)
-        self.layout.addWidget(self.cbmaskfl)
-        self.layout.addWidget(self.distthresholdlabel)
-        self.layout.addWidget(self.distthreshold)
-
-    def _set_maskcmos(self, index):
-        self.maskcmos_scale = self.model.scales[index]
-        self.maskcmos_trans = self.model.translation[index]
-        self.maskcmos = self.model.images[index]._image
-
-    def _set_maskfl(self, index):
-        self.maskfl_scale = self.model.scales[index]
-        self.maskfl_trans = self.model.translation[index]
-        self.maskfl = self.model.images[index]._image
-
     def _plot(self):
-        mask = self.maskfl
+        mask = self.maskimage
         map_dict = {}
         for i in range(1, self.foutput.shape[0]):
             map_dict[int(self.foutput[i]["CellID"])] = self.foutput[i]["Nearest"]

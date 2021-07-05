@@ -4,19 +4,18 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit
-from PyQt5.QtGui import QIntValidator, QDoubleValidator
-
 import scipy.io
 import scipy.signal
 import numpy as np
 from . import oopsi
 
 from camos.tasks.analysis import Analysis
+from camos.utils.generategui import NumericInput, DatasetInput, CustomComboInput
 
 
 class DetectPeaks(Analysis):
     analysis_name = "Detect Peaks"
+    required = ["dataset"]
 
     def __init__(self, model=None, parent=None, signal=None):
         super(DetectPeaks, self).__init__(model, parent, input, name=self.analysis_name)
@@ -28,85 +27,37 @@ class DetectPeaks(Analysis):
         }
         self.finished.connect(self.output_to_signalmodel)
 
-    def _run(self):
+    def _run(
+        self,
+        thr: NumericInput("Threshold (template)", 0.85),
+        iter_max: NumericInput("Max Iterations (oopsi)", 50),
+        event_amplitude: NumericInput("Event Amplitude (Template)", 0.01),
+        _i_data: DatasetInput("Source dataset", 0),
+        _i_method: CustomComboInput(
+            ["oopsi Fast", "Template matching"], "Detection method", 0
+        ),
+    ):
+        data = self.signal.data[_i_data]
+        sampling = self.signal.sampling[_i_data]
         output_type = [("CellID", "int"), ("Active", "float")]
+        method = self._methods[list(self._methods.keys())[_i_method]]
+        self.dataname = self.signal.names[_i_data]
         self.output = np.zeros(shape=(1, 1), dtype=output_type)
 
-        thr = float(self.threshold.text())
-        iter_max = int(self.max_iter.text())
-        event_amplitude = float(self.amplitude.text())
-
-        self.output = self.method(
-            self.data,
+        self.output = method(
+            data,
             self.output,
             output_type,
-            fps=self.sampling,
+            fps=sampling,
             thr=thr,
             iter_max=iter_max,
             event_amplitude=event_amplitude,
         )
 
-    def display(self):
-        if type(self.signal.list_datasets()) is type(None):
-            # Handle error that there are no images
-            return
-        self._initialize_UI()
-        self.initialize_UI()
-        self._final_initialize_UI()
-
     def output_to_signalmodel(self):
         self.parent.signalmodel.add_data(
             self.output, "Peaks from {}".format(self.dataname), self, self.sampling
         )
-
-    def initialize_UI(self):
-        self.datalabel = QLabel("Source dataset", self.dockUI)
-        self.cbdata = QComboBox()
-        self.cbdata.currentIndexChanged.connect(self._set_data)
-        self.cbdata.addItems(self.signal.list_datasets())
-        self.layout.addWidget(self.datalabel)
-        self.layout.addWidget(self.cbdata)
-
-        self.methodlabel = QLabel("Detection method", self.dockUI)
-        self.cbmethod = QComboBox()
-        self.cbmethod.currentIndexChanged.connect(self._set_method)
-        self.cbmethod.addItems(self.methods)
-        self.layout.addWidget(self.methodlabel)
-        self.layout.addWidget(self.cbmethod)
-
-        self.onlyDouble = QDoubleValidator()
-        self.onlyInt = QIntValidator()
-
-        self.max_iter_label = QLabel("Max Iterations (oopsi)", self.parent)
-        self.max_iter = QLineEdit()
-        self.max_iter.setValidator(self.onlyInt)
-        self.max_iter.setText("50")
-        self.layout.addWidget(self.max_iter_label)
-        self.layout.addWidget(self.max_iter)
-
-        self.threshold_label = QLabel("Threshold (template)", self.parent)
-        self.threshold = QLineEdit()
-        self.threshold.setValidator(self.onlyDouble)
-        self.threshold.setText("0.85")
-        self.layout.addWidget(self.threshold_label)
-        self.layout.addWidget(self.threshold)
-
-        self.amplitude_label = QLabel("Event Amplitude (template)", self.parent)
-        self.amplitude = QLineEdit()
-        self.amplitude.setValidator(self.onlyDouble)
-        self.amplitude.setText("0.01")
-        self.layout.addWidget(self.amplitude_label)
-        self.layout.addWidget(self.amplitude)
-
-    def _set_method(self, index):
-        self.methodname = self.methods[index]
-        self.method = self._methods[self.methodname]
-
-    def _set_data(self, index):
-        dataset = self.signal.data[index]
-        self.data = dataset
-        self.dataname = self.signal.names[index]
-        self.sampling = self.signal.sampling[index]
 
     def _update_values_plot(self, values):
         idx = np.isin(self.output[:]["CellID"], np.array(values))

@@ -4,22 +4,23 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (
-    QLabel,
-    QComboBox,
     QDockWidget,
     QHBoxLayout,
     QGroupBox,
+    QPushButton,
     QVBoxLayout,
     QPushButton,
+    QWidget,
 )
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import pyqtSignal
-from camos.tasks.processing import Processing
 
 import numpy as np
+
 from camos.tasks.runtask import RunTask
 from camos.tasks.plotting import AnalysisPlot
+from camos.tasks.processing import Processing
+from camos.utils.generategui import ImageInput
 
 
 class StackCorrelation(Processing):
@@ -35,8 +36,9 @@ class StackCorrelation(Processing):
         self.between = 300
         self.finished.connect(self.plot)
 
-    def _run(self):
-        image = self.image._image._imgs
+    def _run(self, _i_img: ImageInput("Stack to Correlate", 0)):
+        image = self.model.images[_i_img]._image._imgs
+        self.index = _i_img
         n = image.shape[0]
         corr_a = np.corrcoef(image[0], image[int(n / 2)])[0, 1]
         corr_b = np.corrcoef(image[0], image[n - 1])[0, 1]
@@ -61,45 +63,41 @@ class StackCorrelation(Processing):
         self._plot()
         self.plot.draw()
         self.plotReady.emit()
-        pass
 
-    def _initialize_UI(self):
+    def buildUI(self):
         self.dockUI = QDockWidget(self.analysis_name, self.parent)
         self.main_layout = QHBoxLayout()
         self.group_settings = QGroupBox("Parameters")
         self.group_plot = QGroupBox("Plots")
         self.layout = QVBoxLayout()
+        self.layout.addStretch(1)
         self.plot_layout = QVBoxLayout()
         self.plot = AnalysisPlot(self, width=5, height=4, dpi=100)
+        self.plot.plottoimage.connect(self.parent.model.select_cells)
+        self.toolbar = NavigationToolbar(self.plot, None)
+        self.plot_layout.addWidget(self.toolbar)
         self.plot_layout.addWidget(self.plot)
         self.group_settings.setLayout(self.layout)
         self.group_plot.setLayout(self.plot_layout)
         self.main_layout.addWidget(self.group_settings, 1)
         self.main_layout.addWidget(self.group_plot, 4)
+        self.params_gui = CreateGUI(self.paramDict, self.layout, self._run)
+        self.params_gui.creategui()
 
-    def _final_initialize_UI(self):
         self.runButton = QPushButton("Run", self.parent)
         self.runButton.setToolTip("Click to run this task")
         self.handler = RunTask(self)
         self.runButton.clicked.connect(self.handler.start_progress)
 
-        self.layout.addWidget(self.runButton)
+        self.savePlot = QPushButton("To viewport", self.parent)
+        self.savePlot.setToolTip("Click to move plot to viewport")
+        self.savePlot.clicked.connect(self.export_plot_to_viewport)
 
-        self.dockedWidget = QtWidgets.QWidget()
+        self.layout.addWidget(self.runButton)
+        self.layout.addWidget(self.savePlot)
+
+        self.dockedWidget = QWidget()
         self.dockUI.setWidget(self.dockedWidget)
         self.dockedWidget.setLayout(self.main_layout)
         self.dockUI.setFloating(True)
         self.parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dockUI)
-
-    def initialize_UI(self):
-        self.imagelabel = QLabel("Stack to correlate", self.dockUI)
-        self.cbimage = QComboBox()
-        self.cbimage.currentIndexChanged.connect(self._set_image)
-        self.cbimage.addItems(self.model.list_images())
-
-        self.layout.addWidget(self.imagelabel)
-        self.layout.addWidget(self.cbimage)
-
-    def _set_image(self, index):
-        self.image = self.model.images[index]
-        self.index = index
