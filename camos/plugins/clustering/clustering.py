@@ -18,10 +18,8 @@ class Correlation(Analysis):
     analysis_name = "Cluster Data"
     required = ["dataset"]
 
-    def __init__(self, model=None, parent=None, signal=None):
-        super(Correlation, self).__init__(model, parent, input, name=self.analysis_name)
-        self.model = model
-        self.signal = signal
+    def __init__(self, *args, **kwargs):
+        super(Correlation, self).__init__(*args, **kwargs)
         self.methods = {
             "K-means": self.k_means,
             "DBSCAN": self.dbscan,
@@ -116,6 +114,6 @@ class Correlation(Analysis):
         self.outputimage = clust_mask
 
         im = self.plot.axes.imshow(clust_mask, cmap="inferno", origin="upper")
-        self.plot.fig.colorbar(im, ax=self.plot.axes)
+        self.plot.fig.colorbar(im, ax=self.plot.axes, label="ID of the ROI")
         self.plot.axes.set_ylabel("Y coordinate")
         self.plot.axes.set_xlabel("X coordinate")

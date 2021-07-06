@@ -5,11 +5,11 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 import numpy as np
-from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit
-from camos.tasks.analysis import Analysis
 from rtree import index
 
+from camos.tasks.analysis import Analysis
 from camos.utils.generategui import NumericInput, ImageInput
+from camos.utils.units import get_length
 
 
 class CorrelatePosition(Analysis):
@@ -25,7 +25,7 @@ class CorrelatePosition(Analysis):
 
     def _run(
         self,
-        dist: NumericInput("Maximum distance (μm)", 100),
+        dist: NumericInput("Maximum distance ({})".format(get_length()), 100),
         cmos: ImageInput("CMOS mask image", 0),
         fl: ImageInput("Fluorescence mask image", 0),
     ):
@@ -92,6 +92,6 @@ class CorrelatePosition(Analysis):
         self.outputimage = map_mask
 
         im = self.plot.axes.imshow(map_mask, cmap="gray", origin="upper")
-        self.plot.fig.colorbar(im, ax=self.plot.axes)
+        self.plot.fig.colorbar(im, ax=self.plot.axes, label="ID of the ROI")
         self.plot.axes.set_ylabel("Y coordinate")
         self.plot.axes.set_xlabel("X coordinate")

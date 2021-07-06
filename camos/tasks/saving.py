@@ -5,10 +5,11 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtCore import pyqtSlot
 
 from camos.tasks.runtask import RunTask
 from camos.tasks.base import BaseTask
+from camos.utils.notifications import Notification
+from camos.gui.notification import CaMOSQtNotification
 
 
 class Saving(BaseTask):
@@ -26,34 +27,27 @@ class Saving(BaseTask):
         self.extensions = extensions
         self.handler = RunTask(self)
 
-    @pyqtSlot()
-    def run(self):
-        if not self.filename:
-            raise ValueError("Path was not selected!")
-        try:
-            self._run()
-            if self.handler != None:
-                self.handler.success = True
-        finally:
-            self.finished.emit()
-        pass
-
     def display(self):
         if "image" in self.required and (type(self.model.list_images()) is type(None)):
             raise IndexError("The image model is empty")
         if "dataset" in self.required and (
             type(self.signal.list_datasets()) is type(None)
         ):
-            IndexError("The dataset model is empty")
+            raise IndexError("The dataset model is empty")
 
         self.filename = self.show_savemenu()
 
+        if self.filename == "":
+            raise ValueError("No file was selected")
+
         if self.show:
-            self._initialize_UI()
-            self.initialize_UI()
-            self._final_initialize_UI()
+            self.buildUI()
+            self.show()
         else:
-            self.handler.start_progress()
+            self.run()
+
+        message = Notification("The file '{}' was saved".format(self.filename), "INFO")
+        CaMOSQtNotification.from_notification(message)
 
     def show_savemenu(self):
         options = QFileDialog.Options()

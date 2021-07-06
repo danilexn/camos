@@ -38,19 +38,34 @@ class SignalViewModel(QObject):
         self.sampling.append(sampling)
         self.masks.append(mask)
         self.newdata.emit()
-        if _class != None:
-            self.add_menu(_class, self.names[-1])
+        self.add_viewer(_class, self.names[-1])
 
     def list_datasets(self, _type=None):
         if len(self.data) == 0:
             return None
         return self.names
 
-    def add_menu(self, _class, name):
-        gui = apptools.getApp().gui
-        PluginManager.plugin_instances.append(_class)
-        gui.container.add_data_layer(name)
-        self.viewers.append(PluginManager.plugin_instances[-1].show)
+    def data_remove(self, index):
+        """Given an index, removes the data object and properties from their lists
+
+        Args:
+            index (int): position of the data track in the self.data list
+        """
+        assert index != None
+        self.data.pop(index)
+        self.names.pop(index)
+        self.sampling.pop(index)
+        self.masks.pop(index)
+        self.viewers.pop(index)
+
+    def add_viewer(self, _class, name):
+        if _class != None:
+            gui = apptools.getApp().gui
+            PluginManager.plugin_instances.append(_class)
+            gui.container.add_data_layer(name)
+            self.viewers.append(PluginManager.plugin_instances[-1].show)
+        else:
+            self.viewers.append([])
 
     def __iter__(self):
         self._it = 0

@@ -12,7 +12,9 @@ from camos.utils.generategui import (
     DatasetInput,
     NumericInput,
     ImageInput,
+    CustomComboInput,
 )
+from camos.utils.units import length
 
 
 class InterspikeInterval(Analysis):
@@ -27,12 +29,15 @@ class InterspikeInterval(Analysis):
 
     def _run(
         self,
-        duration: NumericInput("Total Duration (s)", 100),
+        scale: NumericInput("Axis scale", 1),
+        _i_units: CustomComboInput(list(length.keys()), "Axis units", 0),
         _i_data: DatasetInput("Source Dataset", 0),
         _i_mask: ImageInput("Mask image", 0),
     ):
         self.mask = self.model.images[_i_mask].image(0)
         output_type = [("CellID", "int"), ("ISI", "float")]
+        self.scale = scale
+        self.units = length[list(length.keys())[_i_units]]
 
         # data should be provided in format of peaks
         data = self.signal.data[_i_data]
@@ -75,6 +80,8 @@ class InterspikeInterval(Analysis):
         )
 
     def _plot(self):
+        import matplotlib.ticker as tick
+
         mask = self.mask.astype(int)
         ISI_dict = {}
         for i in range(1, self.foutput.shape[0]):
@@ -91,6 +98,11 @@ class InterspikeInterval(Analysis):
         self.outputimage = ISI_mask
 
         im = self.plot.axes.imshow(ISI_mask, cmap="inferno", origin="upper")
-        self.plot.fig.colorbar(im, ax=self.plot.axes)
-        self.plot.axes.set_ylabel("Y coordinate")
-        self.plot.axes.set_xlabel("X coordinate")
+        self.plot.fig.colorbar(
+            im, ax=self.plot.axes, label="Interspike Interval (seconds)"
+        )
+        formatter = lambda x, pos: f"{(x / self.scale):.1f}"  # scale is 1/resolution
+        self.plot.axes.yaxis.set_major_formatter(tick.FuncFormatter(formatter))
+        self.plot.axes.xaxis.set_major_formatter(tick.FuncFormatter(formatter))
+        self.plot.axes.set_ylabel("Y coordinate ({})".format(self.units))
+        self.plot.axes.set_xlabel("X coordinate ({})".format(self.units))

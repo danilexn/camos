@@ -28,15 +28,14 @@ class SignalViewer(QObject):
         super(SignalViewer, self).__init__()
 
     def display(self, index=0):
-        self._initialize_UI()
-        self._final_initialize_UI()
+        self.buildUI()
         self.update_plot()
         self.show()
 
     def show(self):
         self.dockUI.show()
 
-    def _initialize_UI(self):
+    def buildUI(self):
         self.dockUI = QDockWidget(self.window_title, self.parent)
         self.plot_layout = QVBoxLayout()
         self.plot = AnalysisPlot(self, width=5, height=4, dpi=100)
@@ -44,8 +43,6 @@ class SignalViewer(QObject):
         self.toolbar = NavigationToolbar(self.plot, None)
         self.plot_layout.addWidget(self.toolbar)
         self.plot_layout.addWidget(self.plot)
-
-    def _final_initialize_UI(self):
         self.dockedWidget = QtWidgets.QWidget()
         self.dockUI.setWidget(self.dockedWidget)
         self.dockedWidget.setLayout(self.plot_layout)
@@ -135,5 +132,5 @@ class SignalViewer(QObject):
         mask_mask = mapping_ar[mask]
 
         self.plot.axes.imshow(mask_mask, cmap="inferno", origin="upper")
-        self.plot.axes.set_ylabel("Y coordinate")
-        self.plot.axes.set_xlabel("X coordinate")
+        self.plot.axes.set_ylabel("Y coordinate (px)")
+        self.plot.axes.set_xlabel("X coordinate (px)")

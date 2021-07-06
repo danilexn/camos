@@ -4,17 +4,18 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QFileDialog, QDockWidget, QPushButton, QVBoxLayout
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import QFileDialog
 
 from camos.tasks.base import BaseTask
+from camos.utils.notifications import notify
 
 
 class Opening(BaseTask):
     """This is the Opening class
     This handles the basic functionality that can be inherited from any other class implementing a plugin, whose purpose is opening and loading files (images or datasets) into CaMOS.
     """
+
+    required = []
 
     def __init__(
         self,
@@ -33,29 +34,26 @@ class Opening(BaseTask):
         self.show = show
         self.extensions = extensions
 
-    @pyqtSlot()
-    def run(self):
-        """This is the entry point when the run button is pressed, or if the plugin is called from other plugin (without UI).
-        """
-        if not self.filename:
-            raise ValueError("Path was not selected!")
-        try:
-            self._run()
-        finally:
-            self.finished.emit()
-        pass
-
     def display(self):
-        """This displays the UI for the current plugin, can be done from any other plugin, or from the menubar of the main GUI (automatically loaded at start)
-        """
+        if "image" in self.required and (type(self.model.list_images()) is type(None)):
+            raise IndexError("The image model is empty")
+        if "dataset" in self.required and (
+            type(self.signal.list_datasets()) is type(None)
+        ):
+            raise IndexError("The dataset model is empty")
+
         self.filename = self.show_savemenu()
 
+        if self.filename == "":
+            raise ValueError("No file was selected")
+
         if self.show:
-            self._initialize_UI()
-            self.initialize_UI()
-            self._final_initialize_UI()
+            self.buildUI()
+            self.show()
         else:
             self.run()
+
+        notify("The file '{}' was opened".format(self.filename), "INFO")
 
     def show_savemenu(self):
         """Displays a File Dialog so the route of the file to be opened can be selected.

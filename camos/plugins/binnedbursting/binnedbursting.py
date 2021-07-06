@@ -24,7 +24,7 @@ class BinnedBursting(Analysis):
     def _run(
         self,
         _binsize: NumericInput("Bin Size (s)", 1),
-        _threshold: NumericInput("Threshold", 100),
+        _threshold: NumericInput("Threshold (%)", 50),
         _i_data: DatasetInput("Source dataset", 0),
     ):
         _binsize = float(self.binsize.text())
@@ -45,7 +45,7 @@ class BinnedBursting(Analysis):
         unique, counts = np.unique(active, return_counts=True)
 
         # Conserves the events above the threshold
-        active_filter = unique[np.where(counts > _threshold)]
+        active_filter = unique[np.where(counts > counts * _threshold / 100)]
 
         # Calculate mean firing rate per cell
         self.output = np.zeros(shape=(len(active_filter), 1), dtype=output_type)

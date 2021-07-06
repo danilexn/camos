@@ -13,11 +13,13 @@ import numpy as np
 from camos.tasks.runtask import RunTask
 from camos.model.inputdata import InputData
 from camos.utils.generategui import CreateGUI
+from camos.utils.notifications import notify
 
 
 class BaseTask(QObject):
     finished = pyqtSignal()
     intReady = pyqtSignal(int)
+    notify = pyqtSignal(str, str)
     required = ["image", "dataset"]
     analysis_name = "Base"
 
@@ -28,6 +30,8 @@ class BaseTask(QObject):
         self.parent = parent
         self.output = np.zeros((1, 1))
         self.paramDict = {}
+        self.handler = RunTask(self)
+        self.notify.connect(self.handler.on_notify)
 
     def _run(self, **kwargs):
         pass
@@ -42,19 +46,16 @@ class BaseTask(QObject):
             raise e
         finally:
             self.finished.emit()
-        pass
 
     def update_plot(self):
         self._plot()
         self.plot.draw()
         self.plotReady.emit()
-        pass
 
     def update_values_plot(self, values):
         self._update_values_plot(values)
         self.plot.axes.clear()
         self.update_plot()
-        pass
 
     def _update_values_plot(self, values):
         pass
@@ -78,13 +79,10 @@ class BaseTask(QObject):
         if "dataset" in self.required and (
             type(self.signal.list_datasets()) is type(None)
         ):
-            IndexError("The dataset model is empty")
+            raise IndexError("The dataset model is empty")
 
         self.buildUI()
         self.show()
-
-    def initialize_UI(self):
-        pass
 
     def buildUI(self):
         self.dockUI = QDockWidget(self.analysis_name, self.parent)
@@ -94,7 +92,6 @@ class BaseTask(QObject):
 
         self.runButton = QPushButton("Run", self.parent)
         self.runButton.setToolTip("Click to run this task")
-        self.handler = RunTask(self)
         self.runButton.clicked.connect(self.handler.start_progress)
 
         self.layout.addWidget(self.runButton)
@@ -104,13 +101,3 @@ class BaseTask(QObject):
         self.dockedWidget.setLayout(self.layout)
         self.dockUI.setFloating(True)
         self.parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dockUI)
-        pass
-
-    def update_values_plot(self, values):
-        self._update_values_plot(values)
-        self.plot.axes.clear()
-        self.update_plot()
-        pass
-
-    def _update_values_plot(self, values):
-        pass

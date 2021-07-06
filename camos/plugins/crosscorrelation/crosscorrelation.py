@@ -12,11 +12,10 @@ import networkx as nx
 
 class Correlation(Analysis):
     analysis_name = "Calculate Correlation"
+    required = ["dataset"]
 
-    def __init__(self, model=None, parent=None, signal=None):
-        super(Correlation, self).__init__(model, parent, input, name=self.analysis_name)
-        self.model = model
-        self.signal = signal
+    def __init__(self, *args, **kwargs):
+        super(Correlation, self).__init__(*args, **kwargs)
 
     def _run(self):
         self.pos = {}
@@ -48,14 +47,6 @@ class Correlation(Analysis):
             self.intReady.emit(i * 100 / len(data))
 
         self.finished.emit()
-
-    def display(self):
-        if type(self.signal.list_datasets()) is type(None):
-            # Handle error that there are no images
-            return
-        self._initialize_UI()
-        self.initialize_UI()
-        self._final_initialize_UI()
 
     def initialize_UI(self):
         self.datalabel = QLabel("Source dataset", self.dockUI)

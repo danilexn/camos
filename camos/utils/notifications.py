@@ -112,3 +112,18 @@ class Notification:
 
         # let's store when the object was created;
         self.date = datetime.now()
+
+
+def notify(message, severity):
+    """Creates and displays a notification using a Toast
+
+    Args:
+        message (str): what is displayed inside the notification.
+            Can be composed of multiple lines
+        severity (str): type of notification. Can be "INFO", "ERROR"
+            "WARNING", "DEBUG" or "NONE"
+    """
+    from camos.gui.notification import CaMOSQtNotification
+
+    message = Notification(message, severity)
+    CaMOSQtNotification.from_notification(message)

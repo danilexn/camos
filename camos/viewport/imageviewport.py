@@ -9,6 +9,8 @@ from PyQt5 import QtCore
 
 import camos.viewport.mpl_cmaps_in_ImageItem as cmaps
 import camos.utils.apptools as apptools
+from camos.utils.settings import Config
+from camos.utils.units import get_length
 
 
 class ImageViewPort(pg.ImageView):
@@ -20,11 +22,12 @@ class ImageViewPort(pg.ImageView):
         pg.ImageView.__init__(self, *args, **kwargs)
         self.model = model
         self.parent = parent
+        self.configuration = Config()
+        self.current_configuration = self.configuration.readConfiguration()
         self.scene.sigMouseMoved.connect(self.mouse_moved)
         self.scene.sigMouseClicked.connect(self.mouse_clicked)
         self.view.sigRangeChanged.connect(self.zoom_level_changed)
-        self.scale = pg.ScaleBar(size=10, suffix="μm")
-        self.scale.text.setText("10 μm")
+        self.scale = pg.ScaleBar(size=10, suffix="{}".format(get_length()))
         self.scale.setParentItem(self.view)
         self.scale.anchor((1, 1), (1, 1), offset=(-50, -50))
 
@@ -82,7 +85,7 @@ class ImageViewPort(pg.ImageView):
 
     def _update_scalebar(self, _range=5):
         self.scale.size = _range * self.pixelsize
-        self.scale.text.setText("{} μm".format(_range))
+        self.scale.text.setText("{} {}".format(_range, get_length()))
 
     def update_scalebar(self, pxsize=1):
         self.pixelsize = pxsize

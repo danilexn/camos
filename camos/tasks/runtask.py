@@ -9,6 +9,7 @@ from PyQt5.QtCore import QThread
 
 from camos.utils.errormessages import ErrorMessages
 import camos.utils.apptools as apptools
+from camos.utils.notifications import notify
 
 
 class RunTask(QWidget):
@@ -57,6 +58,9 @@ class RunTask(QWidget):
 
     def on_count_changed(self, value):
         self.pbar.setValue(value)
+
+    def on_notify(self, value, priority):
+        notify(value, priority)
 
     def closeEvent(self, event):
         if self.thread.isRunning():

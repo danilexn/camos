@@ -14,3 +14,6 @@ cmaps = {
     "rainbow": cv2.COLORMAP_RAINBOW,
     "inferno": cv2.COLORMAP_INFERNO,
 }
+
+
+bg_colors = {"Black": (0, 0, 0), "White": (255, 255, 255)}

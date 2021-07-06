@@ -4,7 +4,7 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-# Taken from napari source
+# Taken from CaMOS source
 from typing import Callable, Optional, Sequence, Tuple
 
 from PyQt5.QtCore import (
@@ -37,7 +37,14 @@ def trans(text, **kwargs):
     return text
 
 
-class NapariQtNotification(QDialog):
+severity_color = {
+    NotificationSeverity.WARNING: "#ffcc00",
+    NotificationSeverity.ERROR: "#cc3300",
+    NotificationSeverity.INFO: "#303030",
+}
+
+
+class CaMOSQtNotification(QDialog):
     """Notification dialog frame, appears at the bottom right of the canvas.
     By default, only the first line of the notification is shown, and the text
     is elided.  Double-clicking on the text (or clicking the chevron icon) will
@@ -92,9 +99,11 @@ class NapariQtNotification(QDialog):
         # self.setup_buttons(actions)
         # self.setMouseTracking(True)
 
-        self.severity_icon.setText(
-            NotificationSeverity(severity).as_icon()
-        )  # TODO: as CaMOS icon
+        self.severity_icon.setText(NotificationSeverity(severity).as_icon())
+
+        # Setup the background color depending on the severity
+        self.setStyleSheet("background: {};".format(severity_color[severity]))
+
         self.message.setText(message)
         if source:
             self.source_label.setText(trans("Source: {source}", source=source))

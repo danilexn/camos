@@ -20,11 +20,11 @@ class BurstClean(Analysis):
 
     def _run(
         self,
-        _filter_min: NumericInput("Minimum Events", 1),
-        _filter_max: NumericInput("Maximum Events", 10000),
+        duration: NumericInput("Total Duration (s)", 100),
+        _filter_min: NumericInput("Minimum Events/s", 1),
+        _filter_max: NumericInput("Maximum Events/s", 50),
         _i_data: DatasetInput("Source dataset", 0),
     ):
-        self.pos = {}
         output_type = [("CellID", "int"), ("Active", "float")]
 
         # data should be provided in format summary (active events)
@@ -37,7 +37,11 @@ class BurstClean(Analysis):
         unique, counts = np.unique(data[:]["CellID"], return_counts=True)
         active = data[:]["Active"]
         IDs = data[:]["CellID"]
-        IDs_include = unique[np.where((counts > _filter_min) & (counts < _filter_max))]
+        IDs_include = unique[
+            np.where(
+                (counts >= _filter_min * duration) & (counts <= _filter_max * duration)
+            )
+        ]
         idx = np.isin(IDs, IDs_include)
         active_filter = active[idx]
         IDs_filter = IDs[idx]
@@ -49,6 +53,12 @@ class BurstClean(Analysis):
 
         self.output = self.output[1:]
         self.foutput = self.output
+        # self.notify(
+        #     "{}: Events Before = {}; Events After = {}".format(
+        #         self.analysis_name, len(data), len(self.output)
+        #     ),
+        #     "INFO",
+        # )
 
     def output_to_signalmodel(self):
         self.parent.signalmodel.add_data(

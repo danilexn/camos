@@ -13,6 +13,10 @@ from camos.model.imageviewmodel import ImageViewModel
 from camos.model.signalviewmodel import SignalViewModel
 from camos.viewport.imageviewport import ImageViewPort
 from camos.gui.preferencespanel import CAMOSPreferences
+from camos.utils.settings import Config
+from camos.utils.cmaps import bg_colors
+from camos.utils.units import get_length
+import camos.utils.units as units
 
 from camos.gui.framecontainer import FrameContainer
 
@@ -34,12 +38,24 @@ class MainWindow(QtWidgets.QMainWindow):
         # Global variables of the program, models and viewports
 
         self.title = "CaMOS"
+        self.configuration = Config()
+        self.current_configuration = self.configuration.readConfiguration()
         self.setup_model(ImageViewModel(parent=self))
         self.signalmodel = SignalViewModel(parent=self)
         self.setObjectName("camosGUI")
         self.camosApp = camosApp
 
+        # Configure the main window settings
+        self.readSettings()
+
+        # Configure the units model
+        units.configuration = self.configuration
+
         self.viewport = ImageViewPort(self.model, self.parent)
+        # Config the background color of the viewport
+        self.viewport.change_background(
+            bg_colors[self.current_configuration["Viewport/Color"]]
+        )
 
         # Connect events
         self.model.newdata.connect(self.viewport.load_image)
@@ -50,7 +66,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Layout of the UI
         layout = QHBoxLayout()
-        self.setLayout(layout)
+        self.centralwidget = QtGui.QWidget(self)
+        self.setCentralWidget(self.centralwidget)
+        self.centralwidget.setLayout(layout)
         self.init_UI()
         self.create_menubar()
         self.container = FrameContainer(self)
@@ -91,8 +109,8 @@ class MainWindow(QtWidgets.QMainWindow):
             pxs (int): pixel size for the current layer
         """
         self.statusBar().showMessage(
-            "Position (px): [{:.0f}, {:.0f}]; Position (μm): [{:.0f}, {:.0f}]; Frame: {}; Value: {}".format(
-                x, y, x / pxs, y / pxs, t, v
+            "Position (px): [{:.0f}, {:.0f}]; Position ({}): [{:.0f}, {:.0f}]; Frame: {}; Value: {}".format(
+                x, y, get_length(), x / pxs, y / pxs, t, v
             )
         )
 
@@ -122,15 +140,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.exitAct.setStatusTip("Exit application")
         self.exitAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
 
-        self.prefsAct = QtWidgets.QAction("&CaMOS Preferences", self)
+        self.prefsAct = QtWidgets.QAction("&Preferences", self)
         self.prefsAct.setStatusTip("Main preferences of the application")
         self.prefsAct.triggered.connect(lambda: CAMOSPreferences(self))
 
         self.fileMenu.addMenu(self.openMenu)
         self.fileMenu.addMenu(self.saveMenu)
-        # self.fileMenu.addAction(self.settingsAct)
-        self.fileMenu.addAction(self.exitAct)
+        self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.prefsAct)
+        self.fileMenu.addSeparator()
+        self.fileMenu.addAction(self.exitAct)
 
     def closeEvent(self, event):
         """Handle for self.exitAct being triggered
@@ -144,6 +163,11 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         if reply == QMessageBox.Yes:
+            # Save all the configuration to the file
+            self.configuration.saveConfiguration()
             event.accept()
         else:
             event.ignore()
+
+    def readSettings(self):
+        self.configuration.applyConfiguration(self.current_configuration, self)

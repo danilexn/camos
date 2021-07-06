@@ -22,8 +22,10 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QDoubleValidator
 
-from camos.utils.cmaps import cmaps
 import pyqtgraph as pg
+
+from camos.utils.cmaps import cmaps
+from camos.utils.units import get_length
 
 
 class FrameContainer(QtWidgets.QWidget):
@@ -254,6 +256,13 @@ class FrameContainer(QtWidgets.QWidget):
         self.opened_layers_widget.takeItem(idx)
         self.parent.model.layer_remove(idx)
 
+    def _data_remove(self):
+        """Handles the removal of the currently selected layer in self.currentlayer, which is updated, in the image model
+        """
+        self.currentlayer = self.opened_data_widget.currentRow()
+        idx = self.currentlayer
+        self.opened_data_widget.takeItem(idx)
+
     def _layer_toggle(self):
         """Handles the removal of the currently selected layer in self.currentlayer, which is updated, in the image model
         """
@@ -408,23 +417,44 @@ class FrameContainer(QtWidgets.QWidget):
             menu.exec_(event.globalPos())
 
             return True
+
+        elif (
+            event.type() == QtCore.QEvent.ContextMenu
+            and source is self.opened_data_widget
+        ):
+            menu = QtWidgets.QMenu()
+            removeAct = QAction("Remove", self)
+            removeAct.setStatusTip("Removes the current data")
+            removeAct.triggered.connect(self._data_remove)
+            menu.addAction(removeAct)
+
         return super(QWidget, self).eventFilter(source, event)
 
 
 class QLayerWidget(QtWidgets.QListWidget):
+    def __init__(self, gui=None, *args, **kwargs):
+        super(QLayerWidget, self).__init__(*args, **kwargs)
+        self.gui = gui
+
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_Delete:
-            row = self.currentRow()
-            self.parent()._layer_remove()
+        if (event.key() == QtCore.Qt.Key_Delete) and (
+            self.gui.opened_data.currentIndex() == 0
+        ):
+            self.gui._layer_remove()
         else:
             super().keyPressEvent(event)
 
 
 class QDataWidget(QtWidgets.QListWidget):
+    def __init__(self, gui=None, *args, **kwargs):
+        super(QDataWidget, self).__init__(*args, **kwargs)
+        self.gui = gui
+
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_Delete:
-            row = self.currentRow()
-            self.parent()._data_remove()
+        if (event.key() == QtCore.Qt.Key_Delete) and (
+            self.gui.opened_data.currentIndex() == 1
+        ):
+            self.gui._data_remove()
         else:
             super().keyPressEvent(event)
 
@@ -495,7 +525,7 @@ class LayerPrefsDialog(QtGui.QDialog):
         self.samplRate.setText(str(sampling))
 
         self.onlyDouble = QDoubleValidator()
-        self.pxSize_label = QLabel("Pixel size (μm)")
+        self.pxSize_label = QLabel("Pixel size ({})".format(get_length()))
         self.pxSize = QLineEdit()
         self.pxSize.setValidator(self.onlyDouble)
         self.pxSize.setText(str(pixelsize))
