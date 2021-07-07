@@ -10,11 +10,11 @@ from camos.model.inputdata import InputData
 import PIL
 
 
-class OpenImage(Opening):
-    analysis_name = "Open Image(s)"
+class OpenImageStack(Opening):
+    analysis_name = "Open Image(s) as Stack"
 
     def __init__(self, *args, **kwargs):
-        super(OpenImage, self).__init__(
+        super(OpenImageStack, self).__init__(
             name=self.analysis_name,
             extensions="tif File (*.tif);; png File (*.png);; jpeg File (*.jpeg);; tiff File (*.tiff)",
             *args,
@@ -24,14 +24,6 @@ class OpenImage(Opening):
     def _run(self):
         # Added so we can load CMOS chip image
         PIL.Image.MAX_IMAGE_PIXELS = 933120000
-        if type(self.filename) == list:
-            for single in self.filename:
-                image = InputData(single, memoryPersist=True)
-                image.loadImage()
-                self.model.add_image(image)
-        elif type(self.filename) == str:
-            image = InputData(self.filename, memoryPersist=True)
-            image.loadImage()
-            self.model.add_image(image)
-        else:
-            raise NotImplementedError("Could not understand the input path")
+        image = InputData(self.filename, memoryPersist=True)
+        image.loadImage()
+        self.model.add_image(image)

@@ -13,6 +13,8 @@ import numpy as np
 
 from camos.model.inputdata import InputData
 
+MAXHISTORY = 20
+
 
 class ImageViewModel(QObject):
     """The ImageViewModel object. This contains information regarding image data, without considering format.
@@ -84,6 +86,8 @@ class ImageViewModel(QObject):
 
         self._enable_select_cells = False
 
+        self.undoHistory = []
+
         # Initialize the parent QObject class
         super(ImageViewModel, self).__init__()
 
@@ -113,7 +117,7 @@ class ImageViewModel(QObject):
         self.frames.append(image.frames)
         self.opacities.append(50)
         self.brightnesses.append(0)
-        self.contrasts.append(0)
+        self.contrasts.append(1)
         self.colormaps.append(cmap)
 
         if name == None:
@@ -267,7 +271,7 @@ class ImageViewModel(QObject):
         return _img
 
     @pyqtSlot()
-    def rotate_image(self, index=0):
+    def rotate_image(self, index=0, undo=None):
         """Performs a counter-clockwise rotation on the selected layer (image)
 
         Args:
@@ -278,18 +282,69 @@ class ImageViewModel(QObject):
         self.images[index].crop = [0, 0, rotated[0].shape]
         self.updatedframe.emit(index)
 
-    def reset_position(self, index=0):
-        self.translate_position(index, (0, 0))
+    def reset_position(self, index=0, undo=None):
+        if undo is not None:
+            index = undo["index"]
+            position = undo["position"]
+        else:
+            position = (0, 0)
+
+        # Apply the translation
+        self.translate_position(index, position, undo=undo)
 
     @pyqtSlot()
-    def translate_position(self, index=0, position=(0, 0)):
+    def translate_position(self, index=0, position=(0, 0), undo=None):
+        if undo is not None:
+            index = undo["index"]
+            position = undo["position"]
+
+        if undo is None:
+            # Create the undo command
+            _undo = [
+                {
+                    "function": self.translate_position,
+                    "index": index,
+                    "position": (
+                        self.translation[index][0],
+                        self.translation[index][1],
+                    ),
+                }
+            ]
+
+            # Add to the undo queue
+            self.undoAdd(_undo)
+
+        # Apply the translation
         self.axes.emit(index, position)
 
-    def align_layers(self, layer=0):
-        curr = self.currentlayer
-        delta_x = self.translation[curr][0]
-        delta_y = self.translation[curr][1]
+    def align_layers(self, layer=0, undo=None):
+        if undo is not None:
+            curr = undo["curr"]
+            delta_x = undo["delta_x"]
+            delta_y = undo["delta_y"]
+            layer = undo["layer"]
+        else:
+            curr = self.currentlayer
+            delta_x = self.translation[curr][0]
+            delta_y = self.translation[curr][1]
+
+        # Apply the translation
         self.translate_position(layer, (delta_x, delta_y))
+
+        if undo is None:
+            # Create the undo command
+            _undo = [
+                {
+                    "function": self.align_layers,
+                    "layer": layer,
+                    "curr": curr,
+                    "delta_x": -delta_x,
+                    "delta_y": -delta_y,
+                }
+            ]
+
+            # Add to the undo queue
+            self.undoAdd(_undo)
 
     def sum_layers(self, layer=0):
         curr = self.currentlayer
@@ -355,18 +410,62 @@ class ImageViewModel(QObject):
         self.add_image(image, "Duplicate of Layer {}".format(index))
 
     @pyqtSlot()
-    def set_values(self, opacity, brightness, contrast, cmap, index=0):
+    def set_values(
+        self, opacity=1, brightness=0, contrast=1, cmap="grey", index=0, undo=None
+    ):
         """Configures the properties for the selected layer; emits an event, i.e., so the ViewPort knows that it has to call the self.get_current_view method.
 
         Args:
             cmap (cv2.ColormapTypes): colormap to be applied to the image
             index (int, optional): index of the image in the self.images list. Defaults to 0.
         """
+        if undo is not None:
+            index = undo["index"]
+            opacity = undo["opacity"]
+            brightness = undo["brightness"]
+            contrast = undo["contrast"]
+            cmap = undo["cmap"]
+
+        if undo is None:
+            # Create the undo command
+            _undo = [
+                {
+                    "function": self.set_values,
+                    "index": index,
+                    "opacity": self.opacities[index],
+                    "brightness": self.brightnesses[index],
+                    "contrast": self.contrasts[index],
+                    "cmap": self.colormaps[index],
+                }
+            ]
+
+            # Add to the undo queue
+            self.undoAdd(_undo)
+
+        # Apply the transformation
         self.opacities[index] = opacity
         self.brightnesses[index] = brightness
         self.contrasts[index] = contrast
         self.colormaps[index] = cmap
         self.updated.emit(index)
+
+    def set_translation(self, index, x, y):
+        # Create the undo command
+        # Will apply the translate position to
+        # reverse setting the translation
+        _undo = [
+            {
+                "function": self.translate_position,
+                "index": index,
+                "position": (self.translation[index][0], self.translation[index][1]),
+            }
+        ]
+
+        # Add to the undo queue
+        self.undoAdd(_undo)
+
+        # Store the translation
+        self.translation[index] = (x, y)
 
     def get_opacity(self, index=0):
         return self.opacities[index]
@@ -458,6 +557,17 @@ class ImageViewModel(QObject):
         except:
             icon_pixmap = QPixmap()
         return icon_pixmap
+
+    def undoAdd(self, _undo):
+        self.undoHistory.append(_undo)
+        if len(self.undoHistory) > MAXHISTORY:
+            self.undoHistory.pop(0)
+
+    def undoLastAction(self):
+        assert len(self.undoHistory) > 0, "Nothing to undo"
+
+        self.undoHistory[-1][0]["function"](undo=self.undoHistory[-1][0])
+        self.undoHistory.pop(-1)
 
     def __getstate__(self):
         return self.__dict__

@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-# Last modified on Mon Jun 07 2021
+# Last modified on Wed Jul 07 2021
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtGui import QIcon
-
 from PyQt5.QtWidgets import QHBoxLayout, QMenu, QMessageBox
+
+import os
 
 from camos.model.imageviewmodel import ImageViewModel
 from camos.model.signalviewmodel import SignalViewModel
@@ -17,6 +18,7 @@ from camos.utils.settings import Config
 from camos.utils.cmaps import bg_colors
 from camos.utils.units import get_length
 import camos.utils.units as units
+from camos.utils.pluginmanager import plugin_open
 
 from camos.gui.framecontainer import FrameContainer
 
@@ -47,6 +49,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Configure the main window settings
         self.readSettings()
+
+        # Configure the drag-and-drop
+        self.setAcceptDrops(True)
 
         # Configure the units model
         units.configuration = self.configuration
@@ -125,6 +130,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # High level menus
         self.fileMenu = menubar.addMenu("&File")
+        self.editMenu = menubar.addMenu("&Edit")
         self.processMenu = menubar.addMenu("&Process")
         self.analysisMenu = menubar.addMenu("&Analyze")
         self.helpMenu = menubar.addMenu("&Help")
@@ -133,23 +139,65 @@ class MainWindow(QtWidgets.QMainWindow):
         # Sublevels
         # Open image
         self.openMenu = QMenu("Open", self)
+        # Save image
         self.saveMenu = QMenu("Save", self)
 
-        self.exitAct = QtWidgets.QAction(QIcon("exit.png"), "&Exit program", self)
+        # Exit
+        self.exitAct = QtWidgets.QAction(QIcon("exit.png"), "&Quit", self)
         self.exitAct.setShortcut("Ctrl+Q")
         self.exitAct.setStatusTip("Exit application")
         self.exitAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
 
+        # Preferences
         self.prefsAct = QtWidgets.QAction("&Preferences", self)
+        self.prefsAct.setShortcut("Ctrl+Shift+P")
         self.prefsAct.setStatusTip("Main preferences of the application")
         self.prefsAct.triggered.connect(lambda: CAMOSPreferences(self))
 
+        # Attach submenus
         self.fileMenu.addMenu(self.openMenu)
         self.fileMenu.addMenu(self.saveMenu)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.prefsAct)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.exitAct)
+
+        # Edit menu
+        # Sublevels
+        self.createEditMenu()
+
+    def createEditMenu(self):
+        # Sublevels
+        # Undo
+        self.undoAct = QtWidgets.QAction("Undo", self)
+        self.undoAct.setShortcut("Ctrl+Z")
+        self.undoAct.setStatusTip("Undo")
+        self.undoAct.triggered.connect(self.model.undoLastAction)
+
+        # Copy
+        self.copyAct = QtWidgets.QAction("Copy", self)
+        self.copyAct.setShortcut("Ctrl+C")
+        self.copyAct.setStatusTip("Copy")
+        self.copyAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
+
+        # Paste
+        self.pasteAct = QtWidgets.QAction("Paste", self)
+        self.pasteAct.setShortcut("Ctrl+V")
+        self.pasteAct.setStatusTip("Paste")
+        self.pasteAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
+
+        # Paste
+        self.pasteAct = QtWidgets.QAction("Paste", self)
+        self.pasteAct.setShortcut("Ctrl+V")
+        self.pasteAct.setStatusTip("Paste")
+        self.pasteAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
+
+        # Attach to edit menu
+        self.editMenu.addAction(self.undoAct)
+        self.editMenu.addSeparator()
+        self.editMenu.addAction(self.copyAct)
+        self.editMenu.addAction(self.pasteAct)
+        self.editMenu.addSeparator()
 
     def closeEvent(self, event):
         """Handle for self.exitAct being triggered
@@ -171,3 +219,43 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def readSettings(self):
         self.configuration.applyConfiguration(self.current_configuration, self)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        files = [u.toLocalFile() for u in event.mimeData().urls()]
+        for f in files:
+            just_name = os.path.basename(f)
+            dialog = OpenerDialog(self, name=just_name)
+            if dialog.exec_() == QtWidgets.QDialog.Accepted:
+                idx = dialog.combo.currentIndex()
+                plugin_open[idx]["instance"](f)
+
+
+class OpenerDialog(QtGui.QDialog):
+    def __init__(self, parent=None, name=""):
+        super(OpenerDialog, self).__init__(parent)
+
+        self.setWindowTitle("Select plugin")
+        label = QtGui.QLabel("Select a opening plugin for {}".format(name))
+        self.combo = QtGui.QComboBox()
+        self.parent = parent
+        plugin_names = [p["name"] for p in plugin_open]
+        self.combo.addItems(plugin_names)
+
+        box = QtGui.QDialogButtonBox(
+            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+            centerButtons=True,
+        )
+
+        box.accepted.connect(self.accept)
+        box.rejected.connect(self.reject)
+
+        lay = QtGui.QGridLayout(self)
+        lay.addWidget(label)
+        lay.addWidget(self.combo)
+        lay.addWidget(box, 2, 0, 1, 2)

@@ -13,8 +13,8 @@ import numpy as np
 import copy
 
 
-def tiff2nparray(patj):
-    im = Image.open(patj)
+def tiff2nparray(path):
+    im = Image.open(path)
     i = 0
     frames = []
     try:
@@ -24,6 +24,22 @@ def tiff2nparray(patj):
             i += 1
     except EOFError:
         pass
+
+    return np.array(frames), im
+
+
+def list2stack(paths):
+    frames = []
+    for path in paths:
+        im = Image.open(path)
+        i = 0
+        try:
+            while True:
+                im.seek(i)
+                frames.append(np.array(im))
+                i += 1
+        except EOFError:
+            pass
 
     return np.array(frames), im
 
@@ -82,8 +98,12 @@ class Stack(Sequence):
                 self.dx = im.info["resolution"][0]
             except:
                 pass
-        else:
+        elif type(path) == list:
+            self._imgs, im = list2stack(path)
+        elif type(path) == np.ndarray:
             self._imgs = nparray(copy.deepcopy(path))
+        else:
+            raise NotImplementedError("The path format is unknown")
 
         self.crop = [0, 0, *self._imgs[0].shape]
         self.keyframe = len(self) // 2

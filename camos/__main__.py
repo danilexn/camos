@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-# Last modified on Mon Jun 07 2021
+# Last modified on Wed Jul 07 2021
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
@@ -61,6 +61,8 @@ def excepthook(exc_type, exc_value, exc_tb):
     # ErrorMessages(tb)
     error = Notification("\n; ".join([str(exc_value), tb]), "ERROR")
     CaMOSQtNotification.from_notification(error)
+    # This still prints the exceptions in console
+    print(error)
 
 
 if __name__ == "__main__":
@@ -71,8 +73,12 @@ if __name__ == "__main__":
     # translator = _set_locale(app)
     app.setStyle("Fusion")
     app.setPalette(DarkPalette())
-    # setup stylesheet for the notifications
-    app.setStyleSheet(notification_style)
+    # try to setup stylesheet for the notifications
+    # for some reason, this is not working on Windows
+    try:
+        app.setStyleSheet(notification_style)
+    except:
+        pass
     _app = camosApp()
     camosApp_second = camos.utils.apptools.getApp()
     sys.exit(app.exec_())

@@ -20,6 +20,8 @@ class InputData:
         Args:
             file ([str, numpy.ndarray], optional): Can be a numpy array containing any numeric data, or a path to a file. The opening plugin must support this. Defaults to None.
             memoryPersist (bool, optional): whether the data must be loaded into memory, at once, or can be loaded as required, from disk. Defaults to False.
+            stack (bool): the file bust be interpreted as a stack (False), various files
+                are interpreted as a single stack (True)
         """
         self.file = file
         self.name = name

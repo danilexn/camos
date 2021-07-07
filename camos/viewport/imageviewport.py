@@ -7,6 +7,9 @@
 import pyqtgraph as pg
 from PyQt5 import QtCore
 
+import numpy as np
+import cv2
+
 import camos.viewport.mpl_cmaps_in_ImageItem as cmaps
 import camos.utils.apptools as apptools
 from camos.utils.settings import Config
@@ -68,11 +71,18 @@ class ImageViewPort(pg.ImageView):
     def update_viewport(self, layer=0):
         op = self.model.opacities[layer]
         sc = self.model.scales[layer]
+        co = self.model.contrasts[layer]
+        br = self.model.brightnesses[layer]
         cmap = self.model.colormaps[layer]
         lut = cmaps.cmapToColormap(cmap).getLookupTable()
-        self.view.addedItems[layer + 3].setOpts(opacity=op / 100, lut=lut)
-        self.view.addedItems[layer + 3].changeScale(sc[0], sc[1])
-        # self.view.addedItems[layer + 3].setLevels([0, 210])
+        if op / 100 != self.view.addedItems[layer + 3].opacity:
+            self.view.addedItems[layer + 3].setOpts(opacity=op / 100)
+        if not np.array(lut == self.view.addedItems[layer + 3].lut).all():
+            self.view.addedItems[layer + 3].setOpts(lut=lut)
+        if sc[0] != self.view.addedItems[layer + 3].previous_scale[0]:
+            self.view.addedItems[layer + 3].changeScale(sc[0], sc[1])
+        self.view.addedItems[layer + 3].setContrast(co)
+        self.view.addedItems[layer + 3].setBrightness(co)
 
     def change_background(self, color=(0, 0, 0)):
         self.view.setBackgroundColor(color)
@@ -136,12 +146,32 @@ class ImageViewPort(pg.ImageView):
 class DrawingImage(pg.ImageItem):
     accpos = [0, 0]
     previous_scale = [1, 1]
+    p_co = 1
+    p_br = 0
 
     def changeScale(self, s_x, s_y):
         p_x, p_y = self.previous_scale
         n_x, n_y = s_x / p_x, s_y / p_y
         self.scale(n_x, n_y)
         self.previous_scale = [s_x, s_y]
+
+    def setContrast(self, co):
+        # if co == self.p_co:
+        #     return
+        # img = self.image
+        # out = cv2.addWeighted(img, co - self.p_co, img, 0, 0)
+        # self.setImage(out)
+        # self.p_co = co
+        pass
+
+    def setBrightness(self, br):
+        # if br == self.p_br:
+        #     return
+        # img = self.image
+        # out = cv2.addWeighted(img, 1, img, 0, br - self.p_br)
+        # self.setImage(out)
+        # self.p_br = br
+        pass
 
     def mouseClickEvent(self, event):
         pass
@@ -154,7 +184,7 @@ class DrawingImage(pg.ImageItem):
                 idx = viewitems.index(self)
                 self.initial_pos = model.translation[idx]
                 self.setBorder(pg.mkPen(cosmetic=False, width=4.5, color="r"))
-                self.accpos = model.translation[idx]
+                self.accpos = list(model.translation[idx])
 
             elif event.isFinish():
                 model = apptools.getApp().gui.model
@@ -164,10 +194,9 @@ class DrawingImage(pg.ImageItem):
                 x, y = event.pos().x(), event.pos().y()
                 self.accpos[0] = self.accpos[0] + x
                 self.accpos[1] = self.accpos[1] + y
-                apptools.getApp().gui.model.translation[idx] = [
-                    self.accpos[0],
-                    self.accpos[1],
-                ]
+                apptools.getApp().gui.model.set_translation(
+                    idx, self.accpos[0], self.accpos[1]
+                )
 
                 self.setBorder(None)
 
