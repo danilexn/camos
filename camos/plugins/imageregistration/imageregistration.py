@@ -78,4 +78,4 @@ class CAMOSImageReg(Processing):
 
     @property
     def methods(self):
-        return list(self._methods.keys())
+        return list(_methods.keys())

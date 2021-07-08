@@ -62,7 +62,7 @@ def excepthook(exc_type, exc_value, exc_tb):
     error = Notification("\n; ".join([str(exc_value), tb]), "ERROR")
     CaMOSQtNotification.from_notification(error)
     # This still prints the exceptions in console
-    print(error)
+    print(tb)
 
 
 if __name__ == "__main__":

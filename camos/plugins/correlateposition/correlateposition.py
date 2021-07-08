@@ -14,6 +14,7 @@ from camos.utils.units import get_length
 
 class CorrelatePosition(Analysis):
     analysis_name = "Correlate Positions"
+    required = ["image"]
 
     def __init__(self, model=None, parent=None, signal=None):
         super(CorrelatePosition, self).__init__(

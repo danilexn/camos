@@ -48,13 +48,16 @@ class BaseTask(QObject):
             self.finished.emit()
 
     def update_plot(self):
+        # try:
+        #     self.plot.restartFigure()
+        # except:
+        #     pass
         self._plot()
         self.plot.draw()
         self.plotReady.emit()
 
     def update_values_plot(self, values):
         self._update_values_plot(values)
-        self.plot.axes.clear()
         self.update_plot()
 
     def _update_values_plot(self, values):

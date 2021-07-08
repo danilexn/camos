@@ -10,12 +10,12 @@ from camos.tasks.analysis import Analysis
 from camos.utils.generategui import NumericInput, DatasetInput
 
 
-class BinnedBursting(Analysis):
-    analysis_name = "Binned Bursting"
+class BinarizeEvents(Analysis):
+    analysis_name = "Binarize Events"
     required = ["dataset"]
 
     def __init__(self, model=None, parent=None, signal=None):
-        super(BinnedBursting, self).__init__(
+        super(BinarizeEvents, self).__init__(
             model, parent, signal, name=self.analysis_name
         )
         self.data = None
@@ -24,7 +24,6 @@ class BinnedBursting(Analysis):
     def _run(
         self,
         _binsize: NumericInput("Bin Size (s)", 1),
-        _threshold: NumericInput("Threshold (%)", 50),
         _i_data: DatasetInput("Source dataset", 0),
     ):
         output_type = [("CellID", "int"), ("Active", "float")]
@@ -40,25 +39,12 @@ class BinnedBursting(Analysis):
         active = np.floor(active) * _binsize
 
         # Stores the data into the output data structure
-        binned = np.zeros(shape=(len(active), 1), dtype=output_type)
-        binned[:]["CellID"] = data[:]["CellID"].reshape(-1, 1)
-        binned[:]["Active"] = active.reshape(-1, 1)
+        self.output = np.zeros(shape=(len(active), 1), dtype=output_type)
+        self.output[:]["CellID"] = data[:]["CellID"].reshape(-1, 1)
+        self.output[:]["Active"] = active.reshape(-1, 1)
 
         # This reduces the events to one per electrode in the same bin
-        binned = np.unique(binned, axis=0)
-
-        # Number of active electrodes in total
-        ROIs = np.unique(binned[:]["CellID"])
-
-        # Calculates the number of events (per bin)
-        unique, counts = np.unique(binned[:]["Active"], return_counts=True)
-
-        # Conserves the events above the threshold
-        active_filter = unique[np.where(counts > (len(ROIs) * _threshold / 100))]
-
-        # Stores into the output table
-        self.output = np.zeros(shape=(len(active_filter), 1), dtype=output_type)
-        self.output[:]["Active"] = active_filter.reshape(-1, 1)
+        self.output = np.unique(self.output, axis=0)
 
     def output_to_signalmodel(self):
         self.parent.signalmodel.add_data(
@@ -66,10 +52,18 @@ class BinnedBursting(Analysis):
         )
 
     def _plot(self):
-        self.plot.axes.eventplot(
-            self.foutput[:]["Active"], lineoffset=0.5, color="black"
-        )
-        self.plot.axes.set_ylim(0, 1)
-        self.plot.axes.set_yticklabels([])
-        self.plot.axes.tick_params(axis=u"y", which=u"y", length=0)
+        ev_ids = self.foutput[:]["CellID"].flatten()
+        ids = np.unique(ev_ids)
+        ids = np.sort(ids)
+        ids_norm = np.arange(0, len(ids), 1)
+
+        k = np.array(list(ids))
+        v = np.array(list(ids_norm))
+
+        dim = max(k.max(), np.max(ids_norm))
+        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
+        mapping_ar[k] = v
+        ev_ids_norm = mapping_ar[ev_ids]
+        self.plot.axes.scatter(y=ev_ids_norm, x=self.foutput[:]["Active"], s=0.5)
+        self.plot.axes.set_ylabel("Normalized ID")
         self.plot.axes.set_xlabel("Time (s)")

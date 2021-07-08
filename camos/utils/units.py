@@ -7,6 +7,7 @@
 import warnings
 
 length = {
+    "Pixels": "px",
     "Meters": "m",
     "Centimeters": "cm",
     "Millimeters": "mm",

@@ -6,8 +6,11 @@
 
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
+import numpy as np
+
 import camos.utils.apptools as apptools
 import camos.utils.pluginmanager as PluginManager
+from camos.viewport.signalviewer import SignalViewer
 
 signal_types = {
     "timeseries": [3, "int"],
@@ -15,6 +18,8 @@ signal_types = {
     "correlation_lag": [3, "object"],
     "summary": [2, "int"],
 }
+
+MAXNAMELEN = 30
 
 
 class SignalViewModel(QObject):
@@ -34,6 +39,10 @@ class SignalViewModel(QObject):
         self.data.append(data)
         if name in self.names or name == "":
             name = "New_{}_{}".format(name, len(self.names))
+
+        if len(name) > MAXNAMELEN:
+            name = name[0:MAXNAMELEN]
+
         self.names.append(name)
         self.sampling.append(sampling)
         self.masks.append(mask)
@@ -66,6 +75,22 @@ class SignalViewModel(QObject):
             self.viewers.append(PluginManager.plugin_instances[-1].show)
         else:
             self.viewers.append([])
+
+    def filter_data(self, index, IDs):
+        assert "CellID" in self.data[index].dtype.names
+
+        _filtered_idx = np.isin(self.data[index][:]["CellID"], IDs)
+        _filtered = self.data[index][_filtered_idx]
+
+        _sv = SignalViewer(self.parent, _filtered)
+        _sv.display()
+
+        self.add_data(
+            _filtered,
+            name=self.names[index],
+            _class=_sv,
+            sampling=self.sampling[index],
+        )
 
     def __iter__(self):
         self._it = 0

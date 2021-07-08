@@ -14,6 +14,7 @@ import numpy as np
 from camos.model.inputdata import InputData
 
 MAXHISTORY = 20
+MAXNAMELEN = 30
 
 
 class ImageViewModel(QObject):
@@ -123,6 +124,12 @@ class ImageViewModel(QObject):
         if name == None:
             name = "Layer {}".format(len(self.images) - 1)
 
+        if name in self.names or name == "":
+            name = "New_{}_{}".format(name, len(self.names))
+
+        if len(name) > MAXNAMELEN:
+            name = name[0:MAXNAMELEN]
+
         self.names.append(name)
         self.translation.append([0, 0])
         self.scales.append(scale)
@@ -217,6 +224,7 @@ class ImageViewModel(QObject):
         else:
             idx = np.unique(self.images[self.currentlayer]._image._imgs[0]).tolist()
             self.imagetoplot.emit(idx)
+            return idx
 
     @pyqtSlot()
     def update_prefs(self, layer=None, sampling=1, pxsize=1, scale=1):

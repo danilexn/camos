@@ -17,6 +17,9 @@ class AnalysisPlot(FigureCanvasQTAgg, QObject):
 
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.w = width
+        self.h = height
+        self.d = dpi
         self.axes = self.fig.add_subplot(111)
         super(AnalysisPlot, self).__init__(self.fig)
         connection_id = self.fig.canvas.mpl_connect("button_press_event", self.onClick)
@@ -25,3 +28,9 @@ class AnalysisPlot(FigureCanvasQTAgg, QObject):
     def onClick(self, event):
         if event.dblclick:
             self.plottoimage.emit((event.button, event.xdata, event.ydata))
+
+    def restartFigure(self):
+        self.fig.clf()
+        self.fig = Figure(figsize=(self.w, self.h), dpi=self.d)
+        self.axes = self.fig.add_subplot(111)
+        super(AnalysisPlot, self).__init__(self.fig)

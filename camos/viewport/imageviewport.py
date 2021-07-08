@@ -35,7 +35,8 @@ class ImageViewPort(pg.ImageView):
         self.scale.anchor((1, 1), (1, 1), offset=(-50, -50))
 
         # This will hide some UI elements that will be handled by us
-        self.ui.histogram.hide()
+        # self.ui.histogram.hide()
+        self.ui.histogram.fillHistogram(False)
         self.ui.menuBtn.hide()
         self.ui.roiBtn.hide()
         self.roi.rotatable = False
@@ -71,18 +72,16 @@ class ImageViewPort(pg.ImageView):
     def update_viewport(self, layer=0):
         op = self.model.opacities[layer]
         sc = self.model.scales[layer]
-        co = self.model.contrasts[layer]
-        br = self.model.brightnesses[layer]
         cmap = self.model.colormaps[layer]
         lut = cmaps.cmapToColormap(cmap).getLookupTable()
+        self.ui.histogram.setImageItem(self.view.addedItems[layer + 3])
+        self.ui.histogram.fillHistogram(False)
         if op / 100 != self.view.addedItems[layer + 3].opacity:
             self.view.addedItems[layer + 3].setOpts(opacity=op / 100)
         if not np.array(lut == self.view.addedItems[layer + 3].lut).all():
             self.view.addedItems[layer + 3].setOpts(lut=lut)
         if sc[0] != self.view.addedItems[layer + 3].previous_scale[0]:
             self.view.addedItems[layer + 3].changeScale(sc[0], sc[1])
-        self.view.addedItems[layer + 3].setContrast(co)
-        self.view.addedItems[layer + 3].setBrightness(co)
 
     def change_background(self, color=(0, 0, 0)):
         self.view.setBackgroundColor(color)
