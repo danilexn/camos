@@ -12,13 +12,9 @@ import pickle
 class SaveView(Saving):
     analysis_name = "Save View"
 
-    def __init__(self, model=None, signal=None, parent=None):
-        super(SaveView, self).__init__(
-            model, parent, signal, name=self.analysis_name, show=False, extensions="cms File (*.cms)"
-        )
-        self.image = None
-        self.model = model
+    def __init__(self, *args, **kwargs):
+        super(SaveView, self).__init__(extensions="cms File (*.cms)", *args, **kwargs)
 
     def _run(self):
-        with open(self.filename, 'wb') as f:
+        with open(self.filename, "wb") as f:
             pickle.dump(self.model, f)

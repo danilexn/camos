@@ -1,10 +1,10 @@
-import logging
-import sys
-import camos.utils.errormessages as cfgexception
-import camos.utils.apptools as apptools
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+import logging
+import sys
+
+import camos.utils.errormessages as cfgexception
+import camos.utils.apptools as apptools
 
 __docformat__ = "restructuredtext"
 __version__ = "0.1a"
@@ -53,7 +53,10 @@ class Config(QtCore.QSettings):
         self.setFallbacksEnabled(False)
 
         styles = QtWidgets.QStyleFactory.keys()
-        self.default_style = styles[0]
+        if "Fusion" in styles:
+            self.default_style = "Fusion"
+        else:
+            self.default_style = styles[0]
         self.camosApp = apptools.getApp()
         """
         if not (self.camosApp is None):
@@ -127,6 +130,30 @@ class Config(QtCore.QSettings):
         else:
             return default_value
 
+    def viewportColor(self):
+        """Returns the color of the viewport
+        """
+
+        key = "Viewport/Color"
+        default_value = "Black"
+        setting_value = self.value(key)
+        if isinstance(setting_value, str):
+            return setting_value
+        else:
+            return default_value
+
+    def unitsLength(self):
+        """Returns the color of the viewport
+        """
+
+        key = "Units/Length"
+        default_value = "Microns"
+        setting_value = self.value(key)
+        if isinstance(setting_value, str):
+            return setting_value
+        else:
+            return default_value
+
     def writeValue(self, key, value):
         """
         Write an entry to the configuration file.
@@ -138,9 +165,7 @@ class Config(QtCore.QSettings):
         try:
             self.setValue(key, value)
             if self.status():
-                raise cfgexception.ConfigFileIOException(
-                    "{0}={1}".format(key, value)
-                )
+                raise cfgexception.ConfigFileIOException("{0}={1}".format(key, value))
         except cfgexception.ConfigFileIOException as inst:
             log.error(inst.error_message)
 
@@ -161,9 +186,11 @@ class Config(QtCore.QSettings):
         config["Geometry/Layout"] = self.windowLayout()
         config["Look/currentStyle"] = self.readStyle()
         config["Plugins/Enabled"] = self.enabledPlugins()
+        config["Viewport/Color"] = self.viewportColor()
+        config["Units/Length"] = self.unitsLength()
         return config
 
-    def applyConfiguration(self, config):
+    def applyConfiguration(self, config, gui):
         """
         Configure the application with the given settings.
         We call `user settings` to those settings that can be setup via
@@ -177,7 +204,6 @@ class Config(QtCore.QSettings):
         self.applyUserPreferences(config)
 
         # Load the internal settings (if any)
-        gui = self.camosApp.gui
         try:
             key = "Geometry/Position"
             value = config[key]
@@ -208,6 +234,14 @@ class Config(QtCore.QSettings):
         if key in config:
             self.enabled_plugins = config[key]
 
+        key = "Viewport/Color"
+        if key in config:
+            self.viewport_color = config[key]
+
+        key = "Units/Length"
+        if key in config:
+            self.units_length = config[key]
+
     def saveConfiguration(self):
         """
         Store current application settings on disk.
@@ -216,15 +250,14 @@ class Config(QtCore.QSettings):
         that file.
         """
 
-        camosGUI = self.camosApp.gui
+        camosGUI = apptools.getGui()
         # Style
-        self.writeValue("Look/currentStyle", self.current_style)
+        # self.writeValue("Look/currentStyle", self.current_style)
         # Window geometry
         self.writeValue("Geometry/Position", camosGUI.saveGeometry())
-        # Window layout
-        self.writeValue("Geometry/Layout", camosGUI.saveState())
         # The list of enabled plugins
-        self.writeValue(
-            "Plugins/Enabled", self.camosApp.plugins_mgr.enabled_plugins
-        )
+        # self.writeValue("Plugins/Enabled", self.camosApp.plugins_mgr.enabled_plugins)
+        # The current background color
+        self.writeValue("Viewport/Color", self.viewport_color)
+        self.writeValue("Units/Length", self.units_length)
         self.sync()

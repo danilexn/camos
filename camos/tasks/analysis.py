@@ -4,92 +4,41 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
+from PyQt5.QtWidgets import (
+    QDockWidget,
+    QHBoxLayout,
+    QGroupBox,
+    QPushButton,
+    QVBoxLayout,
+    QPushButton,
+    QWidget,
+)
+from PyQt5.QtCore import pyqtSignal
+import PyQt5.QtCore as QtCore
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import numpy as np
 
+from camos.tasks.base import BaseTask
 from camos.tasks.runtask import RunTask
-from camos.utils.errormessages import ErrorMessages
 from camos.tasks.plotting import AnalysisPlot
 from camos.model.inputdata import InputData
+from camos.utils.generategui import CreateGUI
 
 
-class Analysis(QObject):
-    finished = pyqtSignal()
+class Analysis(BaseTask):
     plotReady = pyqtSignal()
-    intReady = pyqtSignal(int)
 
-    def __init__(self, model=None, parent=None, signal=None, name="No name processing"):
-        super(Analysis, self).__init__()
-        self.model = model
-        self.signal = signal
-        self.parent = parent
-        self.output = np.zeros((1, 1))
+    def __init__(self, *args, **kwargs):
+        super(Analysis, self).__init__(*args, **kwargs)
         self.foutput = np.zeros((1, 1))
         self.sampling = 1
-        self.analysis_name = name
         self.finished.connect(self.update_plot)
         self.model.imagetoplot.connect(self.update_values_plot)
         self.outputimage = np.zeros((1, 1))
 
-    def _run(self):
-        pass
-
-    def _plot(self):
-        pass
-
-    @pyqtSlot()
-    def run(self):
-        try:
-            self._run()
-            self.handler.success = True
-            self.foutput = self.output
-        finally:
-            self.finished.emit()
-        pass
-
-    def update_plot(self):
-        self._plot()
-        self.plot.draw()
-        self.plotReady.emit()
-        pass
-
-    def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(self.output, "", self, self.sampling)
-
-    def output_to_imagemodel(self):
-        self.parent.model.add_image(self.output)
-
-    def display(self):
-        if type(self.model.list_images()) is type(None):
-            ErrorMessages("There are no images!")
-        if type(self.signal.list_datasets()) is type(None):
-            ErrorMessages("There is no data!")
-
-        self._initialize_UI()
-        self.initialize_UI()
-        self._final_initialize_UI()
-
-    def show(self):
-        self.dockUI.show()
-
-    def initialize_UI(self):
-        pass
-
-    def update_values_plot(self, values):
-        self._update_values_plot(values)
-        self.plot.axes.clear()
-        self.update_plot()
-        pass
-
-    def _update_values_plot(self, values):
-        pass
-
-    def _initialize_UI(self):
+    def buildUI(self):
         self.dockUI = QDockWidget(self.analysis_name, self.parent)
         self.main_layout = QHBoxLayout()
         self.group_settings = QGroupBox("Parameters")
@@ -106,8 +55,9 @@ class Analysis(QObject):
         self.group_plot.setLayout(self.plot_layout)
         self.main_layout.addWidget(self.group_settings, 1)
         self.main_layout.addWidget(self.group_plot, 4)
+        self.params_gui = CreateGUI(self.paramDict, self.layout, self._run)
+        self.params_gui.creategui()
 
-    def _final_initialize_UI(self):
         self.runButton = QPushButton("Run", self.parent)
         self.runButton.setToolTip("Click to run this task")
         self.handler = RunTask(self)
@@ -120,7 +70,7 @@ class Analysis(QObject):
         self.layout.addWidget(self.runButton)
         self.layout.addWidget(self.savePlot)
 
-        self.dockedWidget = QtWidgets.QWidget()
+        self.dockedWidget = QWidget()
         self.dockUI.setWidget(self.dockedWidget)
         self.dockedWidget.setLayout(self.main_layout)
         self.dockUI.setFloating(True)

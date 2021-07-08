@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-# Last modified on Mon Jun 07 2021
+# Last modified on Wed Jul 07 2021
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
@@ -8,6 +8,7 @@ import signal
 import sys
 import locale
 import os
+import traceback
 
 from PyQt5 import QtWidgets, QtCore
 from darktheme.widget_template import DarkPalette
@@ -15,6 +16,9 @@ from darktheme.widget_template import DarkPalette
 from camos.app import camosApp
 import camos.utils.settings as settings
 import camos.utils.apptools
+from camos.gui.notification import CaMOSQtNotification
+from camos.gui.styles import notification_style
+from camos.utils.notifications import Notification
 
 _I18N_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "i18n")
 
@@ -52,13 +56,29 @@ def _set_locale(app):
     return translator
 
 
+def excepthook(exc_type, exc_value, exc_tb):
+    tb = "\n".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    # ErrorMessages(tb)
+    error = Notification("\n; ".join([str(exc_value), tb]), "ERROR")
+    CaMOSQtNotification.from_notification(error)
+    # This still prints the exceptions in console
+    print(tb)
+
+
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, sigint_handler)
+    sys.excepthook = excepthook
     app = QtWidgets.QApplication(sys.argv)
     _set_credentials(app)
     # translator = _set_locale(app)
     app.setStyle("Fusion")
     app.setPalette(DarkPalette())
+    # try to setup stylesheet for the notifications
+    # for some reason, this is not working on Windows
+    try:
+        app.setStyleSheet(notification_style)
+    except:
+        pass
     _app = camosApp()
     camosApp_second = camos.utils.apptools.getApp()
     sys.exit(app.exec_())

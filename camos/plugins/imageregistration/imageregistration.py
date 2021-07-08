@@ -3,20 +3,28 @@
 # Last modified on Mon Jun 07 2021
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
+import cv2
 
-from PyQt5.QtWidgets import *
 from camos.tasks.processing import Processing
 from camos.model.inputdata import InputData
+from camos.utils.generategui import (
+    ImageInput,
+    CustomComboInput,
+)
 
-import cv2
+_methods = {
+    "Correlation": cv2.TM_CCOEFF,
+    "Normed Correlation": cv2.TM_CCOEFF_NORMED,
+    "Cross Correlation": cv2.TM_CCORR,
+    "Normed Cross Correlation": cv2.TM_CCORR_NORMED,
+    "Quared Difference": cv2.TM_SQDIFF,
+}
+
 
 class CAMOSImageReg(Processing):
     analysis_name = "Image Registration"
-    _methods = {"Correlation":cv2.TM_CCOEFF,
-               "Normed Correlation":cv2.TM_CCOEFF_NORMED,
-               "Cross Correlation":cv2.TM_CCORR,
-               "Normed Cross Correlation":cv2.TM_CCORR_NORMED,
-               "Quared Difference":cv2.TM_SQDIFF}
+
+    required = ["images"]
 
     def __init__(self, model=None, parent=None, signal=None):
         super(CAMOSImageReg, self).__init__(
@@ -25,24 +33,30 @@ class CAMOSImageReg(Processing):
         self.output = None
         self.image = None
         self.layername = "StackReg of Layer {} with Reference Layer {}"
-        self.reference = "first"
-        self.method = self._methods["Correlation"]
         self.finished.connect(self.image_align)
 
     def check8bit(self, image):
-        if image.dtype == 'uint16':
-            image = (image/256).astype('uint8')
+        if image.dtype == "uint16":
+            image = (image / 256).astype("uint8")
         return image
 
-    def _run(self):
+    def _run(
+        self,
+        _i_img: ImageInput("Register Image", 0),
+        _i_ref: ImageInput("Reference Image", 0),
+        _i_method: CustomComboInput(_methods.keys(), "Matching Method", 0),
+    ):
         # Apply template Matching
-        image = self.check8bit(self.image)
-        ref = self.check8bit(self.ref)
+        self.index_img, self.index_ref = _i_img, _i_ref
+        image = self.check8bit(self.model.images[_i_img].image(0))
+        ref = self.check8bit(self.model.images[_i_ref].image(0))
+        method = _methods[self.methods[_i_method]]
 
-        res = cv2.matchTemplate(ref,image,self.method)
+        res = cv2.matchTemplate(ref, image, method)
         _, _, min_loc, max_loc = cv2.minMaxLoc(res)
+
         # If the method is TM_SQDIFF or TM_SQDIFF_NORMED, take minimum
-        if self.method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
+        if method in [cv2.TM_SQDIFF, cv2.TM_SQDIFF_NORMED]:
             top_left = min_loc
         else:
             top_left = max_loc
@@ -53,50 +67,15 @@ class CAMOSImageReg(Processing):
         self.model.translate_position(self.index_img, self.output)
 
     def output_to_imagemodel(self):
-        image = InputData(
-            self.output,
-            memoryPersist=True,
-            name=self.layername.format(self.index),
-        )
+        image = InputData(self.output, memoryPersist=True)
         image.loadImage()
-        self.parent.model.add_image(image, "StackReg of Layer {} with Reference Layer {}".format(self.index_img, self.index_ref))
-
-    def initialize_UI(self):
-        # TODO: Create a checkbox for GPU acceleration
-        self.methodlabel = QLabel("Matching Method", self.dockUI)
-        self.cbmethod = QComboBox()
-        self.cbmethod.currentIndexChanged.connect(self._set_method)
-        self.cbmethod.addItems(self.methods)
-
-        self.imagelabel = QLabel("Register image", self.dockUI)
-        self.cbimage = QComboBox()
-        self.cbimage.currentIndexChanged.connect(self._set_image)
-        self.cbimage.addItems(self.model.list_images())
-
-        self.reflabel = QLabel("Reference image", self.dockUI)
-        self.cbref = QComboBox()
-        self.cbref.currentIndexChanged.connect(self._set_ref)
-        self.cbref.addItems(self.model.list_images())
-
-        self.layout.addWidget(self.methodlabel)
-        self.layout.addWidget(self.cbmethod)
-        self.layout.addWidget(self.imagelabel)
-        self.layout.addWidget(self.cbimage)
-        self.layout.addWidget(self.reflabel)
-        self.layout.addWidget(self.cbref)
-
-    def _set_image(self, index):
-        self.image = self.model.images[index]._image._imgs[0]
-        self.index_img = index
-
-    def _set_ref(self, index):
-        self.ref = self.model.images[index]._image._imgs[0]
-        self.index_ref = index
-
-    def _set_method(self, index):
-        self.methodname = self.methods[index]
-        self.method = self._methods[self.methodname]
+        self.parent.model.add_image(
+            image,
+            "StackReg of Layer {} with Reference Layer {}".format(
+                self.index_img, self.index_ref
+            ),
+        )
 
     @property
     def methods(self):
-        return list(self._methods.keys())
+        return list(_methods.keys())

@@ -4,7 +4,7 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-# Taken from napari source
+# Taken from CaMOS source
 from typing import Callable, Optional, Sequence, Tuple
 
 from PyQt5.QtCore import (
@@ -28,6 +28,7 @@ from PyQt5.QtWidgets import (
 )
 
 from camos.gui.qt.qt_eliding_label import MultilineElidedLabel
+from camos.utils.notifications import Notification, NotificationSeverity
 
 ActionSequence = Sequence[Tuple[str, Callable[[], None]]]
 
@@ -36,7 +37,14 @@ def trans(text, **kwargs):
     return text
 
 
-class NapariQtNotification(QDialog):
+severity_color = {
+    NotificationSeverity.WARNING: "#ffcc00",
+    NotificationSeverity.ERROR: "#cc3300",
+    NotificationSeverity.INFO: "#303030",
+}
+
+
+class CaMOSQtNotification(QDialog):
     """Notification dialog frame, appears at the bottom right of the canvas.
     By default, only the first line of the notification is shown, and the text
     is elided.  Double-clicking on the text (or clicking the chevron icon) will
@@ -84,16 +92,18 @@ class NapariQtNotification(QDialog):
 
         current_window = getGui()
         if current_window is not None:
-            canvas = current_window.qt_viewer._canvas_overlay
-            self.setParent(canvas)
-            canvas.resized.connect(self.move_to_bottom_right)
+            self.setParent(current_window)
 
         self.setupUi()
         self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setup_buttons(actions)
-        self.setMouseTracking(True)
+        # self.setup_buttons(actions)
+        # self.setMouseTracking(True)
 
-        self.severity_icon.setText(severity)  # TODO: as CaMOS icon
+        self.severity_icon.setText(NotificationSeverity(severity).as_icon())
+
+        # Setup the background color depending on the severity
+        self.setStyleSheet("background: {};".format(severity_color[severity]))
+
         self.message.setText(message)
         if source:
             self.source_label.setText(trans("Source: {source}", source=source))
@@ -294,13 +304,13 @@ class NapariQtNotification(QDialog):
         )
 
     @classmethod
-    def from_notification(cls, notification: Notification) -> NapariQtNotification:
+    def from_notification(cls, notification: Notification):
         return cls(
             message=notification.message,
             severity=notification.severity,
             source=notification.source,
             actions=None,
-        )
+        ).show()
 
     @classmethod
     def show_notification(cls, notification: Notification):

@@ -4,11 +4,17 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
+from pystackreg import StackReg
+
 from camos.tasks.processing import Processing
 from camos.model.inputdata import InputData
+from camos.utils.generategui import (
+    ImageInput,
+    CustomComboInput,
+)
 
-from pystackreg import StackReg
+_reference = ["first", "previous"]
+
 
 class CAMOSStackReg(Processing):
     analysis_name = "Stack Registration"
@@ -25,46 +31,25 @@ class CAMOSStackReg(Processing):
         self.torch = True
         self.reference = "first"
 
-    def _run(self):
-        #Translational transformation
+    def _run(
+        self,
+        _i_ref: CustomComboInput(_reference, "Reference Frame", 0),
+        _i_img: ImageInput("Stack to register", 0),
+    ):
+        # Translational transformation
         def show_progress(current_iteration, end_iteration):
             self.intReady.emit(current_iteration * 100 / end_iteration)
 
         sr = StackReg(StackReg.RIGID_BODY)
-        img = self.image._image._imgs
+        img = self.model.images[_i_img]._image._imgs
+        self.imagename = self.model.names[_i_img]
         # register to first image
-        out = sr.register_transform_stack(img, reference=self.reference, progress_callback=show_progress)
+        out = sr.register_transform_stack(
+            img, reference=_reference[_i_ref], progress_callback=show_progress
+        )
         self.output = out
 
     def output_to_imagemodel(self):
-        image = InputData(
-            self.output,
-            memoryPersist=True,
-            name=self.layername.format(self.index),
-        )
+        image = InputData(self.output, memoryPersist=True,)
         image.loadImage()
-        self.parent.model.add_image(image, "StackReg of Layer {}".format(self.index))
-
-    def initialize_UI(self):
-        # TODO: Create a checkbox for GPU acceleration
-        self.methodlabel = QLabel("Reference Frame", self.dockUI)
-        self.cbmethod = QComboBox()
-        self.cbmethod.currentIndexChanged.connect(self._set_method)
-        self.cbmethod.addItems(["first", "previous"])
-
-        self.imagelabel = QLabel("Stack to register", self.dockUI)
-        self.cbimage = QComboBox()
-        self.cbimage.currentIndexChanged.connect(self._set_image)
-        self.cbimage.addItems(self.model.list_images())
-
-        self.layout.addWidget(self.methodlabel)
-        self.layout.addWidget(self.cbmethod)
-        self.layout.addWidget(self.imagelabel)
-        self.layout.addWidget(self.cbimage)
-
-    def _set_image(self, index):
-        self.image = self.model.images[index]
-        self.index = index
-
-    def _set_method(self, index):
-        self.reference = ["first", "previous"][index]
+        self.parent.model.add_image(image, "StackReg of {}".format(self.imagename))
