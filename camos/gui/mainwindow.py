@@ -1,22 +1,25 @@
 # -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-# Last modified on Mon Jun 07 2021
+# Last modified on Wed Jul 07 2021
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QHBoxLayout, QMenu, QMessageBox
 
-# TODO: should we import everything?
-from PyQt5.QtWidgets import *
-import sys
+import os
 
 from camos.model.imageviewmodel import ImageViewModel
 from camos.model.signalviewmodel import SignalViewModel
 from camos.viewport.imageviewport import ImageViewPort
 from camos.gui.preferencespanel import CAMOSPreferences
+from camos.utils.settings import Config
+from camos.utils.cmaps import bg_colors
+from camos.utils.units import get_length
+import camos.utils.units as units
+from camos.utils.pluginmanager import plugin_open
 
-# from camos.viewport.signalviewport import SignalViewPort
 from camos.gui.framecontainer import FrameContainer
 
 
@@ -37,16 +40,29 @@ class MainWindow(QtWidgets.QMainWindow):
         # Global variables of the program, models and viewports
 
         self.title = "CaMOS"
+        self.configuration = Config()
+        self.current_configuration = self.configuration.readConfiguration()
         self.setup_model(ImageViewModel(parent=self))
         self.signalmodel = SignalViewModel(parent=self)
         self.setObjectName("camosGUI")
         self.camosApp = camosApp
 
+        # Configure the main window settings
+        self.readSettings()
+
+        # Configure the drag-and-drop
+        self.setAcceptDrops(True)
+
+        # Configure the units model
+        units.configuration = self.configuration
+
         self.viewport = ImageViewPort(self.model, self.parent)
-        # self.signalviewport = SignalViewPort(self.signalmodel, self.parent)
+        # Config the background color of the viewport
+        self.viewport.change_background(
+            bg_colors[self.current_configuration["Viewport/Color"]]
+        )
 
         # Connect events
-        # self.signalmodel.newdata.connect(self.signalviewport.add_last_track)
         self.model.newdata.connect(self.viewport.load_image)
         self.model.updated.connect(self.viewport.update_viewport)
         self.model.updatedscale.connect(self.viewport.update_scalebar)
@@ -55,7 +71,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Layout of the UI
         layout = QHBoxLayout()
-        self.setLayout(layout)
+        self.centralwidget = QtGui.QWidget(self)
+        self.setCentralWidget(self.centralwidget)
+        self.centralwidget.setLayout(layout)
         self.init_UI()
         self.create_menubar()
         self.container = FrameContainer(self)
@@ -96,8 +114,8 @@ class MainWindow(QtWidgets.QMainWindow):
             pxs (int): pixel size for the current layer
         """
         self.statusBar().showMessage(
-            "Position (px): [{:.0f}, {:.0f}]; Position (μm): [{:.0f}, {:.0f}]; Frame: {}; Value: {}".format(
-                x, y, x / pxs, y / pxs, t, v
+            "Position (px): [{:.0f}, {:.0f}]; Position ({}): [{:.0f}, {:.0f}]; Frame: {}; Value: {}".format(
+                x, y, get_length(), x / pxs, y / pxs, t, v
             )
         )
 
@@ -112,6 +130,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # High level menus
         self.fileMenu = menubar.addMenu("&File")
+        self.editMenu = menubar.addMenu("&Edit")
         self.processMenu = menubar.addMenu("&Process")
         self.analysisMenu = menubar.addMenu("&Analyze")
         self.helpMenu = menubar.addMenu("&Help")
@@ -120,22 +139,65 @@ class MainWindow(QtWidgets.QMainWindow):
         # Sublevels
         # Open image
         self.openMenu = QMenu("Open", self)
+        # Save image
         self.saveMenu = QMenu("Save", self)
 
-        self.exitAct = QtWidgets.QAction(QIcon("exit.png"), "&Exit program", self)
+        # Exit
+        self.exitAct = QtWidgets.QAction(QIcon("exit.png"), "&Quit", self)
         self.exitAct.setShortcut("Ctrl+Q")
         self.exitAct.setStatusTip("Exit application")
         self.exitAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
 
-        self.prefsAct = QtWidgets.QAction("&CaMOS Preferences", self)
+        # Preferences
+        self.prefsAct = QtWidgets.QAction("&Preferences", self)
+        self.prefsAct.setShortcut("Ctrl+Shift+P")
         self.prefsAct.setStatusTip("Main preferences of the application")
         self.prefsAct.triggered.connect(lambda: CAMOSPreferences(self))
 
+        # Attach submenus
         self.fileMenu.addMenu(self.openMenu)
         self.fileMenu.addMenu(self.saveMenu)
-        # self.fileMenu.addAction(self.settingsAct)
-        self.fileMenu.addAction(self.exitAct)
+        self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.prefsAct)
+        self.fileMenu.addSeparator()
+        self.fileMenu.addAction(self.exitAct)
+
+        # Edit menu
+        # Sublevels
+        self.createEditMenu()
+
+    def createEditMenu(self):
+        # Sublevels
+        # Undo
+        self.undoAct = QtWidgets.QAction("Undo", self)
+        self.undoAct.setShortcut("Ctrl+Z")
+        self.undoAct.setStatusTip("Undo")
+        self.undoAct.triggered.connect(self.model.undoLastAction)
+
+        # Copy
+        self.copyAct = QtWidgets.QAction("Copy", self)
+        self.copyAct.setShortcut("Ctrl+C")
+        self.copyAct.setStatusTip("Copy")
+        self.copyAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
+
+        # Paste
+        self.pasteAct = QtWidgets.QAction("Paste", self)
+        self.pasteAct.setShortcut("Ctrl+V")
+        self.pasteAct.setStatusTip("Paste")
+        self.pasteAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
+
+        # Paste
+        self.pasteAct = QtWidgets.QAction("Paste", self)
+        self.pasteAct.setShortcut("Ctrl+V")
+        self.pasteAct.setStatusTip("Paste")
+        self.pasteAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
+
+        # Attach to edit menu
+        self.editMenu.addAction(self.undoAct)
+        self.editMenu.addSeparator()
+        self.editMenu.addAction(self.copyAct)
+        self.editMenu.addAction(self.pasteAct)
+        self.editMenu.addSeparator()
 
     def closeEvent(self, event):
         """Handle for self.exitAct being triggered
@@ -149,6 +211,51 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         if reply == QMessageBox.Yes:
+            # Save all the configuration to the file
+            self.configuration.saveConfiguration()
             event.accept()
         else:
             event.ignore()
+
+    def readSettings(self):
+        self.configuration.applyConfiguration(self.current_configuration, self)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        files = [u.toLocalFile() for u in event.mimeData().urls()]
+        for f in files:
+            just_name = os.path.basename(f)
+            dialog = OpenerDialog(self, name=just_name)
+            if dialog.exec_() == QtWidgets.QDialog.Accepted:
+                idx = dialog.combo.currentIndex()
+                plugin_open[idx]["instance"](f)
+
+
+class OpenerDialog(QtGui.QDialog):
+    def __init__(self, parent=None, name=""):
+        super(OpenerDialog, self).__init__(parent)
+
+        self.setWindowTitle("Select plugin")
+        label = QtGui.QLabel("Select a opening plugin for {}".format(name))
+        self.combo = QtGui.QComboBox()
+        self.parent = parent
+        plugin_names = [p["name"] for p in plugin_open]
+        self.combo.addItems(plugin_names)
+
+        box = QtGui.QDialogButtonBox(
+            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+            centerButtons=True,
+        )
+
+        box.accepted.connect(self.accept)
+        box.rejected.connect(self.reject)
+
+        lay = QtGui.QGridLayout(self)
+        lay.addWidget(label)
+        lay.addWidget(self.combo)
+        lay.addWidget(box, 2, 0, 1, 2)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-# Last modified on Mon Jun 07 2021
+# Last modified on Wed Jul 07 2021
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
@@ -23,6 +23,7 @@ PLUGIN_GROUP = "camos.plugins"
 
 log = logging.getLogger(__name__)
 plugin_instances = []
+plugin_open = []
 
 
 def _create_instance(plugin_class, attribute_name, base):
@@ -39,6 +40,12 @@ def _create_instance(plugin_class, attribute_name, base):
             gui.saveMenu.addAction(analysisAct)
         elif Opening in base:
             gui.openMenu.addAction(analysisAct)
+            plugin_open.append(
+                {
+                    "name": plugin_class.analysis_name,
+                    "instance": lambda filename: run_opener(plugin_class, filename),
+                }
+            )
         # instance = plugin_class(model=model, parent=gui, signal = signalmodel)
     except Exception as e:
         log.error("Failed to create plugin instance")
@@ -56,6 +63,15 @@ def make_instance(_class, base):
     plugin_instances[-1].display()
 
 
+def run_opener(_class, filename):
+    gui = apptools.getApp().gui
+    model = gui.model
+    signalmodel = gui.signalmodel
+    instance = _class(model=model, parent=gui, signal=signalmodel)
+    instance.filename = filename
+    instance.run()
+
+
 class PluginManager(object):
     def __init__(self, enabled_plugins=None):
         self.enabled_plugins = enabled_plugins
@@ -67,24 +83,23 @@ class PluginManager(object):
 
     def loadAll(self):
         self.loaded_plugins = {}
-        package_dir = (
-            Path(__file__).resolve().parent.parent.joinpath("plugins")
-        )
+        package_dir = Path(__file__).resolve().parent.parent.joinpath("plugins")
         for (_, module_name, _) in iter_modules([package_dir]):
             # import the module and iterate through its attributes
-            module = import_module(
-                f"camos.plugins.{module_name}.{module_name}"
-            )
-            for attribute_name in dir(module):
-                attribute = getattr(module, attribute_name)
-                if isclass(attribute):
-                    # Add the class to this package's variables
-                    if any(
-                        item in attribute.__bases__
-                        for item in [Analysis, Processing, Saving, Opening]
-                    ):
-                        self.loaded_plugins[attribute_name] = _create_instance(
-                            attribute, attribute_name, attribute.__bases__
-                        )
+            try:
+                module = import_module(f"camos.plugins.{module_name}.{module_name}")
+                for attribute_name in dir(module):
+                    attribute = getattr(module, attribute_name)
+                    if isclass(attribute):
+                        # Add the class to this package's variables
+                        if any(
+                            item in attribute.__bases__
+                            for item in [Analysis, Processing, Saving, Opening]
+                        ):
+                            self.loaded_plugins[attribute_name] = _create_instance(
+                                attribute, attribute_name, attribute.__bases__
+                            )
+            except Exception as e:
+                log.error("Could not load the plugin {}; ".format(module_name) + str(e))
 
         self._disable_not_loaded()

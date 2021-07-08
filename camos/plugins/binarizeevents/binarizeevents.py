@@ -10,19 +10,20 @@ from camos.tasks.analysis import Analysis
 from camos.utils.generategui import NumericInput, DatasetInput
 
 
-class BurstClean(Analysis):
-    analysis_name = "Clean Events"
+class BinarizeEvents(Analysis):
+    analysis_name = "Binarize Events"
     required = ["dataset"]
 
-    def __init__(self, *args, **kwargs):
-        super(BurstClean, self).__init__(*args, **kwargs)
+    def __init__(self, model=None, parent=None, signal=None):
+        super(BinarizeEvents, self).__init__(
+            model, parent, signal, name=self.analysis_name
+        )
+        self.data = None
         self.finished.connect(self.output_to_signalmodel)
 
     def _run(
         self,
-        duration: NumericInput("Total Duration (s)", 100),
-        _filter_min: NumericInput("Minimum Events/s", 1),
-        _filter_max: NumericInput("Maximum Events/s", 50),
+        _binsize: NumericInput("Bin Size (s)", 1),
         _i_data: DatasetInput("Source dataset", 0),
     ):
         output_type = [("CellID", "int"), ("Active", "float")]
@@ -33,36 +34,21 @@ class BurstClean(Analysis):
         if not ("Active" in data.dtype.names):
             raise ValueError("The dataset does not have the expected shape")
 
-        # Calculates the MFR, could be given as an input?
-        unique, counts = np.unique(data[:]["CellID"], return_counts=True)
-        active = data[:]["Active"]
-        IDs = data[:]["CellID"]
-        IDs_include = unique[
-            np.where(
-                (counts >= _filter_min * duration) & (counts <= _filter_max * duration)
-            )
-        ]
-        idx = np.isin(IDs, IDs_include)
-        active_filter = active[idx]
-        IDs_filter = IDs[idx]
+        # Calculates the bins
+        active = data[:]["Active"] / _binsize
+        active = np.floor(active) * _binsize
 
-        # Calculate mean firing rate per cell
-        self.output = np.zeros(shape=(len(active_filter), 1), dtype=output_type)
-        self.output[:]["CellID"] = IDs_filter.reshape(-1, 1)
-        self.output[:]["Active"] = active_filter.reshape(-1, 1)
+        # Stores the data into the output data structure
+        self.output = np.zeros(shape=(len(active), 1), dtype=output_type)
+        self.output[:]["CellID"] = data[:]["CellID"].reshape(-1, 1)
+        self.output[:]["Active"] = active.reshape(-1, 1)
 
-        self.output = self.output[1:]
-        self.foutput = self.output
-        # self.notify(
-        #     "{}: Events Before = {}; Events After = {}".format(
-        #         self.analysis_name, len(data), len(self.output)
-        #     ),
-        #     "INFO",
-        # )
+        # This reduces the events to one per electrode in the same bin
+        self.output = np.unique(self.output, axis=0)
 
     def output_to_signalmodel(self):
         self.parent.signalmodel.add_data(
-            self.output, "Clean Events of {}".format(self.dataname), self
+            self.output, "Binned Bursting of {}".format(self.dataname), self
         )
 
     def _plot(self):

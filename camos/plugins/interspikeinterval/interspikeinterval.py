@@ -4,17 +4,21 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
-
 import numpy as np
 from collections import defaultdict
 
 from camos.tasks.analysis import Analysis
+from camos.utils.generategui import (
+    DatasetInput,
+    NumericInput,
+    ImageInput,
+    CustomComboInput,
+)
+from camos.utils.units import length
 
 
 class InterspikeInterval(Analysis):
     analysis_name = "Interspike Interval"
-    input_type = "summary"
 
     def __init__(self, model=None, parent=None, signal=None):
         super(InterspikeInterval, self).__init__(
@@ -23,13 +27,21 @@ class InterspikeInterval(Analysis):
         self.data = None
         self.finished.connect(self.output_to_signalmodel)
 
-    def _run(self):
-        self.pos = {}
-        duration = 100
+    def _run(
+        self,
+        scale: NumericInput("Axis scale", 1),
+        _i_units: CustomComboInput(list(length.keys()), "Axis units", 0),
+        _i_data: DatasetInput("Source Dataset", 0),
+        _i_mask: ImageInput("Mask image", 0),
+    ):
+        self.mask = self.model.images[_i_mask].image(0)
         output_type = [("CellID", "int"), ("ISI", "float")]
+        self.scale = scale
+        self.units = length[list(length.keys())[_i_units]]
 
         # data should be provided in format of peaks
-        data = self.data
+        data = self.signal.data[_i_data]
+        self.dataname = self.signal.names[_i_data]
         if not ("Active" in data.dtype.names):
             return
 
@@ -46,7 +58,6 @@ class InterspikeInterval(Analysis):
         dict_events = defaultdict(list)
 
         # This explores all events
-        # TODO: review why spikes from CMOS and Ca have different structure
         if type(IDs_all[0]) == np.ndarray:
             for i in range(len(IDs_all)):
                 dict_events[IDs_all[i][0]] += [data[i]["Active"][0]]
@@ -63,45 +74,15 @@ class InterspikeInterval(Analysis):
 
         self.output[:]["ISI"] = ISI.reshape(-1, 1)
 
-    def display(self):
-        if type(self.signal.list_datasets(self.input_type)) is type(None):
-            # Handle error that there are no images
-            return
-        self._initialize_UI()
-        self.initialize_UI()
-        self._final_initialize_UI()
-
     def output_to_signalmodel(self):
         self.parent.signalmodel.add_data(
             self.output, "ISI of {}".format(self.dataname), self, mask=self.mask
         )
 
-    def initialize_UI(self):
-        self.datalabel = QLabel("Source dataset", self.dockUI)
-        self.cbdata = QComboBox()
-        self.cbdata.currentIndexChanged.connect(self._set_data)
-        self.cbdata.addItems(self.signal.list_datasets(self.input_type))
-        self.masklabel = QLabel("Mask image", self.dockUI)
-        self.cbmask = QComboBox()
-        self.cbmask.currentIndexChanged.connect(self._set_mask)
-        self.cbmask.addItems(self.model.list_images())
-
-        self.layout.addWidget(self.masklabel)
-        self.layout.addWidget(self.cbmask)
-        self.layout.addWidget(self.datalabel)
-        self.layout.addWidget(self.cbdata)
-
-    def _set_data(self, index):
-        dataset = self.signal.data[index]
-        self.data = dataset
-        self.dataname = self.signal.names[index]
-
-    def _set_mask(self, text):
-        index = self.cbmask.currentIndex()
-        self.mask = self.model.images[index]._image._imgs[0].astype(int)
-
     def _plot(self):
-        mask = self.mask
+        import matplotlib.ticker as tick
+
+        mask = self.mask.astype(int)
         ISI_dict = {}
         for i in range(1, self.foutput.shape[0]):
             ISI_dict[int(self.foutput[i]["CellID"][0])] = self.foutput[i]["ISI"][0]
@@ -109,7 +90,7 @@ class InterspikeInterval(Analysis):
         k = np.array(list(ISI_dict.keys()))
         v = np.array(list(ISI_dict.values()))
 
-        dim = max(k.max(), np.max(mask))
+        dim = int(max(k.max(), np.max(mask)))
         mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
         mapping_ar[k] = v
         ISI_mask = mapping_ar[mask]
@@ -117,6 +98,11 @@ class InterspikeInterval(Analysis):
         self.outputimage = ISI_mask
 
         im = self.plot.axes.imshow(ISI_mask, cmap="inferno", origin="upper")
-        self.plot.fig.colorbar(im, ax=self.plot.axes)
-        self.plot.axes.set_ylabel("Y coordinate")
-        self.plot.axes.set_xlabel("X coordinate")
+        self.plot.fig.colorbar(
+            im, ax=self.plot.axes, label="Interspike Interval (seconds)"
+        )
+        formatter = lambda x, pos: f"{(x / self.scale):.1f}"  # scale is 1/resolution
+        self.plot.axes.yaxis.set_major_formatter(tick.FuncFormatter(formatter))
+        self.plot.axes.xaxis.set_major_formatter(tick.FuncFormatter(formatter))
+        self.plot.axes.set_ylabel("Y coordinate ({})".format(self.units))
+        self.plot.axes.set_xlabel("X coordinate ({})".format(self.units))

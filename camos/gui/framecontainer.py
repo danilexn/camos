@@ -1,17 +1,33 @@
 # -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-# Last modified on Mon Jun 07 2021
+# Last modified on Wed Jul 07 2021
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import (
+    QListWidgetItem,
+    QInputDialog,
+    QLineEdit,
+    QGroupBox,
+    QFormLayout,
+    QSlider,
+    QLabel,
+    QComboBox,
+    QScrollBar,
+    QAction,
+    QWidget,
+)
 from PyQt5.QtGui import QDoubleValidator
-import camos.utils.pluginmanager as PluginManager
+from PyQt5.QtCore import pyqtSignal
+
+import pyqtgraph as pg
 
 from camos.utils.cmaps import cmaps
-import pyqtgraph as pg
+from camos.utils.units import get_length
+from camos.utils.strings import range_to_list
+from camos.gui.qt.qt_range_slider import QtRangeSlider
 
 
 class FrameContainer(QtWidgets.QWidget):
@@ -91,6 +107,7 @@ class FrameContainer(QtWidgets.QWidget):
         self.opened_layers_widget.addItem(item)
         maxframe = self.parent.model.maxframe
         self.current_frame_slider.setRange(0, maxframe - 1)
+        self.current_frame_rangeslider.setRange(0, maxframe - 1)
 
     def add_data_layer(self, name):
         """When the ImageViewModel has updates in any of the elements, the layers list is updated
@@ -119,29 +136,76 @@ class FrameContainer(QtWidgets.QWidget):
     def _createLayersControls(self):
         """For the lateral layer control, creates the upper view of layers, and the bottom individual controls per layer
         """
+        # General appearance of the controls layout
         self.layers_controls = QGroupBox("  Selected layer")
         self.layers_controls.setContentsMargins(50, 100, 50, 80)
         layout = QFormLayout()
-        self.opacity_layer_slider = QSlider(QtCore.Qt.Horizontal)
-        layout.addRow(QLabel("Opacity:"), self.opacity_layer_slider)
+        layout.horizontalSpacing = 10
+
+        # We create the following controls that act over the chosen layer
+        # 1. Opacity
+        self.opacity_layer_slider = CaMOSSlider(QtCore.Qt.Horizontal)
+        self.opacity_layer_label = QLabel("")
+        self.opacity_layer_slider.setRange(0, 100)
+        layout.addRow(QLabel("Opacity"))
+        layout.addRow(self.opacity_layer_label, self.opacity_layer_slider)
+        self.opacity_layer_slider.pointClicked.connect(self._apply_changes_layer)
+        self.opacity_layer_slider.valueChanged.connect(self.opacityLabelUpdate)
+        self.opacity_layer_slider.setValue(50)
+
+        # 2. Colormap
         self.colormap_layer_selector = QComboBox()
         self._populate_colormaps()
-        layout.addRow(QLabel("Colormap:"), self.colormap_layer_selector)
-        self.contrast_layer_slider = QSlider(QtCore.Qt.Horizontal)
-        self.contrast_layer_slider.setRange(-127, 127)
-        self.contrast_layer_slider.setValue(0)
-        layout.addRow(QLabel("Contrast:"), self.contrast_layer_slider)
-        self.brightness_layer_slider = QSlider(QtCore.Qt.Horizontal)
-        layout.addRow(QLabel("Brightness:"), self.brightness_layer_slider)
-        self.brightness_layer_slider.setRange(-127, 127)
+        layout.addRow(QLabel("Colormap"))
+        layout.addRow(self.colormap_layer_selector)
+        self.colormap_layer_selector.activated.connect(self._apply_changes_layer)
+
+        # 3. Contrast
+        self.contrast_layer_slider = CaMOSSlider(QtCore.Qt.Horizontal)
+        self.contrast_layer_slider.setRange(0, 20)
+        self.contrast_layer_slider.pointClicked.connect(self._apply_changes_layer)
+        self.contrast_layer_slider.valueChanged.connect(self.contrastLabelUpdate)
+        self.contrast_layer_label = QLabel("")
+        # layout.addRow(QLabel("Contrast"))
+        # layout.addRow(self.contrast_layer_label, self.contrast_layer_slider)
+        self.contrast_layer_slider.setValue(10)
+
+        # 4. Brightness
+        self.brightness_layer_slider = CaMOSSlider(QtCore.Qt.Horizontal)
+        self.brightness_layer_slider.setRange(-127, 128)
+        self.brightness_layer_slider.pointClicked.connect(self._apply_changes_layer)
+        self.brightness_layer_slider.valueChanged.connect(self.brightnessLabelUpdate)
+        self.brightness_layer_label = QLabel("")
+        # layout.addRow(QLabel("Brightness"))
+        # layout.addRow(self.brightness_layer_label, self.brightness_layer_slider)
         self.brightness_layer_slider.setValue(0)
-        self.apply_changes_layer_bt = QPushButton("Apply")
-        self.apply_changes_layer_bt.clicked.connect(self._apply_changes_layer)
-        layout.addRow(self.apply_changes_layer_bt)
+
+        # self.apply_changes_layer_bt = QPushButton("Apply")
+        # self.apply_changes_layer_bt.clicked.connect(self._apply_changes_layer)
+        # layout.addRow(self.apply_changes_layer_bt)
+
+        # 5. Selection of the current frame
         self.current_frame_slider = QScrollBar(QtCore.Qt.Horizontal)
-        layout.addRow(QLabel("Current frame:"), self.current_frame_slider)
+        layout.addRow(QLabel("Frame"))
+        layout.addRow(self.current_frame_slider)
         self.current_frame_slider.valueChanged.connect(self._set_frame)
         self.layers_controls.setLayout(layout)
+
+        # 6. Selection of the frame range
+        self.current_frame_rangeslider = QtRangeSlider(self, 0, 100, 0, 100)
+        layout.addRow(QLabel("Range of frames"))
+        layout.addRow(self.current_frame_rangeslider)
+        self.current_frame_slider.valueChanged.connect(self._set_frame)
+        self.layers_controls.setLayout(layout)
+
+    def opacityLabelUpdate(self, value):
+        self.opacity_layer_label.setText(str(value))
+
+    def contrastLabelUpdate(self, value):
+        self.contrast_layer_label.setText(str(value))
+
+    def brightnessLabelUpdate(self, value):
+        self.brightness_layer_label.setText(str(value))
 
     def _populate_colormaps(self):
         """Inside the Layers Controls, populates the colormap controls with those available
@@ -187,8 +251,15 @@ class FrameContainer(QtWidgets.QWidget):
         index = self.opened_layers_widget.currentRow()
         op = self.opacity_layer_slider.value()
         br = self.brightness_layer_slider.value()
-        co = self.contrast_layer_slider.value()
+        co = self.contrast_layer_slider.value() / 10
         cm = self.colormap_layer_selector.currentText()
+        _op = self.parent.model.get_opacity(index)
+        _co = self.parent.model.get_contrast(index)
+        _br = self.parent.model.get_brightness(index)
+        _cm = self.parent.model.get_colormap(index)
+
+        if op == _op and br == _br and co == _co and cm == _cm:
+            return
         self.parent.model.set_values(op, br, co, cm, index)
 
     def _createLayersActions(self):
@@ -241,6 +312,13 @@ class FrameContainer(QtWidgets.QWidget):
         idx = self.currentlayer
         self.opened_layers_widget.takeItem(idx)
         self.parent.model.layer_remove(idx)
+
+    def _data_remove(self):
+        """Handles the removal of the currently selected layer in self.currentlayer, which is updated, in the image model
+        """
+        self.currentlayer = self.opened_data_widget.currentRow()
+        idx = self.currentlayer
+        self.opened_data_widget.takeItem(idx)
 
     def _layer_toggle(self):
         """Handles the removal of the currently selected layer in self.currentlayer, which is updated, in the image model
@@ -298,7 +376,10 @@ class FrameContainer(QtWidgets.QWidget):
     def _send_mask(self):
         self.currentlayer = self.opened_layers_widget.currentRow()
         idx = self.currentlayer
-        self.parent.model.update_plots(idx)
+        id_list = self.parent.model.update_plots(idx)
+        self.parent.signalmodel.filter_data(
+            self.opened_data_widget.currentRow(), id_list
+        )
 
     def _align_image(self):
         self.currentlayer = self.opened_layers_widget.currentRow()
@@ -349,8 +430,14 @@ class FrameContainer(QtWidgets.QWidget):
     def _find_ids(self):
         dialog = TextDialog(self.parent)
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
-            id_string = dialog.search.text().replace(" ", "").split(",")
-            self.parent.model.find_cells(id_string)
+            id_string = dialog.search.text()
+            id_list = range_to_list(id_string)
+            if self.opened_data.currentIndex() == 0:
+                self.parent.model.find_cells(id_list)
+            else:
+                self.parent.signalmodel.filter_data(
+                    self.opened_data_widget.currentRow(), id_list
+                )
 
     def _createLayersToolBar(self):
         """Creates the toolbar inside the layers sidebar containing the buttons for Remove, Duplicate, Rotate, Toggle ROI, Crop and Select Cell actions.
@@ -379,15 +466,16 @@ class FrameContainer(QtWidgets.QWidget):
             and source is self.opened_layers_widget
         ):
             menu = QtWidgets.QMenu()
-            removeAct = QAction("Remove", self)
-            removeAct.setStatusTip("Removes the current layer")
-            removeAct.triggered.connect(self._layer_remove)
-            menu.addAction(removeAct)
 
             hideAct = QAction("Toggle visibility", self)
             hideAct.setStatusTip("Hides or shows the current layer")
             hideAct.triggered.connect(self._layer_toggle)
             menu.addAction(hideAct)
+
+            removeAct = QAction("Remove", self)
+            removeAct.setStatusTip("Removes the current layer")
+            removeAct.triggered.connect(self._layer_remove)
+            menu.addAction(removeAct)
 
             prefsAct = QAction("Preferences", self)
             prefsAct.setStatusTip("Preferences of the current layer")
@@ -396,23 +484,44 @@ class FrameContainer(QtWidgets.QWidget):
             menu.exec_(event.globalPos())
 
             return True
+
+        elif (
+            event.type() == QtCore.QEvent.ContextMenu
+            and source is self.opened_data_widget
+        ):
+            menu = QtWidgets.QMenu()
+            removeAct = QAction("Remove", self)
+            removeAct.setStatusTip("Removes the current data")
+            removeAct.triggered.connect(self._data_remove)
+            menu.addAction(removeAct)
+
         return super(QWidget, self).eventFilter(source, event)
 
 
 class QLayerWidget(QtWidgets.QListWidget):
+    def __init__(self, gui=None, *args, **kwargs):
+        super(QLayerWidget, self).__init__(*args, **kwargs)
+        self.gui = gui
+
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_Delete:
-            row = self.currentRow()
-            self.parent()._layer_remove()
+        if (event.key() == QtCore.Qt.Key_Delete) and (
+            self.gui.opened_data.currentIndex() == 0
+        ):
+            self.gui._layer_remove()
         else:
             super().keyPressEvent(event)
 
 
 class QDataWidget(QtWidgets.QListWidget):
+    def __init__(self, gui=None, *args, **kwargs):
+        super(QDataWidget, self).__init__(*args, **kwargs)
+        self.gui = gui
+
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_Delete:
-            row = self.currentRow()
-            self.parent()._data_remove()
+        if (event.key() == QtCore.Qt.Key_Delete) and (
+            self.gui.opened_data.currentIndex() == 1
+        ):
+            self.gui._data_remove()
         else:
             super().keyPressEvent(event)
 
@@ -446,7 +555,10 @@ class TextDialog(QtGui.QDialog):
         super(TextDialog, self).__init__(parent)
 
         self.setWindowTitle("Find IDs")
-        self.search_label = QLabel("Write the IDs (comma separated)")
+        self.search_label = QLabel("IDs")
+        self.hint = QLabel(
+            "Write the IDs as regular expressions\nE.g.: 1-4,6 outputs 1 to 4, and 6."
+        )
         self.search = QLineEdit()
 
         box = QtGui.QDialogButtonBox(
@@ -460,6 +572,7 @@ class TextDialog(QtGui.QDialog):
         lay = QtGui.QGridLayout(self)
         lay.addWidget(self.search_label, 0, 0)
         lay.addWidget(self.search, 0, 1)
+        lay.addWidget(self.hint)
         lay.addWidget(box, 2, 0, 1, 2)
 
 
@@ -483,7 +596,7 @@ class LayerPrefsDialog(QtGui.QDialog):
         self.samplRate.setText(str(sampling))
 
         self.onlyDouble = QDoubleValidator()
-        self.pxSize_label = QLabel("Pixel size (μm)")
+        self.pxSize_label = QLabel("Pixel size ({})".format(get_length()))
         self.pxSize = QLineEdit()
         self.pxSize.setValidator(self.onlyDouble)
         self.pxSize.setText(str(pixelsize))
@@ -537,3 +650,10 @@ class TabWidget(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
         QtWidgets.QTabWidget.__init__(self, parent)
         self.setTabBar(HorizontalTabBar())
+
+
+class CaMOSSlider(QSlider):
+    pointClicked = pyqtSignal(int)
+
+    def sliderChange(self, event):
+        self.pointClicked.emit(self.value())

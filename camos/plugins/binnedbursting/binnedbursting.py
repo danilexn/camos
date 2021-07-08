@@ -4,17 +4,15 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QIntValidator, QDoubleValidator
-
 import numpy as np
 
 from camos.tasks.analysis import Analysis
+from camos.utils.generategui import NumericInput, DatasetInput
 
 
 class BinnedBursting(Analysis):
     analysis_name = "Binned Bursting"
-    input_type = "summary"
+    required = ["dataset"]
 
     def __init__(self, model=None, parent=None, signal=None):
         super(BinnedBursting, self).__init__(
@@ -23,74 +21,49 @@ class BinnedBursting(Analysis):
         self.data = None
         self.finished.connect(self.output_to_signalmodel)
 
-    def _run(self):
-        _binsize = float(self.binsize.text())
-        _threshold = float(self.threshold.text())
-        output_type = [("Active", "float")]
+    def _run(
+        self,
+        _binsize: NumericInput("Bin Size (s)", 1),
+        _threshold: NumericInput("Threshold (%)", 50),
+        _i_data: DatasetInput("Source dataset", 0),
+    ):
+        output_type = [("CellID", "int"), ("Active", "float")]
 
         # data should be provided in format summary (active events)
-        data = self.data
+        data = self.signal.data[_i_data]
+        self.dataname = self.signal.names[_i_data]
         if not ("Active" in data.dtype.names):
-            # TODO: rise an error message, not the expected data
-            return
+            raise ValueError("The dataset does not have the expected shape")
 
         # Calculates the bins
         active = data[:]["Active"] / _binsize
         active = np.floor(active) * _binsize
 
-        # Calculates the number of events per bin
-        unique, counts = np.unique(active, return_counts=True)
+        # Stores the data into the output data structure
+        binned = np.zeros(shape=(len(active), 1), dtype=output_type)
+        binned[:]["CellID"] = data[:]["CellID"].reshape(-1, 1)
+        binned[:]["Active"] = active.reshape(-1, 1)
+
+        # This reduces the events to one per electrode in the same bin
+        binned = np.unique(binned, axis=0)
+
+        # Number of active electrodes in total
+        ROIs = np.unique(binned[:]["CellID"])
+
+        # Calculates the number of events (per bin)
+        unique, counts = np.unique(binned[:]["Active"], return_counts=True)
 
         # Conserves the events above the threshold
-        active_filter = unique[np.where(counts > _threshold)]
+        active_filter = unique[np.where(counts > (len(ROIs) * _threshold / 100))]
 
-        # Calculate mean firing rate per cell
+        # Stores into the output table
         self.output = np.zeros(shape=(len(active_filter), 1), dtype=output_type)
         self.output[:]["Active"] = active_filter.reshape(-1, 1)
-
-    def display(self):
-        if type(self.signal.list_datasets(self.input_type)) is type(None):
-            # Handle error that there are no images
-            return
-        self._initialize_UI()
-        self.initialize_UI()
-        self._final_initialize_UI()
 
     def output_to_signalmodel(self):
         self.parent.signalmodel.add_data(
             self.output, "Binned Bursting of {}".format(self.dataname), self
         )
-
-    def initialize_UI(self):
-        self.datalabel = QLabel("Source dataset", self.dockUI)
-        self.cbdata = QComboBox()
-        self.cbdata.currentIndexChanged.connect(self._set_data)
-        self.cbdata.addItems(self.signal.list_datasets(self.input_type))
-
-        self.onlyDouble = QDoubleValidator()
-        self.binsize_label = QLabel("Bin Size (s)", self.parent)
-        self.binsize = QLineEdit()
-        self.binsize.setValidator(self.onlyDouble)
-        self.binsize.setText("1")
-        self.layout.addWidget(self.binsize_label)
-        self.layout.addWidget(self.binsize)
-
-        self.onlyInt = QIntValidator()
-        self.threshold_label = QLabel("Threshold", self.parent)
-        self.threshold = QLineEdit()
-        self.threshold.setValidator(self.onlyInt)
-        self.threshold.setText("100")
-        self.layout.addWidget(self.threshold_label)
-        self.layout.addWidget(self.threshold)
-
-        self.layout.addWidget(self.datalabel)
-        self.layout.addWidget(self.cbdata)
-
-    def _set_data(self, index):
-        dataset = self.signal.data[index]
-        self.data = dataset
-        self.dataname = self.signal.names[index]
-        self.sampling = self.signal.sampling[index]
 
     def _plot(self):
         self.plot.axes.eventplot(
