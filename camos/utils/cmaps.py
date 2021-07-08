@@ -12,4 +12,5 @@ cmaps = {
     "viridis": cv2.COLORMAP_VIRIDIS,
     "winter": cv2.COLORMAP_WINTER,
     "rainbow": cv2.COLORMAP_RAINBOW,
+    "inferno": cv2.COLORMAP_INFERNO,
 }

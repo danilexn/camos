@@ -32,7 +32,7 @@ class Saving(QObject):
         self.analysis_name = name
         self.show = show
         self.extensions = extensions
-        self.handler = None
+        self.handler = RunTask(self)
         # self.finished.connect(self.plot)
 
     def _run(self):
@@ -65,7 +65,7 @@ class Saving(QObject):
             self.initialize_UI()
             self._final_initialize_UI()
         else:
-            self.run()
+            self.handler.start_progress()
 
     def initialize_UI(self):
         pass
@@ -89,7 +89,6 @@ class Saving(QObject):
     def _final_initialize_UI(self):
         self.runButton = QPushButton("Run", self.parent)
         self.runButton.setToolTip("Click to run this task")
-        self.handler = RunTask(self)
         self.runButton.clicked.connect(self.handler.start_progress)
 
         self.layout.addWidget(self.runButton)

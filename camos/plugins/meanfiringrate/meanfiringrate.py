@@ -41,9 +41,6 @@ class MeanFiringRate(Analysis):
         self.output[:]["CellID"] = unique.reshape(-1, 1)
         self.output[:]["MFR"] = counts.reshape(-1, 1)
 
-        self.output = self.output[1:]
-        self.foutput = self.output
-
     def display(self):
         if type(self.signal.list_datasets(self.input_type)) is type(None):
             # Handle error that there are no images
@@ -94,6 +91,8 @@ class MeanFiringRate(Analysis):
         mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
         mapping_ar[k] = v
         MFR_mask = mapping_ar[mask]
+
+        self.outputimage = MFR_mask
 
         im = self.plot.axes.imshow(MFR_mask, cmap="inferno", origin="upper")
         self.plot.fig.colorbar(im, ax=self.plot.axes)

@@ -11,6 +11,7 @@ from PyQt5.QtCore import pyqtSignal
 
 from camos.tasks.analysis import Analysis
 
+
 class ExtractSignal(Analysis):
     analysis_name = "Extract Signal"
     plotReady = pyqtSignal()
@@ -36,9 +37,7 @@ class ExtractSignal(Analysis):
         # Extract raw signals
         for i, r in enumerate(ROIs):
             cell = self.mask.image(0) == r
-            self.raw[i, :] = np.average(
-                self.image._image._imgs[:, cell], axis=(1)
-            )
+            self.raw[i, :] = np.average(self.image._image._imgs[:, cell], axis=(1))
             self.intReady.emit(i * 100 / total)
 
         # Process raw signals to get dF/F0
@@ -55,29 +54,31 @@ class ExtractSignal(Analysis):
 
         dF_cell = np.zeros(F.shape)
 
-        _int_idx = np.arange(0, frames + 1, fps*F0_time)
+        _int_idx = np.arange(0, frames + 1, fps * F0_time)
         interval_idx = np.unique(_int_idx)
 
         # For the first 10-s of data, take the min value for F0
-        F0 = np.min(F[:,0:interval_idx[1]], axis = 1)
+        F0 = np.min(F[:, 0 : interval_idx[1]], axis=1)
 
         for k in range(interval_idx[1]):
-            dF_cell[:,k] = (F[:,k]-F0)/F0
+            dF_cell[:, k] = (F[:, k] - F0) / F0
 
         for it in range(interval_idx[1], frames):
-            x = F[:,(it-F0_time):it]
-            p = np.percentile(x, F0_perc, axis = 1)
+            x = F[:, (it - F0_time) : it]
+            p = np.percentile(x, F0_perc, axis=1)
             F0 = np.zeros(N)
             for n in range(N):
-                F0[n] = np.mean(x[n,np.where(x[n,:]< p[n])])
+                F0[n] = np.mean(x[n, np.where(x[n, :] < p[n])])
 
-            dF_cell[:,it] = (F[:,it]-F0)/F0
+            dF_cell[:, it] = (F[:, it] - F0) / F0
 
         self.output = dF_cell
 
     def output_to_signalmodel(self):
         name = self.cbimage.currentText()
-        self.parent.signalmodel.add_data(self.output, "Signal from {}".format(name), self)
+        self.parent.signalmodel.add_data(
+            self.output, "Signal from {}".format(name), self
+        )
 
     def initialize_UI(self):
         self.masklabel = QLabel("Mask image", self.dockUI)
@@ -120,14 +121,14 @@ class ExtractSignal(Analysis):
         offset = 0
         cellID = []
         for i in range(self.foutput.shape[0]):
-            t = np.arange(0, self.foutput.shape[1], 1)
+            t = np.arange(0, self.foutput.shape[1], 1) / self.sampling
             self.plot.axes.plot(t, self.foutput[i] + offset)
             cellID.append(str(i + 1))
             offset += 1
 
-        self.plot.axes.set_yticks(np.arange(0, len(cellID)), cellID)
-        self.plot.axes.set_ylabel('ROI ID')
-        self.plot.axes.set_xlabel('Time (s)')
+        self.plot.axes.set_yticks(np.arange(0, len(cellID)), minor=cellID)
+        self.plot.axes.set_ylabel("ROI ID")
+        self.plot.axes.set_xlabel("Time (s)")
 
     def _set_mask(self, text):
         index = self.cbmask.currentIndex()

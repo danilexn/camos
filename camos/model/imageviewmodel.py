@@ -5,17 +5,13 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 import copy
-from operator import le
 
-from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
-from PyQt5.QtGui import QIcon, QImage, QPixmap
+from PyQt5.QtGui import QImage, QPixmap
 
-import cv2
 import numpy as np
 
-from camos.utils.cmaps import cmaps
 from camos.model.inputdata import InputData
 
 
@@ -47,8 +43,11 @@ class ImageViewModel(QObject):
     # For data being updated, layer number
     updatedframe = pyqtSignal(int)
 
+    # For data being updated, layer number
+    updatedscale = pyqtSignal(float)
+
     # For positions being updated
-    updatepos = pyqtSignal(float, float, int, int)
+    updatepos = pyqtSignal(float, float, int, int, float)
 
     # For intensities being updated
     updateint = pyqtSignal(int)
@@ -75,18 +74,32 @@ class ImageViewModel(QObject):
         self.translation = []
         self.scales = []
         self.samplingrate = []
+        self.pixelsize = []
 
         self.maxframe = 0
         self.frame = 0
         self.curr_x = 0
         self.curr_y = 0
+        self._currentlayer = 0
         self.roi_coord = [[0, 0], [1, 1]]
 
-        self.currentlayer = 0
         self._enable_select_cells = False
 
         # Initialize the parent QObject class
         super(ImageViewModel, self).__init__()
+
+    @property
+    def currentlayer(self):
+        return self._currentlayer
+
+    @currentlayer.setter
+    def currentlayer(self, value):
+        self._currentlayer = value
+        try:
+            pxs = self.pixelsize[value]
+            self.update_scale(pxsize=pxs)
+        except:
+            pass
 
     @pyqtSlot()
     def add_image(self, image, name=None, cmap="gray", scale=[1, 1]):
@@ -111,6 +124,7 @@ class ImageViewModel(QObject):
         self.translation.append([0, 0])
         self.scales.append(scale)
         self.samplingrate.append(1)
+        self.pixelsize.append(image._image.dx)
         self.newdata.emit(-1)
 
     def crop_image(self, index):
@@ -179,12 +193,38 @@ class ImageViewModel(QObject):
             scale=scale,
         )
 
+    def find_cells(self, cell_ID=[0]):
+        """Selects the cells in the currently selected layer if cell selection is enabled. See the method self.trigger_select_cells
+        """
+        mask = self.images[self.currentlayer].image(0)
+        cell_ID = list(map(int, cell_ID))
+        ids = np.isin(mask, cell_ID)
+        found = np.where(ids == True, mask, 0)
+        newname = "Cells {} from Layer {}".format(cell_ID, self.currentlayer)
+        image = InputData(found, memoryPersist=True, name=newname)
+        image.loadImage()
+        scale = self.scales[self.currentlayer]
+        self.add_image(
+            image, newname, scale=scale,
+        )
+
     def update_plots(self, layer=None):
         if layer == None:
             self.imagetoplot.emit([self.get_currint()])
         else:
             idx = np.unique(self.images[self.currentlayer]._image._imgs[0]).tolist()
             self.imagetoplot.emit(idx)
+
+    @pyqtSlot()
+    def update_prefs(self, layer=None, sampling=1, pxsize=1, scale=1):
+        self.samplingrate[layer] = sampling
+        self.pixelsize[layer] = pxsize
+        self.scales[layer] = [scale, scale]
+        self.update_scale(pxsize)
+        self.updated.emit(layer)
+
+    def update_scale(self, pxsize=1):
+        self.updatedscale.emit(pxsize)
 
     @pyqtSlot()
     def layer_remove(self, index):
@@ -201,6 +241,7 @@ class ImageViewModel(QObject):
         self.names.pop(index)
         self.translation.pop(index)
         self.scales.pop(index)
+        self.viewitems.pop(index)
         self.removedata.emit(index)
 
     def list_images(self):
@@ -251,6 +292,59 @@ class ImageViewModel(QObject):
         delta_y = self.translation[curr][1]
         self.translate_position(layer, (delta_x, delta_y))
 
+    def sum_layers(self, layer=0):
+        curr = self.currentlayer
+        a = self.images[curr].image(0)
+        b = self.images[layer].image(0)
+        assert a.shape == b.shape
+
+        summed = a + b
+        image = InputData(
+            summed,
+            memoryPersist=True,
+            name="Sum from {} and {}".format(self.names[layer], self.names[curr]),
+        )
+        image.loadImage()
+        self.add_image(
+            image, "Sum from {} and {}".format(self.names[layer], self.names[curr])
+        )
+
+    def subtract_layers(self, layer=0):
+        curr = self.currentlayer
+        a = self.images[curr].image(0)
+        b = self.images[layer].image(0)
+        assert a.shape == b.shape
+
+        subtracted = np.abs(a - b)
+        image = InputData(
+            subtracted,
+            memoryPersist=True,
+            name="Subtract from {} and {}".format(self.names[layer], self.names[curr]),
+        )
+        image.loadImage()
+        self.add_image(
+            image, "Subtract from {} and {}".format(self.names[layer], self.names[curr])
+        )
+
+    def intersect_layers(self, layer=0):
+        curr = self.currentlayer
+        a = self.images[curr].image(0)
+        b = self.images[layer].image(0)
+        assert a.shape == b.shape
+
+        multiplied = np.multiply(a, b)
+        intersect = np.where(multiplied != 0, a, 0)
+        image = InputData(
+            intersect,
+            memoryPersist=True,
+            name="Intersect from {} and {}".format(self.names[layer], self.names[curr]),
+        )
+        image.loadImage()
+        self.add_image(
+            image,
+            "Intersect from {} and {}".format(self.names[layer], self.names[curr]),
+        )
+
     @pyqtSlot()
     def duplicate_image(self, index=0):
         """Duplicates the current layer, by copying the InputData object, and calls the self.add_image method.
@@ -262,7 +356,7 @@ class ImageViewModel(QObject):
         self.add_image(image, "Duplicate of Layer {}".format(index))
 
     @pyqtSlot()
-    def set_values(self, opacity, brightness, contrast, cmap, scale, index=0):
+    def set_values(self, opacity, brightness, contrast, cmap, index=0):
         """Configures the properties for the selected layer; emits an event, i.e., so the ViewPort knows that it has to call the self.get_current_view method.
 
         Args:
@@ -273,9 +367,6 @@ class ImageViewModel(QObject):
         self.brightnesses[index] = brightness
         self.contrasts[index] = contrast
         self.colormaps[index] = cmap
-        # TODO: fix scales!!!
-        # scale = 1/(scale/self.scales[index][0])
-        # self.scales[index] = [scale, scale]
         self.updated.emit(index)
 
     def get_opacity(self, index=0):
@@ -308,7 +399,10 @@ class ImageViewModel(QObject):
         """
         self.frame = t
         self.updatedframe.emit(self.currentlayer)
-        self.updatepos.emit(self.curr_x, self.curr_y, self.frame, self.get_currint())
+        pxs = self.pixelsize[self.currentlayer]
+        self.updatepos.emit(
+            self.curr_x, self.curr_y, self.frame, self.get_currint(), pxs
+        )
 
     @pyqtSlot()
     def set_currpos(self, x, y):
@@ -321,8 +415,9 @@ class ImageViewModel(QObject):
         try:
             self.curr_x = x
             self.curr_y = y
+            pxs = self.pixelsize[self.currentlayer]
             self.updatepos.emit(
-                self.curr_x, self.curr_y, self.frame, self.get_currint()
+                self.curr_x, self.curr_y, self.frame, self.get_currint(), pxs
             )
         except:
             pass
@@ -348,11 +443,17 @@ class ImageViewModel(QObject):
             QPixmap: icon that has been generated as a thumbnail of the input layer
         """
         try:
-            original = cv2.resize(self.images[index]._image._imgs[0], (50, 50))
-            height, width = original.shape
+            from PIL import Image
+
+            original = (
+                Image.fromarray(self.images[index].image(0).astype(np.uint8))
+                .convert("RGB")
+                .resize((128, 128))
+            )
+            height, width = original.size
             bytesPerLine = 3 * width
             icon_image = QImage(
-                original.data, width, height, bytesPerLine, QImage.Format_RGB888
+                np.array(original), width, height, bytesPerLine, QImage.Format_RGB888
             )
             icon_pixmap = QPixmap.fromImage(icon_image)
         except:

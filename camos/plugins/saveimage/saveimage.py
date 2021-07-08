@@ -29,8 +29,19 @@ class SaveImage(Saving):
         currentlayer = self.model.currentlayer
         self.image = self.model.images[currentlayer]._image._imgs
         shape = self.image.shape
+        pxs = self.model.pixelsize[currentlayer]
         if shape[0] == 1:
             im = Image.fromarray(self.image[0])
-            im.save(self.filename)
+            im.save(self.filename, dpi=(pxs, pxs))
         else:
-            tifffile.imsave(self.filename, self.image, metadata={"axes": "TXY"})
+            imlist = []
+            for m in self.image:
+                imlist.append(Image.fromarray(m))
+
+            imlist[0].save(
+                self.filename,
+                compression="tiff_deflate",
+                save_all=True,
+                append_images=imlist[1:],
+                dpi=(pxs, pxs),
+            )

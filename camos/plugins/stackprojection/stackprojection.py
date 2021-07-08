@@ -34,16 +34,18 @@ class StackProjection(Processing):
 
     def _run(self):
         self.output = self.method(self.image._image._imgs, axis=self.axis)
-        print(self.output.shape)
 
-    def output_to_imagemodel(self, name = None):
+    def output_to_imagemodel(self, name=None):
         image = InputData(
-            self.output,
-            memoryPersist=True,
-            name=self.layername.format(self.index),
+            self.output, memoryPersist=True, name=self.layername.format(self.index),
         )
         image.loadImage()
-        self.parent.model.add_image(image, "{} projection of {}".format(str.capitalize(self.methodname), self.imagename))
+        self.parent.model.add_image(
+            image,
+            "{} projection of {}".format(
+                str.capitalize(self.methodname), self.imagename
+            ),
+        )
 
     def initialize_UI(self):
         self.projectlabel = QLabel("Projection method", self.dockUI)
