@@ -19,12 +19,15 @@ import PyQt5.QtCore as QtCore
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import numpy as np
+import os
 
 from camos.tasks.base import BaseTask
 from camos.tasks.runtask import RunTask
 from camos.tasks.plotting import AnalysisPlot
 from camos.model.inputdata import InputData
 from camos.utils.generategui import CreateGUI
+
+DEBUG = os.getenv("CAMOS_DEBUG")
 
 
 class Analysis(BaseTask):
@@ -61,7 +64,10 @@ class Analysis(BaseTask):
         self.runButton = QPushButton("Run", self.parent)
         self.runButton.setToolTip("Click to run this task")
         self.handler = RunTask(self)
-        self.runButton.clicked.connect(self.handler.start_progress)
+        if DEBUG is None:
+            self.runButton.clicked.connect(self.handler.start_progress)
+        else:
+            self.runButton.clicked.connect(self.run)
 
         self.savePlot = QPushButton("To viewport", self.parent)
         self.savePlot.setToolTip("Click to move plot to viewport")

@@ -99,9 +99,9 @@ class BaseTask(QObject):
         self.runButton = QPushButton("Run", self.parent)
         self.runButton.setToolTip("Click to run this task")
         if DEBUG is None:
-            self.runButton.clicked.connect(self.run)
-        else:
             self.runButton.clicked.connect(self.handler.start_progress)
+        else:
+            self.runButton.clicked.connect(self.run)
 
         self.layout.addWidget(self.runButton)
 

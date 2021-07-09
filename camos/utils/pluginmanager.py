@@ -34,7 +34,7 @@ def _create_instance(plugin_class, attribute_name, base, module_name):
     try:
         gui = apptools.getApp().gui
         analysisAct = QtWidgets.QAction("{}".format(plugin_class.analysis_name), gui)
-        if not DEBUG:
+        if DEBUG is None:
             analysisAct.triggered.connect(lambda: make_instance(plugin_class, base))
         else:
             analysisAct.triggered.connect(
