@@ -9,11 +9,14 @@ from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QPushButton
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
 import numpy as np
+import os
 
 from camos.tasks.runtask import RunTask
 from camos.model.inputdata import InputData
 from camos.utils.generategui import CreateGUI
 from camos.utils.notifications import notify
+
+DEBUG = os.getenv("CAMOS_DEBUG")
 
 
 class BaseTask(QObject):
@@ -95,7 +98,10 @@ class BaseTask(QObject):
 
         self.runButton = QPushButton("Run", self.parent)
         self.runButton.setToolTip("Click to run this task")
-        self.runButton.clicked.connect(self.handler.start_progress)
+        if DEBUG is None:
+            self.runButton.clicked.connect(self.run)
+        else:
+            self.runButton.clicked.connect(self.handler.start_progress)
 
         self.layout.addWidget(self.runButton)
 

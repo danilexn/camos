@@ -7,6 +7,7 @@
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
 import numpy as np
+import copy
 
 import camos.utils.apptools as apptools
 import camos.utils.pluginmanager as PluginManager
@@ -88,6 +89,22 @@ class SignalViewModel(QObject):
         self.add_data(
             _filtered,
             name=self.names[index],
+            _class=_sv,
+            sampling=self.sampling[index],
+        )
+
+    def duplicate_data(self, index=0):
+        """Duplicates the current data
+
+        Args:
+            index (int, optional): index of the data to duplicate, according to self.data. Defaults to 0.
+        """
+        data = copy.deepcopy(self.data[index])
+        _sv = SignalViewer(self.parent, data)
+        _sv.display()
+        self.add_data(
+            data,
+            name="Duplicate of {}".format(self.names[index]),
             _class=_sv,
             sampling=self.sampling[index],
         )

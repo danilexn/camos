@@ -9,6 +9,7 @@ from PyQt5.QtCore import pyqtSignal
 
 from camos.tasks.analysis import Analysis
 from camos.utils.generategui import NumericInput, ImageInput
+from camos.utils.units import get_time
 
 
 class ExtractSignal(Analysis):
@@ -29,7 +30,7 @@ class ExtractSignal(Analysis):
     def _run(
         self,
         fps: NumericInput("Sampling Rate (Hz)", 10),
-        F0_time: NumericInput("Time Window (s)", 10),
+        F0_time: NumericInput("Time Window ({})".format(get_time()), 10),
         F0_perc: NumericInput("Percentile", 50),
         _i_mask: ImageInput("Mask Image", 0),
         _i_fluor: ImageInput("Fluorescence Image", 0),
@@ -99,4 +100,4 @@ class ExtractSignal(Analysis):
 
         self.plot.axes.set_yticks(np.arange(0, len(cellID)), minor=cellID)
         self.plot.axes.set_ylabel("ROI ID")
-        self.plot.axes.set_xlabel("Time (s)")
+        self.plot.axes.set_xlabel("Time ({})".format(get_time()))

@@ -4,11 +4,10 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-import copy
-
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 from PyQt5.QtGui import QImage, QPixmap
 
+import copy
 import numpy as np
 
 from camos.model.inputdata import InputData
@@ -418,9 +417,7 @@ class ImageViewModel(QObject):
         self.add_image(image, "Duplicate of Layer {}".format(index))
 
     @pyqtSlot()
-    def set_values(
-        self, opacity=1, brightness=0, contrast=1, cmap="grey", index=0, undo=None
-    ):
+    def set_values(self, opacity=1, cmap="grey", index=0, undo=None):
         """Configures the properties for the selected layer; emits an event, i.e., so the ViewPort knows that it has to call the self.get_current_view method.
 
         Args:
@@ -430,8 +427,6 @@ class ImageViewModel(QObject):
         if undo is not None:
             index = undo["index"]
             opacity = undo["opacity"]
-            brightness = undo["brightness"]
-            contrast = undo["contrast"]
             cmap = undo["cmap"]
 
         if undo is None:
@@ -441,8 +436,6 @@ class ImageViewModel(QObject):
                     "function": self.set_values,
                     "index": index,
                     "opacity": self.opacities[index],
-                    "brightness": self.brightnesses[index],
-                    "contrast": self.contrasts[index],
                     "cmap": self.colormaps[index],
                 }
             ]
@@ -452,8 +445,6 @@ class ImageViewModel(QObject):
 
         # Apply the transformation
         self.opacities[index] = opacity
-        self.brightnesses[index] = brightness
-        self.contrasts[index] = contrast
         self.colormaps[index] = cmap
         self.updated.emit(index)
 

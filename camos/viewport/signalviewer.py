@@ -9,10 +9,10 @@ from PyQt5.QtCore import QObject
 from PyQt5 import QtWidgets, QtCore
 
 import numpy as np
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 from camos.tasks.plotting import AnalysisPlot
-
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from camos.utils.units import get_time
 
 
 class SignalViewer(QObject):
@@ -89,7 +89,7 @@ class SignalViewer(QObject):
 
         self.plot.axes.set_yticks(np.arange(0, len(cellID)), minor=cellID)
         self.plot.axes.set_ylabel("ROI ID")
-        self.plot.axes.set_xlabel("Time (s)")
+        self.plot.axes.set_xlabel("Time ({})".format(get_time()))
 
     def raster_plot(self):
         ev_ids = self.foutput[:]["CellID"].flatten()
@@ -106,7 +106,7 @@ class SignalViewer(QObject):
         ev_ids_norm = mapping_ar[ev_ids]
         self.plot.axes.scatter(y=ev_ids_norm, x=self.foutput[:]["Active"], s=0.5)
         self.plot.axes.set_ylabel("Normalized ID")
-        self.plot.axes.set_xlabel("Time (s)")
+        self.plot.axes.set_xlabel("Time({})".format(get_time()))
 
     def event_plot(self):
         self.plot.axes.eventplot(
@@ -115,7 +115,7 @@ class SignalViewer(QObject):
         self.plot.axes.set_ylim(0, 1)
         self.plot.axes.set_yticklabels([])
         self.plot.axes.tick_params(axis=u"y", which=u"y", length=0)
-        self.plot.axes.set_xlabel("Time (s)")
+        self.plot.axes.set_xlabel("Time ({})".format(get_time()))
 
     def mask_plot(self, name):
         mask = self.mask

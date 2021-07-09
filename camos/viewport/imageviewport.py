@@ -8,7 +8,6 @@ import pyqtgraph as pg
 from PyQt5 import QtCore
 
 import numpy as np
-import cv2
 
 import camos.viewport.mpl_cmaps_in_ImageItem as cmaps
 import camos.utils.apptools as apptools
@@ -74,6 +73,7 @@ class ImageViewPort(pg.ImageView):
         sc = self.model.scales[layer]
         cmap = self.model.colormaps[layer]
         lut = cmaps.cmapToColormap(cmap).getLookupTable()
+        self.ui.histogram.hide()
         self.ui.histogram.setImageItem(self.view.addedItems[layer + 3])
         self.ui.histogram.fillHistogram(False)
         if op / 100 != self.view.addedItems[layer + 3].opacity:

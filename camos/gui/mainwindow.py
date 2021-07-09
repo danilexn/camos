@@ -7,6 +7,9 @@
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QHBoxLayout, QMenu, QMessageBox
+import pyqtgraph as pg
+from pyqtgraph.Qt import QtCore, QtGui
+import pyqtgraph.console
 
 import os
 
@@ -19,6 +22,7 @@ from camos.utils.cmaps import bg_colors
 from camos.utils.units import get_length
 import camos.utils.units as units
 from camos.utils.pluginmanager import plugin_open
+from camos.utils.console import open_console
 
 from camos.gui.framecontainer import FrameContainer
 
@@ -154,11 +158,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.prefsAct.setStatusTip("Main preferences of the application")
         self.prefsAct.triggered.connect(lambda: CAMOSPreferences(self))
 
+        # Console
+        self.consoleAct = QtWidgets.QAction("&Console", self)
+        self.consoleAct.triggered.connect(open_console)
+
         # Attach submenus
         self.fileMenu.addMenu(self.openMenu)
         self.fileMenu.addMenu(self.saveMenu)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.prefsAct)
+        self.fileMenu.addAction(self.consoleAct)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.exitAct)
 

@@ -8,6 +8,7 @@ import numpy as np
 
 from camos.tasks.analysis import Analysis
 from camos.utils.generategui import NumericInput, DatasetInput
+from camos.utils.units import get_time
 
 
 class BinnedBursting(Analysis):
@@ -23,7 +24,7 @@ class BinnedBursting(Analysis):
 
     def _run(
         self,
-        _binsize: NumericInput("Bin Size (s)", 1),
+        _binsize: NumericInput("Bin Size ({})".format(get_time()), 1),
         _threshold: NumericInput("Threshold (%)", 50),
         _i_data: DatasetInput("Source dataset", 0),
     ):
@@ -72,4 +73,4 @@ class BinnedBursting(Analysis):
         self.plot.axes.set_ylim(0, 1)
         self.plot.axes.set_yticklabels([])
         self.plot.axes.tick_params(axis=u"y", which=u"y", length=0)
-        self.plot.axes.set_xlabel("Time (s)")
+        self.plot.axes.set_xlabel("Time ({})".format(get_time()))

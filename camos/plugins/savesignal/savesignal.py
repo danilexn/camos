@@ -12,6 +12,7 @@ import h5py
 
 class SaveSignal(Saving):
     analysis_name = "Save Signals"
+    required = ["dataset"]
 
     def __init__(self, *args, **kwargs):
         super(SaveSignal, self).__init__(extensions="hdf5 File (*.h5)", *args, **kwargs)

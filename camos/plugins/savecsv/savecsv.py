@@ -12,6 +12,7 @@ import numpy as np
 
 class SaveCSV(Saving):
     analysis_name = "Save as CSV"
+    required = ["dataset"]
 
     def __init__(self, *args, **kwargs):
         super(SaveCSV, self).__init__(extensions="csv File (*.csv)", *args, **kwargs)
