@@ -7,9 +7,9 @@
 from PyQt5.QtWidgets import QLabel, QProgressBar, QPushButton, QVBoxLayout, QWidget
 from PyQt5.QtCore import QThread
 
-from camos.utils.errormessages import ErrorMessages
 import camos.utils.apptools as apptools
 from camos.utils.notifications import notify
+from camos.utils.errormessages import ErrorMessages
 
 
 class RunTask(QWidget):
@@ -33,7 +33,7 @@ class RunTask(QWidget):
         self.layout.addWidget(self.waitLabel)
         self.layout.addWidget(self.cancelButton)
         self.setLayout(self.layout)
-        self.setGeometry(300, 300, 550, 100)
+        self.setGeometry(300, 300, 300, 100)
         self.setWindowTitle("Running {}".format(name))
         self.success = False
 
