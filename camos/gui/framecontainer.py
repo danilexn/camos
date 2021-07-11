@@ -28,6 +28,7 @@ from camos.utils.cmaps import cmaps
 from camos.utils.units import get_length
 from camos.utils.strings import range_to_list
 from camos.gui.qt.qt_range_slider import QtRangeSlider
+from camos.viewport.tableviewer import TableViewer
 
 
 class FrameContainer(QtWidgets.QWidget):
@@ -64,6 +65,7 @@ class FrameContainer(QtWidgets.QWidget):
         self.box_layout1.setContentsMargins(0, 0, 0, 0)
         self.box_layout1.setSpacing(0)
         self.opened_data = TabWidget()
+        self.opened_data.currentChanged.connect(self._tab_change)
         self.opened_layers_widget = QLayerWidget(self)
         self.opened_data.addTab(self.opened_layers_widget, "Layers")
         self.opened_layers_widget.installEventFilter(self)
@@ -76,6 +78,7 @@ class FrameContainer(QtWidgets.QWidget):
         self.opened_layers_widget.itemDoubleClicked.connect(self._setup_current_layer)
         self.opened_data_widget = QDataWidget(self)
         self.opened_data_widget.itemDoubleClicked.connect(self.open_data_layer)
+        self.opened_data_widget.installEventFilter(self)
         self.opened_data.addTab(self.opened_data_widget, "Datasets")
 
         self.box_layout1_1.addWidget(self.opened_data, 1)
@@ -160,38 +163,18 @@ class FrameContainer(QtWidgets.QWidget):
         layout.addRow(self.colormap_layer_selector)
         self.colormap_layer_selector.activated.connect(self._apply_changes_layer)
 
-        # 3. Contrast
-        self.contrast_layer_slider = CaMOSSlider(QtCore.Qt.Horizontal)
-        self.contrast_layer_slider.setRange(0, 20)
-        self.contrast_layer_slider.pointClicked.connect(self._apply_changes_layer)
-        self.contrast_layer_slider.valueChanged.connect(self.contrastLabelUpdate)
-        self.contrast_layer_label = QLabel("")
-        # layout.addRow(QLabel("Contrast"))
-        # layout.addRow(self.contrast_layer_label, self.contrast_layer_slider)
-        self.contrast_layer_slider.setValue(10)
-
-        # 4. Brightness
-        self.brightness_layer_slider = CaMOSSlider(QtCore.Qt.Horizontal)
-        self.brightness_layer_slider.setRange(-127, 128)
-        self.brightness_layer_slider.pointClicked.connect(self._apply_changes_layer)
-        self.brightness_layer_slider.valueChanged.connect(self.brightnessLabelUpdate)
-        self.brightness_layer_label = QLabel("")
-        # layout.addRow(QLabel("Brightness"))
-        # layout.addRow(self.brightness_layer_label, self.brightness_layer_slider)
-        self.brightness_layer_slider.setValue(0)
-
         # self.apply_changes_layer_bt = QPushButton("Apply")
         # self.apply_changes_layer_bt.clicked.connect(self._apply_changes_layer)
         # layout.addRow(self.apply_changes_layer_bt)
 
-        # 5. Selection of the current frame
+        # 3. Selection of the current frame
         self.current_frame_slider = QScrollBar(QtCore.Qt.Horizontal)
         layout.addRow(QLabel("Frame"))
         layout.addRow(self.current_frame_slider)
         self.current_frame_slider.valueChanged.connect(self._set_frame)
         self.layers_controls.setLayout(layout)
 
-        # 6. Selection of the frame range
+        # 4. Selection of the frame range
         self.current_frame_rangeslider = QtRangeSlider(self, 0, 100, 0, 100)
         layout.addRow(QLabel("Range of frames"))
         layout.addRow(self.current_frame_rangeslider)
@@ -200,12 +183,6 @@ class FrameContainer(QtWidgets.QWidget):
 
     def opacityLabelUpdate(self, value):
         self.opacity_layer_label.setText(str(value))
-
-    def contrastLabelUpdate(self, value):
-        self.contrast_layer_label.setText(str(value))
-
-    def brightnessLabelUpdate(self, value):
-        self.brightness_layer_label.setText(str(value))
 
     def _populate_colormaps(self):
         """Inside the Layers Controls, populates the colormap controls with those available
@@ -238,10 +215,6 @@ class FrameContainer(QtWidgets.QWidget):
         """
         op = self.parent.model.get_opacity(index)
         self.opacity_layer_slider.setValue(op)
-        co = self.parent.model.get_contrast(index)
-        self.contrast_layer_slider.setValue(co)
-        br = self.parent.model.get_brightness(index)
-        self.brightness_layer_slider.setValue(br)
         cm = self.parent.model.get_colormap(index)
         self.colormap_layer_selector.setCurrentIndex(list(cmaps.keys()).index(cm))
 
@@ -250,17 +223,13 @@ class FrameContainer(QtWidgets.QWidget):
         """
         index = self.opened_layers_widget.currentRow()
         op = self.opacity_layer_slider.value()
-        br = self.brightness_layer_slider.value()
-        co = self.contrast_layer_slider.value() / 10
         cm = self.colormap_layer_selector.currentText()
         _op = self.parent.model.get_opacity(index)
-        _co = self.parent.model.get_contrast(index)
-        _br = self.parent.model.get_brightness(index)
         _cm = self.parent.model.get_colormap(index)
 
-        if op == _op and br == _br and co == _co and cm == _cm:
+        if op == _op and cm == _cm:
             return
-        self.parent.model.set_values(op, br, co, cm, index)
+        self.parent.model.set_values(op, cm, index)
 
     def _createLayersActions(self):
         """Creates the UI elements (buttons) to handle Removal, Duplication, ROI toggling, Cropping and Cell Selection for the currently selected layer
@@ -269,11 +238,11 @@ class FrameContainer(QtWidgets.QWidget):
         self.removeAction = QAction(self)
         self.removeAction.setText("&Remove")
         self.removeAction.setIcon(QIcon("resources/icon-remove.svg"))
-        self.removeAction.triggered.connect(self._layer_remove)
+        self.removeAction.triggered.connect(self._button_remove)
         self.duplicateAction = QAction(
             QIcon("resources/icon-duplicate.svg"), "&Duplicate", self
         )
-        self.duplicateAction.triggered.connect(self._duplicate_layer)
+        self.duplicateAction.triggered.connect(self._button_duplicate)
         self.rotateAction = QAction(QIcon("resources/icon-rotate.svg"), "&Rotate", self)
         self.rotateAction.triggered.connect(self._rotate_layer)
         self.flipAction = QAction(QIcon("resources/icon-flip.svg"), "&Flip", self)
@@ -305,6 +274,18 @@ class FrameContainer(QtWidgets.QWidget):
         )
         self.intersectLayers.triggered.connect(self._intersect_layers)
 
+    def _button_remove(self):
+        if self.opened_data.currentIndex() == 0:
+            self._layer_remove()
+        else:
+            self._data_remove()
+
+    def _button_duplicate(self):
+        if self.opened_data.currentIndex() == 0:
+            self._duplicate_layer()
+        else:
+            self._duplicate_data()
+
     def _layer_remove(self):
         """Handles the removal of the currently selected layer in self.currentlayer, which is updated, in the image model
         """
@@ -319,6 +300,7 @@ class FrameContainer(QtWidgets.QWidget):
         self.currentlayer = self.opened_data_widget.currentRow()
         idx = self.currentlayer
         self.opened_data_widget.takeItem(idx)
+        self.parent.signalmodel.data_remove(idx)
 
     def _layer_toggle(self):
         """Handles the removal of the currently selected layer in self.currentlayer, which is updated, in the image model
@@ -358,6 +340,13 @@ class FrameContainer(QtWidgets.QWidget):
         self.currentlayer = self.opened_layers_widget.currentRow()
         idx = self.currentlayer
         self.parent.model.duplicate_image(idx)
+
+    def _duplicate_data(self):
+        """Handles the call to ImageViewModel.duplicate_image in the parent image model, so it can duplicate the currently selected layer in self.currentlayer
+        """
+        self.currentlayer = self.opened_layers_widget.currentRow()
+        idx = self.currentlayer
+        self.parent.signalmodel.duplicate_data(idx)
 
     def _crop_layer(self):
         """Handles the call to ImageViewModel.crop_image in the parent image model, so it can crop the currently selected layer in self.currentlayer
@@ -489,13 +478,45 @@ class FrameContainer(QtWidgets.QWidget):
             event.type() == QtCore.QEvent.ContextMenu
             and source is self.opened_data_widget
         ):
+            idx = self.opened_data_widget.currentRow()
             menu = QtWidgets.QMenu()
             removeAct = QAction("Remove", self)
             removeAct.setStatusTip("Removes the current data")
             removeAct.triggered.connect(self._data_remove)
             menu.addAction(removeAct)
 
+            tableAct = QAction("Show Table", self)
+            tableAct.setStatusTip("Shows the data values as a table")
+            tabViewer = TableViewer(self.parent.signalmodel, idx)
+            tableAct.triggered.connect(tabViewer.display)
+            menu.addAction(tableAct)
+            menu.exec_(event.globalPos())
+
         return super(QWidget, self).eventFilter(source, event)
+
+    def _tab_change(self, i):
+        # Control disabling the buttons
+        visibility = True
+        if i == 1:
+            visibility = False
+
+        img_controls = [
+            self.rotateAction,
+            self.flipAction,
+            self.sumLayers,
+            self.subtractLayers,
+            self.intersectLayers,
+            self.toggleROIAction,
+            self.cropAction,
+            self.resetAxis,
+            self.alignImage,
+            self.cellSelect,
+            self.sendMask,
+        ]
+
+        for control in img_controls:
+            control.setEnabled(visibility)
+            control.setVisible(visibility)
 
 
 class QLayerWidget(QtWidgets.QListWidget):

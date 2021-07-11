@@ -8,7 +8,6 @@ import pyqtgraph as pg
 from PyQt5 import QtCore
 
 import numpy as np
-import cv2
 
 import camos.viewport.mpl_cmaps_in_ImageItem as cmaps
 import camos.utils.apptools as apptools
@@ -49,22 +48,39 @@ class ImageViewPort(pg.ImageView):
 
     # All functions below have similar code now, just as a placeholder
     def load_image(self, layer=-1):
+        # Get the image from the model
         image = self.model.get_layer(layer=layer)
+
+        # Setup the display object
         item = DrawingImage(image=image)
+
+        # Determine if the layer is the last one, or already exists on the viewport
         if layer == -1:
             self.model.viewitems.append(item)
         else:
             self.model.viewitems[layer] = item
+
+        # Add to viewport
         self.view.addItem(self.model.viewitems[layer])
         self.view.addedItems[-1].setOpts(opacity=0.5, axisOrder="row-major")
+
+        # Do not update other features if the image is larger than...
         if image.shape[0] > 10000 or image.shape[1] > 10000:
             return
+
+        # Update viewport colormap, scale and translation
         cmap = self.model.colormaps[-1]
         lut = cmaps.cmapToColormap(cmap).getLookupTable()
         self.view.addedItems[-1].setLookupTable(lut)
+
         scale_x, scale_y = self.model.scales[-1]
         self.view.addedItems[-1].changeScale(scale_x, scale_y)
-        # self.view.addedItems[-1].setLevels([0, 210])
+
+        # Only update position if the layer has translation
+        if self.model.translation[layer] != [0, 0]:
+            x, y = self.model.translation[layer]
+            self.model.translation[layer] = [0, 0]
+            self.translate_position(layer, (x, y))
 
     def center_position(self, **kwargs):
         pass
@@ -74,6 +90,7 @@ class ImageViewPort(pg.ImageView):
         sc = self.model.scales[layer]
         cmap = self.model.colormaps[layer]
         lut = cmaps.cmapToColormap(cmap).getLookupTable()
+        self.ui.histogram.hide()
         self.ui.histogram.setImageItem(self.view.addedItems[layer + 3])
         self.ui.histogram.fillHistogram(False)
         if op / 100 != self.view.addedItems[layer + 3].opacity:
@@ -129,10 +146,11 @@ class ImageViewPort(pg.ImageView):
         self.model.roi_coord = roi_coord
 
     def translate_position(self, layer, position):
+        idx = layer + 3 if layer != -1 else -1
         x = position[0]
         y = position[1]
         x_t, y_t = self.model.translation[layer]
-        self.view.addedItems[layer + 3].translate(x - x_t, y - y_t)
+        self.view.addedItems[idx].translate(x - x_t, y - y_t)
         self.model.translation[layer] = [x, y]
 
     def toggle_roi(self):

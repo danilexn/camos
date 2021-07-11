@@ -14,6 +14,7 @@ from camos.utils.generategui import (
     CustomComboInput,
 )
 from camos.utils.units import length
+from camos.utils.units import get_time
 
 
 class MeanFiringRate(Analysis):
@@ -28,7 +29,7 @@ class MeanFiringRate(Analysis):
 
     def _run(
         self,
-        duration: NumericInput("Total Duration (s)", 100),
+        duration: NumericInput("Total Duration ({})".format(get_time()), 100),
         scale: NumericInput("Axis scale", 1),
         _i_units: CustomComboInput(list(length.keys()), "Axis units", 0),
         _i_data: DatasetInput("Source Dataset", 0),

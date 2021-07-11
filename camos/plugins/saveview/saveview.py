@@ -7,14 +7,18 @@
 from camos.tasks.saving import Saving
 
 import pickle
+import dill
+import weakref
 
 
 class SaveView(Saving):
     analysis_name = "Save View"
+    required = ["image"]
 
     def __init__(self, *args, **kwargs):
         super(SaveView, self).__init__(extensions="cms File (*.cms)", *args, **kwargs)
 
     def _run(self):
         with open(self.filename, "wb") as f:
+            # dill.dump(weakref.ref(self.model), f)
             pickle.dump(self.model, f)

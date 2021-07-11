@@ -33,7 +33,10 @@ def getGui():
     """Small wrapper to hide the fact that camosApp object contains gui.
     :return: main window object
     """
-    return getApp().gui
+    try:
+        return getApp().gui
+    except:
+        pass
 
 
 def getModels():

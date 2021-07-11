@@ -12,6 +12,7 @@ from camos.tasks.saving import Saving
 
 class SaveImage(Saving):
     analysis_name = "Save Image"
+    required = ["image"]
 
     def __init__(self, *args, **kwargs):
         super(SaveImage, self).__init__(extensions="tif File (*.tif)", *args, **kwargs)

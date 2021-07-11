@@ -5,7 +5,7 @@ import warnings
 import camos.utils.apptools as apptools
 from camos.utils.settings import Config
 from camos.utils.cmaps import bg_colors as colors
-from camos.utils.units import length
+from camos.utils.units import length, time
 
 
 class CAMOSPreferences(QtGui.QDialog):
@@ -27,6 +27,7 @@ class CAMOSPreferences(QtGui.QDialog):
         # Calls the functions that create individual UI components
         self.viewportBackgroundUI(layout)
         self.lengthUnitsUI(layout)
+        self.timeUnitsUI(layout)
 
         # Creates the Accept/Cancel buttons
         box = QtGui.QDialogButtonBox(
@@ -91,6 +92,31 @@ class CAMOSPreferences(QtGui.QDialog):
         except Exception as e:
             warnings.warn(str(e))
 
+    def timeUnitsUI(self, layout):
+        """Creates the UI elements for setting the program-wide
+        length units (options to choose from length dictionary)
+
+        Args:
+            layout (QtGui.QGridLayout): where the widgets should
+                be attached.
+        """
+        try:
+            # Get the current color configuration
+            current_time = self.current_config["Units/Time"]
+
+            # Creates the UI elements (Label and ComboBox)
+            label_time = QLabel("Time units")
+            widget_time = QComboBox()
+            widget_time.addItems(time.keys())
+            widget_time.setCurrentIndex(list(time.keys()).index(current_time))
+            widget_time.currentTextChanged[str].connect(self.setupTime)
+
+            # Add the widgets to the layout
+            layout.addWidget(label_time)
+            layout.addWidget(widget_time)
+        except Exception as e:
+            warnings.warn(str(e))
+
     def setupViewportColor(self, c):
         """Updates the current config variable,
         with the selected color in the ComboBox (UI)
@@ -110,6 +136,16 @@ class CAMOSPreferences(QtGui.QDialog):
                 the dictionary 'length')
         """
         self.current_config["Units/Length"] = l
+
+    def setupTime(self, t):
+        """Updates the current config variable,
+        with the selected time unit in the ComboBox (UI)
+
+        Args:
+            c (str): string identifying the time unit (see keys in
+                the dictionary 'time')
+        """
+        self.current_config["Units/Time"] = t
 
     def accept(self):
         # Sends the changes to the viewport

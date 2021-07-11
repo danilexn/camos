@@ -11,6 +11,7 @@ from . import oopsi
 
 from camos.tasks.analysis import Analysis
 from camos.utils.generategui import NumericInput, DatasetInput, CustomComboInput
+from camos.utils.units import get_time
 
 
 class DetectPeaks(Analysis):
@@ -78,7 +79,7 @@ class DetectPeaks(Analysis):
         ev_ids_norm = mapping_ar[ev_ids]
         self.plot.axes.scatter(y=ev_ids_norm, x=self.foutput[:]["Active"], s=0.5)
         self.plot.axes.set_ylabel("Normalized ID")
-        self.plot.axes.set_xlabel("Time (s)")
+        self.plot.axes.set_xlabel("Time ({})".format(get_time()))
         # self.plot.axes.scatter(
         #    y=self.foutput[:]["CellID"], x=self.foutput[:]["Active"], s=0.5
         # )

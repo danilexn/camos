@@ -8,6 +8,7 @@ import numpy as np
 
 from camos.tasks.analysis import Analysis
 from camos.utils.generategui import NumericInput, DatasetInput
+from camos.utils.units import get_time
 
 
 class BinarizeEvents(Analysis):
@@ -23,7 +24,7 @@ class BinarizeEvents(Analysis):
 
     def _run(
         self,
-        _binsize: NumericInput("Bin Size (s)", 1),
+        _binsize: NumericInput("Bin Size ({})".format(get_time()), 1),
         _i_data: DatasetInput("Source dataset", 0),
     ):
         output_type = [("CellID", "int"), ("Active", "float")]
@@ -66,4 +67,4 @@ class BinarizeEvents(Analysis):
         ev_ids_norm = mapping_ar[ev_ids]
         self.plot.axes.scatter(y=ev_ids_norm, x=self.foutput[:]["Active"], s=0.5)
         self.plot.axes.set_ylabel("Normalized ID")
-        self.plot.axes.set_xlabel("Time (s)")
+        self.plot.axes.set_xlabel("Time ({})".format(get_time()))
