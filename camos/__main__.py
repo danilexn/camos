@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-# Last modified on Wed Jul 07 2021
+# Last modified on Sun Jul 11 2021
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
@@ -65,7 +65,7 @@ def excepthook(exc_type, exc_value, exc_tb):
     print(tb)
 
 
-if __name__ == "__main__":
+def main():
     signal.signal(signal.SIGINT, sigint_handler)
     sys.excepthook = excepthook
     app = QtWidgets.QApplication(sys.argv)
@@ -82,3 +82,7 @@ if __name__ == "__main__":
     _app = camosApp()
     camosApp_second = camos.utils.apptools.getApp()
     sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()
