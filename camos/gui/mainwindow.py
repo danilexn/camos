@@ -187,19 +187,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.copyAct = QtWidgets.QAction("Copy", self)
         self.copyAct.setShortcut("Ctrl+C")
         self.copyAct.setStatusTip("Copy")
-        self.copyAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
+        self.copyAct.triggered.connect(self._copy_image)
 
         # Paste
         self.pasteAct = QtWidgets.QAction("Paste", self)
         self.pasteAct.setShortcut("Ctrl+V")
         self.pasteAct.setStatusTip("Paste")
-        self.pasteAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
-
-        # Paste
-        self.pasteAct = QtWidgets.QAction("Paste", self)
-        self.pasteAct.setShortcut("Ctrl+V")
-        self.pasteAct.setStatusTip("Paste")
-        self.pasteAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
+        self.pasteAct.triggered.connect(self._paste_image)
 
         # Attach to edit menu
         self.editMenu.addAction(self.undoAct)
@@ -225,6 +219,12 @@ class MainWindow(QtWidgets.QMainWindow):
             event.accept()
         else:
             event.ignore()
+
+    def _paste_image(self):
+        self.model.from_clipboard()
+
+    def _copy_image(self):
+        pass
 
     def readSettings(self):
         self.configuration.applyConfiguration(self.current_configuration, self)

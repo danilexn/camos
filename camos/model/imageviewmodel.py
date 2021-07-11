@@ -576,6 +576,17 @@ class ImageViewModel(QObject):
         self.undoHistory[-1][0]["function"](undo=self.undoHistory[-1][0])
         self.undoHistory.pop(-1)
 
+    def from_clipboard(self):
+        try:
+            from PIL import ImageGrab
+
+            im = np.array(ImageGrab.grabclipboard())
+            image = InputData(im, memoryPersist=True, name="Image from Clipboard")
+            image.loadImage()
+            self.add_image(image, name="Image from Clipboard")
+        except Exception as e:
+            raise ValueError("Could not paste image")
+
     def __getstate__(self):
         state = self.__dict__.copy()
         del state["viewitems"]
