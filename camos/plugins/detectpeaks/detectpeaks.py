@@ -94,7 +94,6 @@ class DetectPeaks(Analysis):
         fps = kwargs["fps"]
         iter_max = kwargs["iter_max"]
 
-        data = self.data
         for i in range(data.shape[0]):
             F = data[i]
             db, Cz = oopsi.fast(F, dt=1 / fps, iter_max=iter_max)

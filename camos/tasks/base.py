@@ -46,7 +46,7 @@ class BaseTask(QObject):
             self.handler.success = True
             self.foutput = self.output
         except Exception as e:
-            raise e
+            self.exc = e
         finally:
             self.finished.emit()
 
