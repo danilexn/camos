@@ -27,6 +27,18 @@ To install the application from source:
 2. Run the setup.py script (`python setup.py install`)
 *This will automatically install all dependencies, an internet connection is required during the process*
 
+## Installation
+CaMOS can be installed on most macOS, Linux, and Windows systems with Python >=3.7. Currently, you can just install CaMOS from source. We are planning on adding pip in the future.
+
+```bash
+# Clone the repository locally
+git clone https://github.com/danilexn/CMS-TEA-DZNE.git
+# Navigate to the directory
+cd CMS-TEA-DZNE
+# Install using pip (make sure that pip is alias to pip for python >=3.7
+pip install -e '.[all]'
+```
+
 ## Creating plugins
 **CaMOS** offers a modular way to create plugins, which are automatically loaded when you run the program. This is based in the concept of *Tasks*. There are three types of *Tasks*, which inherit from a universal *Base* task. *Base* contains the essential methods to run, plot and move the data through CaMOS - and generate the corresponding GUI signals. To write a plugin, you first have to select between one of the four *Tasks* available:
 
