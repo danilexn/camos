@@ -105,7 +105,15 @@ class ImageViewModel(QObject):
             pass
 
     @pyqtSlot()
-    def add_image(self, image, name=None, cmap="gray", scale=[1, 1]):
+    def add_image(
+        self,
+        image,
+        name=None,
+        cmap="gray",
+        scale=[1, 1],
+        translation=[0, 0],
+        samplingrate=1,
+    ):
         """Any image, once it has been loaded within a InputData object, can be loaded onto the ImageViewModel through this function. It will read all the features for the loaded image, and recalculate the global (shared) features (maximum number of frames overall, ROIs...)
 
         Args:
@@ -130,9 +138,9 @@ class ImageViewModel(QObject):
             name = name[0:MAXNAMELEN]
 
         self.names.append(name)
-        self.translation.append([0, 0])
+        self.translation.append(translation)
         self.scales.append(scale)
-        self.samplingrate.append(1)
+        self.samplingrate.append(samplingrate)
         self.pixelsize.append(image._image.dx)
         self.newdata.emit(-1)
 
@@ -569,7 +577,9 @@ class ImageViewModel(QObject):
         self.undoHistory.pop(-1)
 
     def __getstate__(self):
-        return self.__dict__
+        state = self.__dict__.copy()
+        del state["viewitems"]
+        return state
 
     def __setstate__(self, d):
         self.__dict__ = d

@@ -28,6 +28,7 @@ from camos.utils.cmaps import cmaps
 from camos.utils.units import get_length
 from camos.utils.strings import range_to_list
 from camos.gui.qt.qt_range_slider import QtRangeSlider
+from camos.viewport.tableviewer import TableViewer
 
 
 class FrameContainer(QtWidgets.QWidget):
@@ -77,6 +78,7 @@ class FrameContainer(QtWidgets.QWidget):
         self.opened_layers_widget.itemDoubleClicked.connect(self._setup_current_layer)
         self.opened_data_widget = QDataWidget(self)
         self.opened_data_widget.itemDoubleClicked.connect(self.open_data_layer)
+        self.opened_data_widget.installEventFilter(self)
         self.opened_data.addTab(self.opened_data_widget, "Datasets")
 
         self.box_layout1_1.addWidget(self.opened_data, 1)
@@ -476,11 +478,19 @@ class FrameContainer(QtWidgets.QWidget):
             event.type() == QtCore.QEvent.ContextMenu
             and source is self.opened_data_widget
         ):
+            idx = self.opened_data_widget.currentRow()
             menu = QtWidgets.QMenu()
             removeAct = QAction("Remove", self)
             removeAct.setStatusTip("Removes the current data")
             removeAct.triggered.connect(self._data_remove)
             menu.addAction(removeAct)
+
+            tableAct = QAction("Show Table", self)
+            tableAct.setStatusTip("Shows the data values as a table")
+            tabViewer = TableViewer(self.parent.signalmodel, idx)
+            tableAct.triggered.connect(tabViewer.display)
+            menu.addAction(tableAct)
+            menu.exec_(event.globalPos())
 
         return super(QWidget, self).eventFilter(source, event)
 

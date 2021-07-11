@@ -19,4 +19,15 @@ class OpenImage(Opening):
     def _run(self):
         # Added so we can load CMOS chip image
         dp = pickle.load(open(self.filename, "rb"))
-        apptools.getApp().gui.setup_model(dp)
+        self.populateModel(dp)
+
+    def populateModel(self, model):
+        for i in range(len(model.images)):
+            self.model.add_image(
+                model.images[i],
+                name=model.names[i],
+                cmap=model.colormaps[i],
+                scale=model.scales[i],
+                translation=model.translation[i],
+                samplingrate=model.samplingrate[i],
+            )
