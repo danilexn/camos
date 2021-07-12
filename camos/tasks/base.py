@@ -70,9 +70,7 @@ class BaseTask(QObject):
         self.parent.signalmodel.add_data(self.output, "", self, self.sampling)
 
     def output_to_imagemodel(self, name=None):
-        image = InputData(
-            self.output, memoryPersist=True, name=self.layername.format(self.index),
-        )
+        image = InputData(self.output, name=self.layername.format(self.index),)
         image.loadImage()
         self.parent.model.add_image(image, name)
 

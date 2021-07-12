@@ -42,7 +42,7 @@ class OpenSignal(Opening):
         _sv.display()
 
     def load_mask(self, data, name):
-        image = InputData(data, memoryPersist=True, name=name,)
+        image = InputData(data, name=name,)
         image.loadImage()
         self.model.add_image(image)
 

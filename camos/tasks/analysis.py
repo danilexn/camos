@@ -85,7 +85,7 @@ class Analysis(BaseTask):
     def export_plot_to_viewport(self):
         try:
             self.update_plot()
-            image = InputData(self.outputimage, memoryPersist=True)
+            image = InputData(self.outputimage)
             image.loadImage()
             self.parent.model.add_image(
                 image, "Viewport of {}".format(self.analysis_name)

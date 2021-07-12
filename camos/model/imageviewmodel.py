@@ -160,9 +160,7 @@ class ImageViewModel(QObject):
             int(self.roi_coord[1][1] / scale[1]),
         )
         cropped = self.images[index]._image._imgs[:, x_min:x_max, y_min:y_max]
-        image = InputData(
-            cropped, memoryPersist=True, name="Cropped from Layer {}".format(index),
-        )
+        image = InputData(cropped, name="Cropped from Layer {}".format(index),)
         image.loadImage()
         self.add_image(image, "Cropped from Layer {}".format(index), scale=scale)
         # self.translate_position(-1, (x_min, y_min))
@@ -175,9 +173,7 @@ class ImageViewModel(QObject):
         """
         scale = self.scales[index]
         flipped = np.flip(self.images[index]._image._imgs, axis=2)
-        image = InputData(
-            flipped, memoryPersist=True, name="Flipped from Layer {}".format(index),
-        )
+        image = InputData(flipped, name="Flipped from Layer {}".format(index),)
         image.loadImage()
         self.add_image(image, "Flipped from Layer {}".format(index), scale=scale)
 
@@ -199,9 +195,7 @@ class ImageViewModel(QObject):
         else:
             cell_ID = int(cell_ID[2])
         cell = np.where(mask == cell_ID, mask, 0)
-        image = InputData(
-            cell, memoryPersist=True, name="Selected Cell {}".format(cell_ID)
-        )
+        image = InputData(cell, name="Selected Cell {}".format(cell_ID))
         image.loadImage()
         scale = self.scales[self.currentlayer]
         self.add_image(
@@ -218,7 +212,7 @@ class ImageViewModel(QObject):
         ids = np.isin(mask, cell_ID)
         found = np.where(ids == True, mask, 0)
         newname = "Cells {} from Layer {}".format(cell_ID, self.currentlayer)
-        image = InputData(found, memoryPersist=True, name=newname)
+        image = InputData(found, name=newname)
         image.loadImage()
         scale = self.scales[self.currentlayer]
         self.add_image(
@@ -370,7 +364,6 @@ class ImageViewModel(QObject):
         summed = a + b
         image = InputData(
             summed,
-            memoryPersist=True,
             name="Sum from {} and {}".format(self.names[layer], self.names[curr]),
         )
         image.loadImage()
@@ -387,7 +380,6 @@ class ImageViewModel(QObject):
         subtracted = np.abs(a - b)
         image = InputData(
             subtracted,
-            memoryPersist=True,
             name="Subtract from {} and {}".format(self.names[layer], self.names[curr]),
         )
         image.loadImage()
@@ -405,7 +397,6 @@ class ImageViewModel(QObject):
         intersect = np.where(multiplied != 0, a, 0)
         image = InputData(
             intersect,
-            memoryPersist=True,
             name="Intersect from {} and {}".format(self.names[layer], self.names[curr]),
         )
         image.loadImage()
@@ -581,7 +572,7 @@ class ImageViewModel(QObject):
             from PIL import ImageGrab
 
             im = np.array(ImageGrab.grabclipboard())
-            image = InputData(im, memoryPersist=True, name="Image from Clipboard")
+            image = InputData(im, name="Image from Clipboard")
             image.loadImage()
             self.add_image(image, name="Image from Clipboard")
         except Exception as e:

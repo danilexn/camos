@@ -1,5 +1,5 @@
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import QLabel, QComboBox
+from PyQt5.QtWidgets import QLabel, QComboBox, QCheckBox
 import warnings
 
 import camos.utils.apptools as apptools
@@ -28,6 +28,7 @@ class CAMOSPreferences(QtGui.QDialog):
         self.viewportBackgroundUI(layout)
         self.lengthUnitsUI(layout)
         self.timeUnitsUI(layout)
+        self.memoryPersistentLoading(layout)
 
         # Creates the Accept/Cancel buttons
         box = QtGui.QDialogButtonBox(
@@ -117,6 +118,17 @@ class CAMOSPreferences(QtGui.QDialog):
         except Exception as e:
             warnings.warn(str(e))
 
+    def memoryPersistentLoading(self, layout):
+        try:
+            current_RAM = self.current_config["Performance/RAM_persistence"]
+
+            widget = QCheckBox("Images to RAM")
+            widget.stateChanged[int].connect(self.setupRAM)
+            widget.setChecked(current_RAM)
+            layout.addWidget(widget)
+        except Exception as e:
+            warnings.warn(str(e))
+
     def setupViewportColor(self, c):
         """Updates the current config variable,
         with the selected color in the ComboBox (UI)
@@ -146,6 +158,10 @@ class CAMOSPreferences(QtGui.QDialog):
                 the dictionary 'time')
         """
         self.current_config["Units/Time"] = t
+
+    def setupRAM(self, r):
+        r = True if r == 2 else False
+        self.current_config["Performance/RAM_persistence"] = r
 
     def accept(self):
         # Sends the changes to the viewport

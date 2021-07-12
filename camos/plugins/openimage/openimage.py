@@ -26,11 +26,11 @@ class OpenImage(Opening):
         PIL.Image.MAX_IMAGE_PIXELS = 933120000
         if type(self.filename) == list:
             for single in self.filename:
-                image = InputData(single, memoryPersist=True)
+                image = InputData(single)
                 image.loadImage()
                 self.model.add_image(image)
         elif type(self.filename) == str:
-            image = InputData(self.filename, memoryPersist=True)
+            image = InputData(self.filename)
             image.loadImage()
             self.model.add_image(image)
         else:
