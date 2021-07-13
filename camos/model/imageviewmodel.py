@@ -246,6 +246,18 @@ class ImageViewModel(QObject):
             index (int): position of the image in the self.images list
         """
         assert index != None
+
+        # Correct the current layer index
+        if index == len(self.images) - 1:
+            self.currentlayer -= 1
+        elif index < self.currentlayer:
+            self.currentlayer -= 1
+
+        # Prevent the index being negative
+        if self.currentlayer < 0:
+            self.currentlayer = 0
+
+        # Remove all data and properties linked to index
         self.images.pop(index)
         self.frames.pop(index)
         self.opacities.pop(index)
@@ -493,12 +505,15 @@ class ImageViewModel(QObject):
         Args:
             t (int): number of the frame to be configured
         """
-        self.frame = t
-        self.updatedframe.emit(self.currentlayer)
-        pxs = self.pixelsize[self.currentlayer]
-        self.updatepos.emit(
-            self.curr_x, self.curr_y, self.frame, self.get_currint(), pxs
-        )
+        try:
+            self.frame = t
+            self.updatedframe.emit(self.currentlayer)
+            pxs = self.pixelsize[self.currentlayer]
+            self.updatepos.emit(
+                self.curr_x, self.curr_y, self.frame, self.get_currint(), pxs
+            )
+        except:
+            pass
 
     @pyqtSlot()
     def set_currpos(self, x, y):

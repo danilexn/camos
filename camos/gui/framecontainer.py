@@ -81,7 +81,7 @@ class FrameContainer(QtWidgets.QWidget):
         self.opened_data_widget.installEventFilter(self)
         self.opened_data.addTab(self.opened_data_widget, "Datasets")
 
-        self.box_layout1_1.addWidget(self.opened_data, 1)
+        self.box_layout1_1.addWidget(self.opened_data, 5)
         self.box_layout1_1.addWidget(self.layers_controls, 1)
         self.box_layout1.addLayout(self.box_layout1_1, 1)
         self.box_layout1.addWidget(self.parent.viewport, 4)
@@ -97,9 +97,9 @@ class FrameContainer(QtWidgets.QWidget):
         """
         self.currentlayer = index
         self.parent.model.currentlayer = index
-        maxframe = self.parent.model.frames[index]
-        self.current_frame_slider.setRange(0, maxframe - 1)
-        self.current_frame_rangeslider.setRange(0, maxframe - 1)
+        # maxframe = self.parent.model.frames[index]
+        # self.current_frame_slider.setRange(0, maxframe - 1)
+        # self.current_frame_rangeslider.setRange(0, maxframe - 1)
 
     def _update_layer_elements(self, layer):
         """When the ImageViewModel has updates in any of the elements, the layers list is updated
@@ -111,9 +111,9 @@ class FrameContainer(QtWidgets.QWidget):
         item = QListWidgetItem(name)
         item.setIcon(QIcon(self.parent.model.get_icon(-1)))
         self.opened_layers_widget.addItem(item)
-        maxframe = self.parent.model.frames[layer]
-        self.current_frame_slider.setRange(0, maxframe - 1)
-        self.current_frame_rangeslider.setRange(0, maxframe - 1)
+        # maxframe = self.parent.model.frames[layer]
+        # self.current_frame_slider.setRange(0, maxframe - 1)
+        # self.current_frame_rangeslider.setRange(0, maxframe - 1)
 
     def add_data_layer(self, name):
         """When the ImageViewModel has updates in any of the elements, the layers list is updated
@@ -171,17 +171,18 @@ class FrameContainer(QtWidgets.QWidget):
         # layout.addRow(self.apply_changes_layer_bt)
 
         # 3. Selection of the current frame
-        self.current_frame_slider = QScrollBar(QtCore.Qt.Horizontal)
-        layout.addRow(QLabel("Frame"))
-        layout.addRow(self.current_frame_slider)
-        self.current_frame_slider.valueChanged.connect(self._set_frame)
-        self.layers_controls.setLayout(layout)
+        # self.current_frame_slider = QScrollBar(QtCore.Qt.Horizontal)
+        # layout.addRow(QLabel("Frame"))
+        # layout.addRow(self.current_frame_slider)
+        # self.current_frame_slider.valueChanged.connect(self._set_frame)
 
         # 4. Selection of the frame range
-        self.current_frame_rangeslider = QtRangeSlider(self, 0, 100, 0, 100)
-        layout.addRow(QLabel("Range of frames"))
-        layout.addRow(self.current_frame_rangeslider)
-        self.current_frame_slider.valueChanged.connect(self._set_frame)
+        # self.current_frame_rangeslider = QtRangeSlider(self, 0, 100, 0, 100)
+        # layout.addRow(QLabel("Range of frames"))
+        # layout.addRow(self.current_frame_rangeslider)
+        # self.current_frame_slider.valueChanged.connect(self._set_frame)
+
+        # Configure the layout
         self.layers_controls.setLayout(layout)
 
     def opacityLabelUpdate(self, value):
@@ -192,13 +193,13 @@ class FrameContainer(QtWidgets.QWidget):
         """
         self.colormap_layer_selector.addItems(cmaps)
 
-    def _set_frame(self, t):
-        """Configures the current frame, selected in the Layers Controls, to the image model
+    # def _set_frame(self, t):
+    #     """Configures the current frame, selected in the Layers Controls, to the image model
 
-        Args:
-            t (int): current frame selected in self.current_frame_slider
-        """
-        self.parent.model.set_frame(t)
+    #     Args:
+    #         t (int): current frame selected in self.current_frame_slider
+    #     """
+    #     self.parent.model.set_frame(t)
 
     def _get_frame(self):
         """Returns the frame currently selected in the image model
