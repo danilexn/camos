@@ -97,6 +97,9 @@ class FrameContainer(QtWidgets.QWidget):
         """
         self.currentlayer = index
         self.parent.model.currentlayer = index
+        maxframe = self.parent.model.frames[index]
+        self.current_frame_slider.setRange(0, maxframe - 1)
+        self.current_frame_rangeslider.setRange(0, maxframe - 1)
 
     def _update_layer_elements(self, layer):
         """When the ImageViewModel has updates in any of the elements, the layers list is updated
@@ -108,7 +111,7 @@ class FrameContainer(QtWidgets.QWidget):
         item = QListWidgetItem(name)
         item.setIcon(QIcon(self.parent.model.get_icon(-1)))
         self.opened_layers_widget.addItem(item)
-        maxframe = self.parent.model.maxframe
+        maxframe = self.parent.model.frames[layer]
         self.current_frame_slider.setRange(0, maxframe - 1)
         self.current_frame_rangeslider.setRange(0, maxframe - 1)
 
@@ -147,12 +150,12 @@ class FrameContainer(QtWidgets.QWidget):
 
         # We create the following controls that act over the chosen layer
         # 1. Opacity
-        self.opacity_layer_slider = CaMOSSlider(QtCore.Qt.Horizontal)
+        self.opacity_layer_slider = QSlider(QtCore.Qt.Horizontal)
         self.opacity_layer_label = QLabel("")
         self.opacity_layer_slider.setRange(0, 100)
         layout.addRow(QLabel("Opacity"))
         layout.addRow(self.opacity_layer_label, self.opacity_layer_slider)
-        self.opacity_layer_slider.pointClicked.connect(self._apply_changes_layer)
+        self.opacity_layer_slider.valueChanged.connect(self._apply_changes_layer)
         self.opacity_layer_slider.valueChanged.connect(self.opacityLabelUpdate)
         self.opacity_layer_slider.setValue(50)
 
@@ -671,10 +674,3 @@ class TabWidget(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
         QtWidgets.QTabWidget.__init__(self, parent)
         self.setTabBar(HorizontalTabBar())
-
-
-class CaMOSSlider(QSlider):
-    pointClicked = pyqtSignal(int)
-
-    def sliderChange(self, event):
-        self.pointClicked.emit(self.value())

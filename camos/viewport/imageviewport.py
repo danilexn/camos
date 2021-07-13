@@ -90,9 +90,6 @@ class ImageViewPort(pg.ImageView):
         sc = self.model.scales[layer]
         cmap = self.model.colormaps[layer]
         lut = cmaps.cmapToColormap(cmap).getLookupTable()
-        self.ui.histogram.hide()
-        self.ui.histogram.setImageItem(self.view.addedItems[layer + 3])
-        self.ui.histogram.fillHistogram(False)
         if op / 100 != self.view.addedItems[layer + 3].opacity:
             self.view.addedItems[layer + 3].setOpts(opacity=op / 100)
         if not np.array(lut == self.view.addedItems[layer + 3].lut).all():
@@ -117,6 +114,16 @@ class ImageViewPort(pg.ImageView):
         self.pixelsize = pxsize
         sz = self.scale.size * self.pixelsize
         self.scale.size = sz / pxsize
+
+        # Updates the Histogram here, better
+        layer = self.model.currentlayer
+        # Update histogram after scaling and changing other levels
+        self.ui.histogram.hide()
+        self.ui.histogram.setImageItem(self.view.addedItems[layer + 3])
+        self.ui.histogram.setHistogramRange(
+            mn=1, mx=np.max(self.view.addedItems[layer + 3].image)
+        )
+        self.ui.histogram.show()
 
     def update_viewport_frame(self, layer=0):
         image = self.model.get_layer(layer=layer)
