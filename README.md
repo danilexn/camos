@@ -8,25 +8,6 @@
 
 **CaMOS** is an interactive application for CMOS and Calcium imaging registration. It's designed for browsing, detection, and easier signal processing across large datasets.
 
-To install the application from the executable file:
-*TODO for Windows*
-*TODO for macOS*
-*TODO for Linux*
-
-To install the application from pip:
-*TODO*
-
-To run the application from source, you may execute the following from the terminal:
-1. Clone the repository (`git clone https://github.com/danilexn/CMS-TEA-DZNE`)
-2. Go to the cloned repository (`cd CMS-TEA-DZNE`)
-3. Run the program (`python -m camos`)
-*Make sure the dependencies listed in requirements.txt are installed beforehand*
-
-To install the application from source:
-1. Clone the repository (`git clone https://github.com/danilexn/CMS-TEA-DZNE`)
-2. Run the setup.py script (`python setup.py install`)
-*This will automatically install all dependencies, an internet connection is required during the process*
-
 ## Installation
 CaMOS can be installed on most macOS, Linux, and Windows systems with Python >=3.7. Currently, you can just install CaMOS from source. We are planning on adding pip in the future.
 
@@ -38,6 +19,8 @@ cd CMS-TEA-DZNE
 # Install using pip (make sure that pip is alias to pip for python >=3.7
 pip install -e '.[all]'
 ```
+
+Make sure you have an internet connection during the installation process, as pip will require it to automatically install all dependencies. Otherwise, dependencies listed under `requirements.txt` are expected to be installed beforehand.
 
 ## Running _CaMOS_
 To run CaMOS as a Python module, either having installed it with pip (or not), you can execute the following command
