@@ -8,7 +8,7 @@ import numpy as np
 import h5py
 
 from camos.tasks.opening import Opening
-from camos.viewport.signalviewer import SignalViewer
+from camos.viewport.signalviewer2 import SignalViewer2
 from camos.model.inputdata import InputData
 
 
@@ -36,7 +36,7 @@ class OpenSignal(Opening):
         h5f.close()
 
     def load_signal(self, data, name, mask=[]):
-        _sv = SignalViewer(self.parent, data)
+        _sv = SignalViewer2(self.parent, data, title=name)
         self.signal.add_data(data, name, _sv, mask=mask)
         _sv.mask = mask
         _sv.display()

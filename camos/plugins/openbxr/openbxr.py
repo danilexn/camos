@@ -51,7 +51,7 @@ class OpenBXR(Opening):
         self.output[:]["CellID"] = SpikeChIDs.reshape(-1, 1)
         self.output[:]["Active"] = SpikeTimes.reshape(-1, 1)
 
-        _sv = SignalViewer2(self.parent, self.output)
+        _sv = SignalViewer2(self.parent, self.output, title="Events from BXR")
 
         self.parent.signalmodel.add_data(
             self.output, "Events from BXR".format(), _sv, samplingRate

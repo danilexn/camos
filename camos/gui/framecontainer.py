@@ -551,31 +551,31 @@ class QDataWidget(QtWidgets.QListWidget):
             super().keyPressEvent(event)
 
 
-class LayerDialog(QtGui.QDialog):
+class LayerDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(LayerDialog, self).__init__(parent)
 
         self.setWindowTitle("Layer selection")
-        label = QtGui.QLabel("Second layer")
-        self.combo = QtGui.QComboBox()
+        label = QtWidgets.QLabel("Second layer")
+        self.combo = QtWidgets.QComboBox()
         self.parent = parent
         self.combo.addItems(self.parent.model.list_images())
 
-        box = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             centerButtons=True,
         )
 
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
 
-        lay = QtGui.QGridLayout(self)
+        lay = QtWidgets.QGridLayout(self)
         lay.addWidget(label, 0, 0)
         lay.addWidget(self.combo, 0, 1)
         lay.addWidget(box, 2, 0, 1, 2)
 
 
-class TextDialog(QtGui.QDialog):
+class TextDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(TextDialog, self).__init__(parent)
 
@@ -586,22 +586,22 @@ class TextDialog(QtGui.QDialog):
         )
         self.search = QLineEdit()
 
-        box = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             centerButtons=True,
         )
 
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
 
-        lay = QtGui.QGridLayout(self)
+        lay = QtWidgets.QGridLayout(self)
         lay.addWidget(self.search_label, 0, 0)
         lay.addWidget(self.search, 0, 1)
         lay.addWidget(self.hint)
         lay.addWidget(box, 2, 0, 1, 2)
 
 
-class LayerPrefsDialog(QtGui.QDialog):
+class LayerPrefsDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, model=None, idx=None):
         super(LayerPrefsDialog, self).__init__(parent)
 
@@ -632,15 +632,15 @@ class LayerPrefsDialog(QtGui.QDialog):
         self.scaleSize.setValidator(self.onlyDouble)
         self.scaleSize.setText(str(scale))
 
-        box = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             centerButtons=True,
         )
 
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
 
-        lay = QtGui.QGridLayout(self)
+        lay = QtWidgets.QGridLayout(self)
         lay.addWidget(self.samplRate_label)
         lay.addWidget(self.samplRate)
         lay.addWidget(self.pxSize_label)

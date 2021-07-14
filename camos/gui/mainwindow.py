@@ -7,9 +7,6 @@
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QHBoxLayout, QMenu, QMessageBox
-import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtGui
-import pyqtgraph.console
 
 import os
 
@@ -75,7 +72,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Layout of the UI
         layout = QHBoxLayout()
-        self.centralwidget = QtGui.QWidget(self)
+        self.centralwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.centralwidget)
         self.centralwidget.setLayout(layout)
         self.init_UI()
@@ -245,26 +242,26 @@ class MainWindow(QtWidgets.QMainWindow):
                 plugin_open[idx]["instance"](f)
 
 
-class OpenerDialog(QtGui.QDialog):
+class OpenerDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, name=""):
         super(OpenerDialog, self).__init__(parent)
 
         self.setWindowTitle("Select plugin")
-        label = QtGui.QLabel("Select a opening plugin for {}".format(name))
-        self.combo = QtGui.QComboBox()
+        label = QtWidgets.QLabel("Select a opening plugin for {}".format(name))
+        self.combo = QtWidgets.QComboBox()
         self.parent = parent
         plugin_names = [p["name"] for p in plugin_open]
         self.combo.addItems(plugin_names)
 
-        box = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             centerButtons=True,
         )
 
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
 
-        lay = QtGui.QGridLayout(self)
+        lay = QtWidgets.QGridLayout(self)
         lay.addWidget(label)
         lay.addWidget(self.combo)
         lay.addWidget(box, 2, 0, 1, 2)

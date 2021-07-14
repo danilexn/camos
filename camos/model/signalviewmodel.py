@@ -11,7 +11,7 @@ import copy
 
 import camos.utils.apptools as apptools
 import camos.utils.pluginmanager as PluginManager
-from camos.viewport.signalviewer import SignalViewer
+from camos.viewport.signalviewer2 import SignalViewer2
 
 signal_types = {
     "timeseries": [3, "int"],
@@ -83,7 +83,7 @@ class SignalViewModel(QObject):
         _filtered_idx = np.isin(self.data[index][:]["CellID"], IDs)
         _filtered = self.data[index][_filtered_idx]
 
-        _sv = SignalViewer(self.parent, _filtered)
+        _sv = SignalViewer2(self.parent, _filtered, title=self.names[index])
         _sv.display()
 
         self.add_data(
@@ -100,13 +100,11 @@ class SignalViewModel(QObject):
             index (int, optional): index of the data to duplicate, according to self.data. Defaults to 0.
         """
         data = copy.deepcopy(self.data[index])
-        _sv = SignalViewer(self.parent, data)
+        name = "Duplicate of {}".format(self.names[index])
+        _sv = SignalViewer2(self.parent, data, title=name)
         _sv.display()
         self.add_data(
-            data,
-            name="Duplicate of {}".format(self.names[index]),
-            _class=_sv,
-            sampling=self.sampling[index],
+            data, name=name, _class=_sv, sampling=self.sampling[index],
         )
 
     def __iter__(self):

@@ -1,4 +1,4 @@
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtWidgets import QLabel, QComboBox, QCheckBox
 import warnings
 
@@ -8,7 +8,7 @@ from camos.utils.cmaps import bg_colors as colors
 from camos.utils.units import length, time
 
 
-class CAMOSPreferences(QtGui.QDialog):
+class CAMOSPreferences(QtWidgets.QDialog):
     def __init__(self, parent=None):
         self.parent = parent
 

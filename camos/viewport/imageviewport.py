@@ -39,10 +39,12 @@ class ImageViewPort(pg.ImageView):
         self.ui.menuBtn.hide()
         self.ui.roiBtn.hide()
         self.timeLine = pg.InfiniteLine(0, movable=True)
+        self.timeLine.setBounds([0, 0])
         self.ui.roiPlot.addItem(self.timeLine)
         self.frameTicks = pg.VTickGroup(yrange=[0.8, 1], pen=0.4)
         self.ui.roiPlot.addItem(self.frameTicks)
-        self.region = pg.LinearRegionItem([-0.5, 0.5])
+        self.region = pg.LinearRegionItem([0, 0])
+        self.region.setBounds([0, 0])
         self.region.setZValue(-10)
         self.ui.roiPlot.addItem(self.region)
         self.ui.roiPlot.show()
@@ -141,10 +143,10 @@ class ImageViewPort(pg.ImageView):
 
         # Update the frame selector
         bound = [0, self.model.frames[layer]]
-        self.timeLine.setValue(self.model.frame)
         self.timeLine.setBounds(bound)
-        self.region.setRegion(bound)
+        self.timeLine.setValue(self.model.frame)
         self.region.setBounds(bound)
+        self.region.setRegion(bound)
 
     def update_viewport_frame(self, layer=0):
         image = self.model.get_layer(layer=layer)

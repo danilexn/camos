@@ -505,15 +505,13 @@ class ImageViewModel(QObject):
         Args:
             t (int): number of the frame to be configured
         """
-        try:
-            self.frame = t
-            self.updatedframe.emit(self.currentlayer)
-            pxs = self.pixelsize[self.currentlayer]
-            self.updatepos.emit(
-                self.curr_x, self.curr_y, self.frame, self.get_currint(), pxs
-            )
-        except:
-            pass
+        assert len(self.images) > 0
+        self.frame = t
+        self.updatedframe.emit(self.currentlayer)
+        pxs = self.pixelsize[self.currentlayer]
+        self.updatepos.emit(
+            self.curr_x, self.curr_y, self.frame, self.get_currint(), pxs
+        )
 
     @pyqtSlot()
     def set_currpos(self, x, y):
