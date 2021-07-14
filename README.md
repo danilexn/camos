@@ -39,10 +39,22 @@ cd CMS-TEA-DZNE
 pip install -e '.[all]'
 ```
 
+## Running _CaMOS_
+To run CaMOS as a Python module, either having installed it with pip (or not), you can execute the following command
+```bash
+cd CMS-TEA-DZNE # or wherever the repo directory is
+python -m camos
+```
+
+If you have installed it with pip, following the instructions above, you may execute _CaMOS_ with the alias:
+```bash
+camos
+```
+
 ## Creating plugins
 **CaMOS** offers a modular way to create plugins, which are automatically loaded when you run the program. This is based in the concept of *Tasks*. There are three types of *Tasks*, which inherit from a universal *Base* task. *Base* contains the essential methods to run, plot and move the data through CaMOS - and generate the corresponding GUI signals. To write a plugin, you first have to select between one of the four *Tasks* available:
 
-1. Opening: will provide a File Dialog, with (possibly) a filter for specific extension(s); then, it will provide a custom GUI (if required) automatically created for the `\_run()` method. You can choose to store the input data in both the Image or Signal model (depending on the data input). You can also use any of the default data reading methods (e.g., multi-page TIFF and other common image formats are available by default), or develop your own file parsing methods.
+1. Opening: will provide a File Dialog, with (possibly) a filter for specific extension(s); then, it will provide a custom GUI (if required) automatically created for the `_run()` method. You can choose to store the input data in both the Image or Signal model (depending on the data input). You can also use any of the default data reading methods (e.g., multi-page TIFF and other common image formats are available by default), or develop your own file parsing methods.
 2. Saving: analogous to Opening, but for saving files. It will provide a common framework to retrieve data from the Image or Signal models.
 3. Analysis: takes either Image or Signal data, and will produce new data to be stored in the Signal model. This should be used to develop plugins that analyze datasets; e.g., calculate Mean Firing Rate from event tracks.
 4. Processing: similar to Analysis, but outputs to the Image model, by default. This should be used when developing plugins for image processing; e.g., segmentation, registration.
@@ -50,7 +62,10 @@ pip install -e '.[all]'
 Regardless of the type of *Task*, the basic structure of a plugin must be as follows (will use https://github.com/danilexn/CMS-TEA-DZNE/blob/main/camos/plugins/meanfiringrate/meanfiringrate.py as an example):
 
 #### 0. Create the plugin folder and file
-You must create a directory with a unique name for your plugin, e.g., org.camos.meanfiringrate. Then, inside that directory, you may create a .py file, with the same name. This will be used as the entry point of the plugin, in case there are more files that implement extra functionality.
+You must create a directory with a unique name for your plugin, e.g., org.camos.meanfiringrate. Then, inside that directory, you may create a .py file, with the same name. This will be used as the entry point of the plugin, in case there are more files that implement extra functionality. Additionally, you must create a file, in that same directory, called `__init__.py`, containing the following (for a plugin where the entrypoint is `meanfiringrate.py`):
+```python
+__all__ = ["meanfiringrate"]
+```
 
 #### 1. Imports that will be used by the plugin
 You can import any modules that may be useful for your plugin, e.g., `numpy` (careful, the user may have not installed them beforehand!)
