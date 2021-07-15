@@ -53,8 +53,6 @@ class GenerateMask(Processing):
         self.output = masks
 
     def output_to_imagemodel(self):
-        image = InputData(
-            self.output, memoryPersist=True, name=self.layername.format(self.index),
-        )
+        image = InputData(self.output, name=self.layername.format(self.index),)
         image.loadImage()
         self.parent.model.add_image(image, "Mask of Layer {}".format(self.index))

@@ -22,7 +22,6 @@ class CorrelatePosition(Analysis):
         )
         self.model = model
         self.signal = signal
-        self.finished.connect(self.output_to_signalmodel)
 
     def _run(
         self,
@@ -75,24 +74,3 @@ class CorrelatePosition(Analysis):
 
         self.maskimage = self.model.images[fl].image(0)
         self.finished.emit()
-
-    def _plot(self):
-        mask = self.maskimage
-        map_dict = {}
-        for i in range(1, self.foutput.shape[0]):
-            map_dict[int(self.foutput[i]["CellID"])] = self.foutput[i]["Nearest"]
-
-        k = np.array(list(map_dict.keys()))
-        v = np.array(list(map_dict.values()))
-
-        dim = max(k.max(), np.max(mask))
-        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
-        mapping_ar[k] = v
-        map_mask = mapping_ar[mask]
-
-        self.outputimage = map_mask
-
-        im = self.plot.axes.imshow(map_mask, cmap="gray", origin="upper")
-        self.plot.fig.colorbar(im, ax=self.plot.axes, label="ID of the ROI")
-        self.plot.axes.set_ylabel("Y coordinate")
-        self.plot.axes.set_xlabel("X coordinate")

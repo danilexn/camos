@@ -25,7 +25,6 @@ class MeanFiringRate(Analysis):
             model, parent, signal, name=self.analysis_name
         )
         self.data = None
-        self.finished.connect(self.output_to_signalmodel)
 
     def _run(
         self,
@@ -54,38 +53,3 @@ class MeanFiringRate(Analysis):
         unique, counts = np.unique(data[:]["CellID"], return_counts=True)
         self.output[:]["CellID"] = unique.reshape(-1, 1)
         self.output[:]["MFR"] = counts.reshape(-1, 1)
-
-    def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(
-            self.output, "MFR of {}".format(self.dataname), self, mask=self.mask
-        )
-
-    def _plot(self):
-        import matplotlib.ticker as tick
-
-        mask = self.mask.astype(int)
-        MFR_dict = {}
-        for i in range(1, self.foutput.shape[0]):
-            MFR_dict[int(self.foutput[i]["CellID"][0])] = self.foutput[i]["MFR"][0]
-
-        k = np.array(list(MFR_dict.keys())).astype(int)
-        v = np.array(list(MFR_dict.values()))
-
-        dim = int(max(k.max(), np.max(mask)))
-        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
-        mapping_ar[k] = v
-        MFR_mask = mapping_ar[mask]
-
-        self.outputimage = MFR_mask
-
-        im = self.plot.axes.imshow(
-            MFR_mask / self.duration, cmap="inferno", origin="upper"
-        )
-        self.plot.fig.colorbar(
-            im, ax=self.plot.axes, label="Mean Firing Rate (Events/s)"
-        )
-        formatter = lambda x, pos: f"{(x / self.scale):.1f}"  # scale is the resolution
-        self.plot.axes.xaxis.set_major_formatter(tick.FuncFormatter(formatter))
-        self.plot.axes.yaxis.set_major_formatter(tick.FuncFormatter(formatter))
-        self.plot.axes.set_ylabel("Y coordinate ({})".format(self.units))
-        self.plot.axes.set_xlabel("X coordinate ({})".format(self.units))

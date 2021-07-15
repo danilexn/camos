@@ -9,9 +9,12 @@ import scipy.signal
 import numpy as np
 from . import oopsi
 
+from PyQt5 import QtCore
+
 from camos.tasks.analysis import Analysis
 from camos.utils.generategui import NumericInput, DatasetInput, CustomComboInput
 from camos.utils.units import get_time
+from camos.resources import resources
 
 
 class DetectPeaks(Analysis):
@@ -26,7 +29,6 @@ class DetectPeaks(Analysis):
             "oopsi Fast": self._run_oopsi,
             "Template matching": self._run_template,
         }
-        self.finished.connect(self.output_to_signalmodel)
 
     def _run(
         self,
@@ -55,37 +57,6 @@ class DetectPeaks(Analysis):
             event_amplitude=event_amplitude,
         )
 
-    def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(
-            self.output, "Peaks from {}".format(self.dataname), self, self.sampling
-        )
-
-    def _update_values_plot(self, values):
-        idx = np.isin(self.output[:]["CellID"], np.array(values))
-        self.foutput = self.output[idx]
-
-    def _plot(self):
-        ev_ids = self.foutput[:]["CellID"].flatten()
-        ids = np.unique(ev_ids)
-        ids = np.sort(ids)
-        ids_norm = np.arange(0, len(ids), 1)
-
-        k = np.array(list(ids))
-        v = np.array(list(ids_norm))
-
-        dim = max(k.max(), np.max(ids_norm))
-        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
-        mapping_ar[k] = v
-        ev_ids_norm = mapping_ar[ev_ids]
-        self.plot.axes.scatter(y=ev_ids_norm, x=self.foutput[:]["Active"], s=0.5)
-        self.plot.axes.set_ylabel("Normalized ID")
-        self.plot.axes.set_xlabel("Time ({})".format(get_time()))
-        # self.plot.axes.scatter(
-        #    y=self.foutput[:]["CellID"], x=self.foutput[:]["Active"], s=0.5
-        # )
-        # self.plot.axes.set_ylabel("ROI ID")
-        # self.plot.axes.set_xlabel("Time (s)")
-
     @property
     def methods(self):
         return list(self._methods.keys())
@@ -109,6 +80,8 @@ class DetectPeaks(Analysis):
         fps = kwargs["fps"]
         thr = kwargs["thr"]
         event_amplitude = kwargs["event_amplitude"]
+        # TODO: load the mat file as a resource
+        # mat = QtCore.QFile(":/resources/spikes.mat")
         spike_lib = scipy.io.loadmat("resources/spikes.mat")["spikes"][0]
 
         for cell in range(data.shape[0]):

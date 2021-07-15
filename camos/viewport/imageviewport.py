@@ -38,7 +38,22 @@ class ImageViewPort(pg.ImageView):
         self.ui.histogram.fillHistogram(False)
         self.ui.menuBtn.hide()
         self.ui.roiBtn.hide()
+        self.timeLine = pg.InfiniteLine(0, movable=True)
+        self.timeLine.setBounds([0, 0])
+        self.ui.roiPlot.addItem(self.timeLine)
+        self.frameTicks = pg.VTickGroup(yrange=[0.8, 1], pen=0.4)
+        self.ui.roiPlot.addItem(self.frameTicks)
+        self.region = pg.LinearRegionItem([0, 0])
+        self.region.setBounds([0, 0])
+        self.region.setZValue(-10)
+        self.ui.roiPlot.addItem(self.region)
+        self.ui.roiPlot.show()
         self.roi.rotatable = False
+
+        # Connect events to update the ImageViewModel
+        self.timeLine.sigPositionChanged.connect(
+            lambda: self.model.set_frame(t=int(self.timeLine.value()))
+        )
 
     def zoom_level_changed(self, event):
         x_min, x_max = event.viewRange()[0]
@@ -90,9 +105,6 @@ class ImageViewPort(pg.ImageView):
         sc = self.model.scales[layer]
         cmap = self.model.colormaps[layer]
         lut = cmaps.cmapToColormap(cmap).getLookupTable()
-        self.ui.histogram.hide()
-        self.ui.histogram.setImageItem(self.view.addedItems[layer + 3])
-        self.ui.histogram.fillHistogram(False)
         if op / 100 != self.view.addedItems[layer + 3].opacity:
             self.view.addedItems[layer + 3].setOpts(opacity=op / 100)
         if not np.array(lut == self.view.addedItems[layer + 3].lut).all():
@@ -114,9 +126,29 @@ class ImageViewPort(pg.ImageView):
         self.scale.text.setText("{} {}".format(_range, get_length()))
 
     def update_scalebar(self, pxsize=1):
+        # Check if there are layers at all
+        layer = self.model.currentlayer
+        if layer < 0:
+            return
+
         self.pixelsize = pxsize
         sz = self.scale.size * self.pixelsize
         self.scale.size = sz / pxsize
+
+        # Update histogram after scaling and changing other levels
+        self.ui.histogram.hide()
+        self.ui.histogram.setImageItem(self.view.addedItems[layer + 3])
+        self.ui.histogram.setHistogramRange(
+            mn=1, mx=np.max(self.view.addedItems[layer + 3].image)
+        )
+        self.ui.histogram.show()
+
+        # Update the frame selector
+        bound = [0, self.model.frames[layer]]
+        self.timeLine.setBounds(bound)
+        self.timeLine.setValue(self.model.frame)
+        self.region.setBounds(bound)
+        self.region.setRegion(bound)
 
     def update_viewport_frame(self, layer=0):
         image = self.model.get_layer(layer=layer)

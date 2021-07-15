@@ -6,6 +6,9 @@
 
 # Derived from multipagetiff, credits to mpascucci
 
+from tempfile import mkdtemp
+import os.path as _path
+
 from collections.abc import Sequence
 from PIL import Image
 import numpy as np
@@ -13,7 +16,8 @@ import numpy as np
 import copy
 
 
-def tiff2nparray(path):
+def tiff2nparray(path, persistence=True):
+    # TODO: fix for large stacks
     im = Image.open(path)
     i = 0
     frames = []
@@ -25,10 +29,20 @@ def tiff2nparray(path):
     except EOFError:
         pass
 
-    return np.array(frames), im
+    frames = np.array(frames)
+    if persistence:
+        return frames, im.info
+
+    path = _path.join(mkdtemp(), "memmap.dat")
+    out_mmap = np.memmap(path, dtype=frames.dtype, mode="w+", shape=frames.shape,)
+
+    out_mmap[:] = frames
+
+    out = np.memmap(path, dtype=frames.dtype, mode="r", shape=frames.shape,)
+    return out, im.info
 
 
-def list2stack(paths):
+def list2stack(paths, persistence=True):
     frames = []
     for path in paths:
         im = Image.open(path)
@@ -41,10 +55,20 @@ def list2stack(paths):
         except EOFError:
             pass
 
-    return np.array(frames), im
+    frames = np.array(frames)
+    if persistence:
+        return frames, im.info
+
+    path = _path.join(mkdtemp(), "memmap.dat")
+    out_mmap = np.memmap(path, dtype=frames.dtype, mode="w+", shape=frames.shape,)
+
+    out_mmap[:] = frames
+
+    out = np.memmap(path, dtype=frames.dtype, mode="r", shape=frames.shape,)
+    return out, im.info
 
 
-def nparray(arr):
+def nparray(arr, persistence=True):
     i = 0
     frames = []
     try:
@@ -66,7 +90,18 @@ def nparray(arr):
     except:
         pass
 
-    return np.array(frames)
+    frames = np.array(frames)
+    if persistence:
+        return frames
+
+    path = _path.join(mkdtemp(), "memmap.dat")
+    out_mmap = np.memmap(path, dtype=frames.dtype, mode="w+", shape=frames.shape,)
+
+    out_mmap[:] = frames
+
+    out = np.memmap(path, dtype=frames.dtype, mode="r", shape=frames.shape,)
+
+    return out
 
 
 class Stack(Sequence):
@@ -75,7 +110,9 @@ class Stack(Sequence):
     Each page is a numpy array.
     """
 
-    def __init__(self, path, dx, dz, title="", z_label="depth", units=""):
+    def __init__(
+        self, path, dx, dz, title="", z_label="depth", units="", persistence=True
+    ):
         """
         :param path: path to the tiff file
         :param dx: value of one pixel in physical units, on the transverse plane (X,Y)
@@ -93,15 +130,15 @@ class Stack(Sequence):
         self.dx = dx
         self.dz = dz
         if type(path) == str:
-            self._imgs, im = tiff2nparray(path)
+            self._imgs, info = tiff2nparray(path, persistence)
             try:
-                self.dx = im.info["resolution"][0]
+                self.dx = info["resolution"][0]
             except:
                 pass
         elif type(path) == list:
-            self._imgs, im = list2stack(path)
+            self._imgs, info = list2stack(path, persistence)
         elif type(path) == np.ndarray:
-            self._imgs = nparray(copy.deepcopy(path))
+            self._imgs = nparray(copy.deepcopy(path), persistence)
         else:
             raise NotImplementedError("The path format is unknown")
 

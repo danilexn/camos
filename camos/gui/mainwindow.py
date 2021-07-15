@@ -7,9 +7,6 @@
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QHBoxLayout, QMenu, QMessageBox
-import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtGui
-import pyqtgraph.console
 
 import os
 
@@ -23,6 +20,8 @@ from camos.utils.units import get_length
 import camos.utils.units as units
 from camos.utils.pluginmanager import plugin_open
 from camos.utils.console import open_console
+from camos.gui.helpers import MouseHelp
+from camos.resources import resources
 
 from camos.gui.framecontainer import FrameContainer
 
@@ -75,7 +74,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Layout of the UI
         layout = QHBoxLayout()
-        self.centralwidget = QtGui.QWidget(self)
+        self.centralwidget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.centralwidget)
         self.centralwidget.setLayout(layout)
         self.init_UI()
@@ -93,7 +92,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Basic appearance properties; title, geometry and statusbar. Eventually, shows the window.
         """
         self.setWindowTitle(self.title)
-        self.setWindowIcon(QIcon("resources/icon-app.png"))
+        self.setWindowIcon(QIcon(":/resources/icon-app.png"))
         self.setGeometry(100, 100, 800, 600)
         self.statusBar().showMessage("Statusbar - awaiting user control")
 
@@ -175,6 +174,39 @@ class MainWindow(QtWidgets.QMainWindow):
         # Sublevels
         self.createEditMenu()
 
+        # Help menu
+        # sublevels
+        self.createHelpMenu()
+
+    def createHelpMenu(self):
+        # Display Help
+        self.helpAct = QtWidgets.QAction("User Guide", self)
+        self.helpAct.setStatusTip("Opens a local version of the User Guide")
+        self.helpAct.triggered.connect(self._open_help)
+        self.helpMenu.addAction(self.helpAct)
+        self.mouseAct = QtWidgets.QAction("Mouse Actions", self)
+        self.mouseAct.setStatusTip("Help about available mouse actions")
+        self.mouseAct.triggered.connect(self._help_mouse)
+        self.helpMenu.addAction(self.mouseAct)
+
+        self.helpMenu.addSeparator()
+
+        # Display About window
+        self.aboutAct = QtWidgets.QAction("About CaMOS", self)
+        self.aboutAct.setStatusTip("Opens a dialog with information about CaMOS")
+        self.aboutAct.triggered.connect(self._about_camos)
+        self.helpMenu.addAction(self.aboutAct)
+
+    def _open_help(self):
+        pass
+
+    def _about_camos(self):
+        pass
+
+    def _help_mouse(self):
+        dialog = MouseHelp(self)
+        dialog.exec_()
+
     def createEditMenu(self):
         # Sublevels
         # Undo
@@ -187,19 +219,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.copyAct = QtWidgets.QAction("Copy", self)
         self.copyAct.setShortcut("Ctrl+C")
         self.copyAct.setStatusTip("Copy")
-        self.copyAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
+        self.copyAct.triggered.connect(self._copy_image)
 
         # Paste
         self.pasteAct = QtWidgets.QAction("Paste", self)
         self.pasteAct.setShortcut("Ctrl+V")
         self.pasteAct.setStatusTip("Paste")
-        self.pasteAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
-
-        # Paste
-        self.pasteAct = QtWidgets.QAction("Paste", self)
-        self.pasteAct.setShortcut("Ctrl+V")
-        self.pasteAct.setStatusTip("Paste")
-        self.pasteAct.triggered.connect(lambda: self.closeEvent(QtGui.QCloseEvent()))
+        self.pasteAct.triggered.connect(self._paste_image)
 
         # Attach to edit menu
         self.editMenu.addAction(self.undoAct)
@@ -226,6 +252,12 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             event.ignore()
 
+    def _paste_image(self):
+        self.model.from_clipboard()
+
+    def _copy_image(self):
+        pass
+
     def readSettings(self):
         self.configuration.applyConfiguration(self.current_configuration, self)
 
@@ -245,26 +277,26 @@ class MainWindow(QtWidgets.QMainWindow):
                 plugin_open[idx]["instance"](f)
 
 
-class OpenerDialog(QtGui.QDialog):
+class OpenerDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, name=""):
         super(OpenerDialog, self).__init__(parent)
 
         self.setWindowTitle("Select plugin")
-        label = QtGui.QLabel("Select a opening plugin for {}".format(name))
-        self.combo = QtGui.QComboBox()
+        label = QtWidgets.QLabel("Select a opening plugin for {}".format(name))
+        self.combo = QtWidgets.QComboBox()
         self.parent = parent
         plugin_names = [p["name"] for p in plugin_open]
         self.combo.addItems(plugin_names)
 
-        box = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             centerButtons=True,
         )
 
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
 
-        lay = QtGui.QGridLayout(self)
+        lay = QtWidgets.QGridLayout(self)
         lay.addWidget(label)
         lay.addWidget(self.combo)
         lay.addWidget(box, 2, 0, 1, 2)

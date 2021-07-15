@@ -67,7 +67,7 @@ class CAMOSImageReg(Processing):
         self.model.translate_position(self.index_img, self.output)
 
     def output_to_imagemodel(self):
-        image = InputData(self.output, memoryPersist=True)
+        image = InputData(self.output)
         image.loadImage()
         self.parent.model.add_image(
             image,

@@ -58,9 +58,14 @@ class OpenCMOS(Opening):
     def _run(self):
         # We need to change this, otherwise PIL does not open the image
         PIL.Image.MAX_IMAGE_PIXELS = 933120000
-        self.image = InputData(self.filename, memoryPersist=True)
+        self.image = InputData(self.filename)
         self.image.loadImage()
         self.minimodel.add_image(self.image)
+
+    def buildUI(self):
+        self._initialize_UI()
+        self.initialize_UI()
+        self._final_initialize_UI()
 
     def initialize_UI(self):
         self.onlyInt = QIntValidator()
@@ -210,7 +215,7 @@ class OpenCMOS(Opening):
             ]
             grid_image[_min_x:_max_x, _min_y:_max_y] = replacement[i]
 
-        self.grid_image = InputData(grid_image, memoryPersist=True)
+        self.grid_image = InputData(grid_image)
         self.grid_image.loadImage()
         self.grid_image.coords = pos
         self.parent.model.add_image(self.grid_image, scale=[1 / scale, 1 / scale])

@@ -28,7 +28,7 @@ chevron_up_svg = b"""<?xml version="1.0" encoding="utf-8"?>
 
 chevron_up_svg_file = QtCore.QTemporaryFile()
 if chevron_up_svg_file.open():
-    chevron_up_svg_file.write(chevron_down_svg)
+    chevron_up_svg_file.write(chevron_up_svg)
     chevron_up_svg_file.flush()
 
 delete_shape_svg = b"""<?xml version="1.0" encoding="utf-8"?>
@@ -41,7 +41,7 @@ delete_shape_svg = b"""<?xml version="1.0" encoding="utf-8"?>
 
 delete_shape_svg_file = QtCore.QTemporaryFile()
 if delete_shape_svg_file.open():
-    delete_shape_svg_file.write(chevron_down_svg)
+    delete_shape_svg_file.write(delete_shape_svg)
     delete_shape_svg_file.flush()
 
 # Styles (QSS)
@@ -70,13 +70,13 @@ CaMOSQtNotification #expand_button {
 
 CaMOSQtNotification[expanded="false"] #expand_button {
   image: url("""
-    + chevron_down_svg_file.fileName()
+    + chevron_up_svg_file.fileName()
     + """);
 }
 
 CaMOSQtNotification[expanded="true"] #expand_button {
   image: url("""
-    + chevron_up_svg_file.fileName()
+    + chevron_down_svg_file.fileName()
     + """);
 }
 

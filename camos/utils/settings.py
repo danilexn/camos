@@ -166,6 +166,18 @@ class Config(QtCore.QSettings):
         else:
             return default_value
 
+    def performanceRAM(self):
+        """Returns the RAM persistence setting
+        """
+
+        key = "Performance/RAM_persistence"
+        default_value = True
+        setting_value = self.value(key)
+        if isinstance(setting_value, int):
+            return setting_value
+        else:
+            return default_value
+
     def writeValue(self, key, value):
         """
         Write an entry to the configuration file.
@@ -201,6 +213,7 @@ class Config(QtCore.QSettings):
         config["Viewport/Color"] = self.viewportColor()
         config["Units/Length"] = self.unitsLength()
         config["Units/Time"] = self.unitsTime()
+        config["Performance/RAM_persistence"] = self.performanceRAM()
         return config
 
     def applyConfiguration(self, config, gui):
@@ -259,6 +272,10 @@ class Config(QtCore.QSettings):
         if key in config:
             self.units_time = config[key]
 
+        key = "Performance/RAM_persistence"
+        if key in config:
+            self.RAM_persistence = config[key]
+
     def saveConfiguration(self):
         """
         Store current application settings on disk.
@@ -278,4 +295,5 @@ class Config(QtCore.QSettings):
         self.writeValue("Viewport/Color", self.viewport_color)
         self.writeValue("Units/Length", self.units_length)
         self.writeValue("Units/Time", self.units_time)
+        self.writeValue("Performance/RAM_persistence", self.RAM_persistence)
         self.sync()

@@ -50,6 +50,6 @@ class CAMOSStackReg(Processing):
         self.output = out
 
     def output_to_imagemodel(self):
-        image = InputData(self.output, memoryPersist=True,)
+        image = InputData(self.output)
         image.loadImage()
         self.parent.model.add_image(image, "StackReg of {}".format(self.imagename))
