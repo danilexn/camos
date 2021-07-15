@@ -7,8 +7,6 @@
 from camos.tasks.saving import Saving
 
 import pickle
-import dill
-import weakref
 
 
 class SaveView(Saving):
@@ -20,5 +18,4 @@ class SaveView(Saving):
 
     def _run(self):
         with open(self.filename, "wb") as f:
-            # dill.dump(weakref.ref(self.model), f)
             pickle.dump(self.model, f)
