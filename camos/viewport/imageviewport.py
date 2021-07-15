@@ -254,7 +254,7 @@ class DrawingImage(pg.ImageItem):
                 self.ctrl_modif = False
 
         else:
-            if event.modifiers() == QtCore.Qt.ControlModifier:
+            if (event.modifiers() == QtCore.Qt.ControlModifier) or self.ctrl_modif:
                 p = event.pos()
                 x, y = event.pos().x(), event.pos().y()
                 self.accpos[0] = self.accpos[0] + x
