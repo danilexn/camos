@@ -21,6 +21,7 @@ import camos.utils.units as units
 from camos.utils.pluginmanager import plugin_open
 from camos.utils.console import open_console
 from camos.gui.helpers import MouseHelp
+from camos.resources import resources
 
 from camos.gui.framecontainer import FrameContainer
 
@@ -91,7 +92,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Basic appearance properties; title, geometry and statusbar. Eventually, shows the window.
         """
         self.setWindowTitle(self.title)
-        self.setWindowIcon(QIcon("resources/icon-app.png"))
+        self.setWindowIcon(QIcon(":/resources/icon-app.png"))
         self.setGeometry(100, 100, 800, 600)
         self.statusBar().showMessage("Statusbar - awaiting user control")
 

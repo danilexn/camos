@@ -1,0 +1,20 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file>resources/icon-align.svg</file>
+    <file>resources/icon-all.svg</file>
+    <file>resources/icon-app.png</file>
+    <file>resources/icon-crop.svg</file>
+    <file>resources/icon-duplicate.svg</file>
+    <file>resources/icon-find.svg</file>
+    <file>resources/icon-flip.svg</file>
+    <file>resources/icon-multiply.svg</file>
+    <file>resources/icon-neuron.svg</file>
+    <file>resources/icon-remove.svg</file>
+    <file>resources/icon-sum.svg</file>
+    <file>resources/icon-roi.svg</file>
+    <file>resources/icon-rotate.svg</file>
+    <file>resources/icon-subtract.svg</file>
+    <file>resources/reset-axis.svg</file>
+    <file>resources/spikes.mat</file>
+</qresource>
+</RCC>

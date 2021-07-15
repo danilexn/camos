@@ -255,6 +255,9 @@ class SignalViewer2(QObject):
 
 class MultiLine(pg.QtGui.QGraphicsPathItem):
     def __init__(self, x, y, parent):
+        self.parent = parent
+        self.parent.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+
         n = len(x) if len(x) % 2 == 0 else len(x) - 1
         # Duplicating the data to connect
         x = x[0:n]
@@ -273,9 +276,14 @@ class MultiLine(pg.QtGui.QGraphicsPathItem):
         # Creating the plot
         self.path = pg.arrayToQPath(x, y, connect="pairs")
         pg.QtGui.QGraphicsPathItem.__init__(self, self.path)
-        self.setPen(QPen(QtCore.Qt.white, 1))
-        self.parent = parent
-        self.parent.getViewBox().setMouseMode(pg.ViewBox.RectMode)
+
+        self.updatePen()
+
+    def updatePen(self):
+        sz = self.parent.getViewBox().size().width()
+        _rg = self.parent.getViewBox().state["viewRange"][0]
+        rg = abs(_rg[1] - _rg[0])
+        self.setPen(QPen(QtCore.Qt.white, 2 * rg / sz))
 
     def shape(self):
         return pg.QtGui.QGraphicsItem.shape(self)
@@ -285,21 +293,12 @@ class MultiLine(pg.QtGui.QGraphicsPathItem):
 
     def wheelEvent(self, *args):
         super(MultiLine, self).wheelEvent(*args)
-        sz = self.parent.getViewBox().size().width()
-        _rg = self.parent.getViewBox().state["viewRange"][0]
-        rg = abs(_rg[1] - _rg[0])
-        self.setPen(QPen(QtCore.Qt.white, 0.1 * sz * rg / 10 ** 6))
+        self.updatePen()
 
     def mousePressEvent(self, *args):
         super(MultiLine, self).mousePressEvent(*args)
-        sz = self.parent.getViewBox().size().width()
-        _rg = self.parent.getViewBox().state["viewRange"][0]
-        rg = abs(_rg[1] - _rg[0])
-        self.setPen(QPen(QtCore.Qt.white, 0.1 * sz * rg / 10 ** 6))
+        self.updatePen()
 
     def mouseReleaseEvent(self, *args):
         super(MultiLine, self).mousePressEvent(*args)
-        sz = self.parent.getViewBox().size().width()
-        _rg = self.parent.getViewBox().state["viewRange"][0]
-        rg = abs(_rg[1] - _rg[0])
-        self.setPen(QPen(QtCore.Qt.white, 0.1 * sz * rg / 10 ** 6))
+        self.updatePen()

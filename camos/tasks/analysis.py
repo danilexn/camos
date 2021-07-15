@@ -17,6 +17,7 @@ class Analysis(BaseTask):
         self.sampling = 1
         self.finished.connect(self.output_to_signalmodel)
         self.outputimage = np.zeros((1, 1))
+        self.mask = []
 
     def output_to_signalmodel(self):
         self.parent.signalmodel.add_data(

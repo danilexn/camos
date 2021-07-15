@@ -80,22 +80,3 @@ class ExtractSignal(Analysis):
             dF_cell[:, it] = (F[:, it] - F0) / F0
 
         self.output = dF_cell
-
-    def output_to_signalmodel(self):
-        name = self.imagename
-        self.parent.signalmodel.add_data(
-            self.output, "Signal from {}".format(name), self
-        )
-
-    def _plot(self):
-        offset = 0
-        cellID = []
-        for i in range(self.foutput.shape[0]):
-            t = np.arange(0, self.foutput.shape[1], 1) / self.sampling
-            self.plot.axes.plot(t, self.foutput[i] + offset)
-            cellID.append(str(i + 1))
-            offset += 1
-
-        self.plot.axes.set_yticks(np.arange(0, len(cellID)), minor=cellID)
-        self.plot.axes.set_ylabel("ROI ID")
-        self.plot.axes.set_xlabel("Time ({})".format(get_time()))

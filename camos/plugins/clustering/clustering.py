@@ -94,26 +94,3 @@ class Correlation(Analysis):
 
         gm = GaussianMixture(n_components=2, random_state=0).fit_predict(X)
         return gm.labels_
-
-    def _plot(self):
-        mask = self.mask.astype(int)
-        clust_dict = {}
-        for i in range(1, self.foutput.shape[0]):
-            clust_dict[int(self.foutput[i]["CellID"][0])] = self.foutput[i]["Cluster"][
-                0
-            ]
-
-        k = np.array(list(clust_dict.keys()))
-        v = np.array(list(clust_dict.values()))
-
-        dim = int(max(k.max(), np.max(mask)))
-        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
-        mapping_ar[k] = v
-        clust_mask = mapping_ar[mask]
-
-        self.outputimage = clust_mask
-
-        im = self.plot.axes.imshow(clust_mask, cmap="inferno", origin="upper")
-        self.plot.fig.colorbar(im, ax=self.plot.axes, label="ID of the ROI")
-        self.plot.axes.set_ylabel("Y coordinate")
-        self.plot.axes.set_xlabel("X coordinate")

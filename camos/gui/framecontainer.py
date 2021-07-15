@@ -26,6 +26,7 @@ from camos.utils.cmaps import cmaps
 from camos.utils.units import get_length
 from camos.utils.strings import range_to_list
 from camos.viewport.tableviewer import TableViewer
+from camos.resources import resources
 
 MAXNAMELEN = 30
 
@@ -247,7 +248,7 @@ class FrameContainer(QtWidgets.QWidget):
         # File actions
         self.removeAction = QAction(self)
         self.removeAction.setText("&Remove")
-        self.removeAction.setIcon(QIcon("resources/icon-remove.svg"))
+        self.removeAction.setIcon(QIcon(":/resources/icon-remove.svg"))
         self.removeAction.setToolTip(
             "Removes the currently selected image (or dataset) layer"
         )
@@ -259,27 +260,29 @@ class FrameContainer(QtWidgets.QWidget):
         self.duplicateAction.setToolTip(
             "Duplicates the currently selected image (or dataset) layer"
         )
-        self.rotateAction = QAction(QIcon("resources/icon-rotate.svg"), "&Rotate", self)
+        self.rotateAction = QAction(
+            QIcon(":/resources/icon-rotate.svg"), "&Rotate", self
+        )
         self.rotateAction.triggered.connect(self._rotate_layer)
         self.rotateAction.setToolTip(
             "Creates a new image that is a 90 degree rotation of the currently selected image"
         )
-        self.flipAction = QAction(QIcon("resources/icon-flip.svg"), "&Flip", self)
+        self.flipAction = QAction(QIcon(":/resources/icon-flip.svg"), "&Flip", self)
         self.flipAction.triggered.connect(self._flip_layer)
         self.flipAction.setToolTip(
             "Creates a new image that is a horizontal flip of the currently selected image"
         )
-        self.toggleROIAction = QAction(QIcon("resources/icon-roi.svg"), "&ROI", self)
+        self.toggleROIAction = QAction(QIcon(":/resources/icon-roi.svg"), "&ROI", self)
         self.toggleROIAction.triggered.connect(self._toggle_roi)
         self.toggleROIAction.setToolTip("Toggles the ROI selector On or Off")
-        self.cropAction = QAction(QIcon("resources/icon-crop.svg"), "&Crop", self)
+        self.cropAction = QAction(QIcon(":/resources/icon-crop.svg"), "&Crop", self)
         self.cropAction.triggered.connect(self._crop_layer)
         self.cropAction.setToolTip(
             """Creates a new image that is a cropped version of the
 currently selected layer, within the ROI coordinates"""
         )
         self.cellSelect = QAction(
-            QIcon("resources/icon-neuron.svg"), "&Select Cell", self
+            QIcon(":/resources/icon-neuron.svg"), "&Select Cell", self
         )
         self.cellSelect.triggered.connect(self._select_cells)
         self.cellSelect.setToolTip(
@@ -287,39 +290,43 @@ currently selected layer, within the ROI coordinates"""
 a new image filtered by the value of the double-clicked pixel will be
 created from the currently selected layer"""
         )
-        self.findIDs = QAction(QIcon("resources/icon-find.svg"), "&Find IDs", self)
+        self.findIDs = QAction(QIcon(":/resources/icon-find.svg"), "&Find IDs", self)
         self.findIDs.triggered.connect(self._find_ids)
         self.findIDs.setToolTip(
             """For the currently selected image (or data) layer, you will be prompted
 to introduce a list of IDs to filter. A new image (or data) layer will be
 created filtered by the introduced IDs."""
         )
-        self.resetAxis = QAction(QIcon("resources/reset-axis.svg"), "&Align zero", self)
+        self.resetAxis = QAction(
+            QIcon(":/resources/reset-axis.svg"), "&Align zero", self
+        )
         self.resetAxis.triggered.connect(self._reset_axis)
         self.resetAxis.setToolTip(
             """For the currently selected image, the position will be restored to the
 global (0, 0) coordinate of the viewport."""
         )
-        self.sendMask = QAction(QIcon("resources/icon-all.svg"), "&Select All", self)
+        self.sendMask = QAction(QIcon(":/resources/icon-all.svg"), "&Select All", self)
         self.sendMask.triggered.connect(self._send_mask)
         self.sendMask.setToolTip(
             """For the currently selected layer, all unique values will be used to filter
 the IDs displayed in all plots (e.g., Y-axis in a raster plot)"""
         )
-        self.alignImage = QAction(QIcon("resources/icon-align.svg"), "&Align to", self)
+        self.alignImage = QAction(
+            QIcon(":/resources/icon-align.svg"), "&Align to", self
+        )
         self.alignImage.triggered.connect(self._align_image)
         self.alignImage.setToolTip(
             """For the currently selected layer, you will be prompted to select another
 layer which will be aligned/moved to its same position (top-left corner)"""
         )
-        self.sumLayers = QAction(QIcon("resources/icon-sum.svg"), "&Sum", self)
+        self.sumLayers = QAction(QIcon(":/resources/icon-sum.svg"), "&Sum", self)
         self.sumLayers.triggered.connect(self._sum_layers)
         self.sumLayers.setToolTip(
             """A new image will be generated as the sum of two images: the currently
 selected layer and another layer you are prompted to select."""
         )
         self.subtractLayers = QAction(
-            QIcon("resources/icon-subtract.svg"), "&Subtract", self
+            QIcon(":/resources/icon-subtract.svg"), "&Subtract", self
         )
         self.subtractLayers.triggered.connect(self._subtract_layers)
         self.subtractLayers.setToolTip(
@@ -327,7 +334,7 @@ selected layer and another layer you are prompted to select."""
 the currently selected layer and another layer you are prompted to select."""
         )
         self.intersectLayers = QAction(
-            QIcon("resources/icon-multiply.svg"), "&Intersect", self
+            QIcon(":/resources/icon-multiply.svg"), "&Intersect", self
         )
         self.intersectLayers.triggered.connect(self._intersect_layers)
         self.intersectLayers.setToolTip(
