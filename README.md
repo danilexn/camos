@@ -8,7 +8,8 @@
 
 **CaMOS** is an interactive application for CMOS and Calcium imaging registration. It's designed for browsing, detection, and easier signal processing across large datasets.
 
-## Installation
+## First Steps
+### Installing _CaMOS_
 CaMOS can be installed on most macOS, Linux, and Windows systems with Python >=3.7. Currently, you can just install CaMOS from source. We are planning on adding pip in the future.
 
 ```bash
@@ -22,7 +23,7 @@ pip install -e '.[all]'
 
 Make sure you have an internet connection during the installation process, as pip will require it to automatically install all dependencies. Otherwise, dependencies listed under `requirements.txt` are expected to be installed beforehand.
 
-## Running _CaMOS_
+### Running _CaMOS_
 To run CaMOS as a Python module, either having installed it with pip (or not), you can execute the following command
 ```bash
 cd CMS-TEA-DZNE # or wherever the repo directory is
@@ -33,6 +34,9 @@ If you have installed it with pip, following the instructions above, you may exe
 ```bash
 camos
 ```
+
+### Using _CaMOS_
+To get detailed instructions on how to use _CaMOS_, please visit our [Wiki](https://github.com/danilexn/CMS-TEA-DZNE/wiki) page. You will find information about the core functionality and the built-in _plugins_.
 
 ## Creating plugins
 **CaMOS** offers a modular way to create plugins, which are automatically loaded when you run the program. This is based in the concept of *Tasks*. There are three types of *Tasks*, which inherit from a universal *Base* task. *Base* contains the essential methods to run, plot and move the data through CaMOS - and generate the corresponding GUI signals. To write a plugin, you first have to select between one of the four *Tasks* available:
