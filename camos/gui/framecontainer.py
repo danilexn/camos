@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-# Last modified on Wed Jul 07 2021
+# Last modified on Thu Jul 15 2021
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
@@ -15,20 +15,19 @@ from PyQt5.QtWidgets import (
     QSlider,
     QLabel,
     QComboBox,
-    QScrollBar,
     QAction,
     QWidget,
 )
 from PyQt5.QtGui import QDoubleValidator
-from PyQt5.QtCore import pyqtSignal
 
 import pyqtgraph as pg
 
 from camos.utils.cmaps import cmaps
 from camos.utils.units import get_length
 from camos.utils.strings import range_to_list
-from camos.gui.qt.qt_range_slider import QtRangeSlider
 from camos.viewport.tableviewer import TableViewer
+
+MAXNAMELEN = 30
 
 
 class FrameContainer(QtWidgets.QWidget):
@@ -108,9 +107,12 @@ class FrameContainer(QtWidgets.QWidget):
             name (str): the name of the new layer to be added
         """
         name = self.parent.model.names[layer]
-        item = QListWidgetItem(name)
-        item.setIcon(QIcon(self.parent.model.get_icon(-1)))
+        _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
+        item = QListWidgetItem(_s_name)
+        item.setIcon(QIcon(self.parent.model.get_icon(layer)))
+        item.setToolTip(name + " (double click to change)")
         self.opened_layers_widget.addItem(item)
+        self.opened_layers_widget.setCurrentItem(item)
         # maxframe = self.parent.model.frames[layer]
         # self.current_frame_slider.setRange(0, maxframe - 1)
         # self.current_frame_rangeslider.setRange(0, maxframe - 1)
@@ -121,7 +123,9 @@ class FrameContainer(QtWidgets.QWidget):
         Args:
             name (str): the name of the new layer to be added
         """
-        item = QListWidgetItem(name)
+        _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
+        item = QListWidgetItem(_s_name)
+        item.setToolTip(name + " (double click to display)")
         self.opened_data_widget.addItem(item)
 
     def open_data_layer(self):
@@ -137,7 +141,9 @@ class FrameContainer(QtWidgets.QWidget):
             self.parent.model.names[layer[0].row()] = text
             items = self.opened_layers_widget.selectedItems()
             for item in items:
-                item.setText(text)
+                _s_name = text if len(text) < MAXNAMELEN else text[0:MAXNAMELEN] + "..."
+                item.setText(_s_name)
+                item.setToolTip(text + " (double click to change)")
 
     def _createLayersControls(self):
         """For the lateral layer control, creates the upper view of layers, and the bottom individual controls per layer
@@ -242,41 +248,92 @@ class FrameContainer(QtWidgets.QWidget):
         self.removeAction = QAction(self)
         self.removeAction.setText("&Remove")
         self.removeAction.setIcon(QIcon("resources/icon-remove.svg"))
+        self.removeAction.setToolTip(
+            "Removes the currently selected image (or dataset) layer"
+        )
         self.removeAction.triggered.connect(self._button_remove)
         self.duplicateAction = QAction(
             QIcon("resources/icon-duplicate.svg"), "&Duplicate", self
         )
         self.duplicateAction.triggered.connect(self._button_duplicate)
+        self.duplicateAction.setToolTip(
+            "Duplicates the currently selected image (or dataset) layer"
+        )
         self.rotateAction = QAction(QIcon("resources/icon-rotate.svg"), "&Rotate", self)
         self.rotateAction.triggered.connect(self._rotate_layer)
+        self.rotateAction.setToolTip(
+            "Creates a new image that is a 90 degree rotation of the currently selected image"
+        )
         self.flipAction = QAction(QIcon("resources/icon-flip.svg"), "&Flip", self)
         self.flipAction.triggered.connect(self._flip_layer)
+        self.flipAction.setToolTip(
+            "Creates a new image that is a horizontal flip of the currently selected image"
+        )
         self.toggleROIAction = QAction(QIcon("resources/icon-roi.svg"), "&ROI", self)
         self.toggleROIAction.triggered.connect(self._toggle_roi)
+        self.toggleROIAction.setToolTip("Toggles the ROI selector On or Off")
         self.cropAction = QAction(QIcon("resources/icon-crop.svg"), "&Crop", self)
         self.cropAction.triggered.connect(self._crop_layer)
+        self.cropAction.setToolTip(
+            """Creates a new image that is a cropped version of the
+currently selected layer, within the ROI coordinates"""
+        )
         self.cellSelect = QAction(
             QIcon("resources/icon-neuron.svg"), "&Select Cell", self
         )
         self.cellSelect.triggered.connect(self._select_cells)
+        self.cellSelect.setToolTip(
+            """Toggles the selection of cells On or Off. When double clicking,
+a new image filtered by the value of the double-clicked pixel will be
+created from the currently selected layer"""
+        )
         self.findIDs = QAction(QIcon("resources/icon-find.svg"), "&Find IDs", self)
         self.findIDs.triggered.connect(self._find_ids)
+        self.findIDs.setToolTip(
+            """For the currently selected image (or data) layer, you will be prompted
+to introduce a list of IDs to filter. A new image (or data) layer will be
+created filtered by the introduced IDs."""
+        )
         self.resetAxis = QAction(QIcon("resources/reset-axis.svg"), "&Align zero", self)
         self.resetAxis.triggered.connect(self._reset_axis)
+        self.resetAxis.setToolTip(
+            """For the currently selected image, the position will be restored to the
+global (0, 0) coordinate of the viewport."""
+        )
         self.sendMask = QAction(QIcon("resources/icon-all.svg"), "&Select All", self)
         self.sendMask.triggered.connect(self._send_mask)
+        self.sendMask.setToolTip(
+            """For the currently selected layer, all unique values will be used to filter
+the IDs displayed in all plots (e.g., Y-axis in a raster plot)"""
+        )
         self.alignImage = QAction(QIcon("resources/icon-align.svg"), "&Align to", self)
         self.alignImage.triggered.connect(self._align_image)
+        self.alignImage.setToolTip(
+            """For the currently selected layer, you will be prompted to select another
+layer which will be aligned/moved to its same position (top-left corner)"""
+        )
         self.sumLayers = QAction(QIcon("resources/icon-sum.svg"), "&Sum", self)
         self.sumLayers.triggered.connect(self._sum_layers)
+        self.sumLayers.setToolTip(
+            """A new image will be generated as the sum of two images: the currently
+selected layer and another layer you are prompted to select."""
+        )
         self.subtractLayers = QAction(
             QIcon("resources/icon-subtract.svg"), "&Subtract", self
         )
         self.subtractLayers.triggered.connect(self._subtract_layers)
+        self.subtractLayers.setToolTip(
+            """A new image will be generated as the difference of two images:
+the currently selected layer and another layer you are prompted to select."""
+        )
         self.intersectLayers = QAction(
             QIcon("resources/icon-multiply.svg"), "&Intersect", self
         )
         self.intersectLayers.triggered.connect(self._intersect_layers)
+        self.intersectLayers.setToolTip(
+            """A new image will be generated as the intersection (pixel value different to 0)
+of two images: the currently selected layer and another layer you select."""
+        )
 
     def _button_remove(self):
         if self.opened_data.currentIndex() == 0:
@@ -612,7 +669,7 @@ class LayerPrefsDialog(QtWidgets.QDialog):
         pixelsize = self.model.pixelsize[idx]
         scale = self.model.scales[idx][0]
 
-        self.setWindowTitle(name)
+        self.setWindowTitle("Preferences of {}".format(name))
 
         self.onlyDouble = QDoubleValidator()
         self.samplRate_label = QLabel("Sampling rate (Hz)")

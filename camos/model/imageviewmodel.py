@@ -13,7 +13,7 @@ import numpy as np
 from camos.model.inputdata import InputData
 
 MAXHISTORY = 20
-MAXNAMELEN = 30
+MAXNAMELEN = 300
 
 
 class ImageViewModel(QObject):

@@ -31,7 +31,7 @@ class Opening(BaseTask):
             extensions (str, optional): filter for the extensions in the QFileDialog. Defaults to "avi File (*.avi);;mov File (*.mov)".
         """
         super(Opening, self).__init__(*args, **kwargs)
-        self.show = show
+        self._show = show
         self.extensions = extensions
 
     def display(self):
@@ -47,7 +47,7 @@ class Opening(BaseTask):
         if self.filename == "":
             raise ValueError("No file was selected")
 
-        if self.show:
+        if self._show:
             self.buildUI()
             self.show()
         else:

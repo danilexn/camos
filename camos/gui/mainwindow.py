@@ -20,6 +20,7 @@ from camos.utils.units import get_length
 import camos.utils.units as units
 from camos.utils.pluginmanager import plugin_open
 from camos.utils.console import open_console
+from camos.gui.helpers import MouseHelp
 
 from camos.gui.framecontainer import FrameContainer
 
@@ -171,6 +172,39 @@ class MainWindow(QtWidgets.QMainWindow):
         # Edit menu
         # Sublevels
         self.createEditMenu()
+
+        # Help menu
+        # sublevels
+        self.createHelpMenu()
+
+    def createHelpMenu(self):
+        # Display Help
+        self.helpAct = QtWidgets.QAction("User Guide", self)
+        self.helpAct.setStatusTip("Opens a local version of the User Guide")
+        self.helpAct.triggered.connect(self._open_help)
+        self.helpMenu.addAction(self.helpAct)
+        self.mouseAct = QtWidgets.QAction("Mouse Actions", self)
+        self.mouseAct.setStatusTip("Help about available mouse actions")
+        self.mouseAct.triggered.connect(self._help_mouse)
+        self.helpMenu.addAction(self.mouseAct)
+
+        self.helpMenu.addSeparator()
+
+        # Display About window
+        self.aboutAct = QtWidgets.QAction("About CaMOS", self)
+        self.aboutAct.setStatusTip("Opens a dialog with information about CaMOS")
+        self.aboutAct.triggered.connect(self._about_camos)
+        self.helpMenu.addAction(self.aboutAct)
+
+    def _open_help(self):
+        pass
+
+    def _about_camos(self):
+        pass
+
+    def _help_mouse(self):
+        dialog = MouseHelp(self)
+        dialog.exec_()
 
     def createEditMenu(self):
         # Sublevels

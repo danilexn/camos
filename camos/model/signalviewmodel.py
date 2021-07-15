@@ -13,7 +13,7 @@ import camos.utils.apptools as apptools
 import camos.utils.pluginmanager as PluginManager
 from camos.viewport.signalviewer2 import SignalViewer2
 
-MAXNAMELEN = 30
+MAXNAMELEN = 300
 
 
 class SignalViewModel(QObject):

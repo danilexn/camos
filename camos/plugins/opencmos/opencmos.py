@@ -62,6 +62,11 @@ class OpenCMOS(Opening):
         self.image.loadImage()
         self.minimodel.add_image(self.image)
 
+    def buildUI(self):
+        self._initialize_UI()
+        self.initialize_UI()
+        self._final_initialize_UI()
+
     def initialize_UI(self):
         self.onlyInt = QIntValidator()
         self.xdimlabel = QLabel("Grid edge size (N)")

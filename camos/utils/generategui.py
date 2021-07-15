@@ -20,6 +20,8 @@ from typing import Callable
 
 from camos.utils.apptools import getModels
 
+MAXNAMELEN = 20
+
 
 class CreateGUI(QObject):
     def __init__(self, valueDict={}, parent=None, function: Callable | None = None):
@@ -92,7 +94,10 @@ class ImageInput(DefaultInput):
         widget.currentIndexChanged[int].connect(lambda x: self.updateValue(x))
         images = self.model.list_images()
         if images is not None:
-            widget.addItems(images)
+            for i, name in enumerate(images):
+                _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
+                widget.addItem(_s_name, name)
+                widget.setItemData(i, name, Qt.ToolTipRole)
 
         return widget
 
@@ -107,7 +112,10 @@ class DatasetInput(DefaultInput):
         widget.currentIndexChanged[int].connect(lambda x: self.updateValue(x))
         data = self.model.list_datasets()
         if data is not None:
-            widget.addItems(data)
+            for i, name in enumerate(data):
+                _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
+                widget.addItem(_s_name, name)
+                widget.setItemData(i, name, Qt.ToolTipRole)
 
         return widget
 
@@ -122,7 +130,10 @@ class CustomComboInput(DefaultInput):
         data = self.items
         widget.currentIndexChanged[int].connect(lambda x: self.updateValue(x))
         if data is not None:
-            widget.addItems(data)
+            for i, name in enumerate(data):
+                _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
+                widget.addItem(_s_name)
+                widget.setItemData(i, name, Qt.ToolTipRole)
 
         return widget
 
