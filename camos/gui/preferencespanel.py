@@ -22,7 +22,7 @@ class CAMOSPreferences(QtWidgets.QDialog):
         super(CAMOSPreferences, self).__init__(parent)
 
         self.setWindowTitle("Program Preferences")
-        layout = QtGui.QGridLayout(self)
+        layout = QtWidgets.QGridLayout(self)
 
         # Calls the functions that create individual UI components
         self.viewportBackgroundUI(layout)
@@ -31,8 +31,8 @@ class CAMOSPreferences(QtWidgets.QDialog):
         self.memoryPersistentLoading(layout)
 
         # Creates the Accept/Cancel buttons
-        box = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             centerButtons=True,
         )
 

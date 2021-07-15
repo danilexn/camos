@@ -17,6 +17,7 @@ import pyqtgraph.parametertree as ptree
 translate = QtCore.QCoreApplication.translate
 
 from camos.utils.units import get_time
+from camos.model.inputdata import InputData
 
 
 def connectLines(l1, l2):
@@ -40,11 +41,11 @@ def addInfiniteLine(plt):
 class SignalViewer2(QObject):
     window_title = "Signal Viewer"
 
-    def __init__(self, parent=None, signal=None, title=""):
+    def __init__(self, parent=None, signal=None, title="", mask=[]):
         self.parent = parent
         self.output = signal
         self.foutput = self.output
-        self.mask = []
+        self.mask = mask
         self.pixelsize = 1
         self.title = title
         super(SignalViewer2, self).__init__()
@@ -74,6 +75,17 @@ class SignalViewer2(QObject):
         self.dockedWidget.setLayout(self.plot_layout)
         self.dockUI.setFloating(True)
         self.parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dockUI)
+
+    def export_plot_to_viewport(self):
+        try:
+            self.update_plot()
+            image = InputData(self.outputimage)
+            image.loadImage()
+            self.parent.model.add_image(
+                image, "Viewport of {}".format(self.analysis_name)
+            )
+        except:
+            pass
 
     def createParameterTree(self, layout):
         # Parameters tree
@@ -160,6 +172,7 @@ class SignalViewer2(QObject):
             title=self.title,
             labels={"left": "Source ID", "bottom": "Time ({})".format(get_time())},
         )
+
         self._signal_curves = []
         offset = 0
         for i in range(nPlots):
@@ -199,7 +212,7 @@ class SignalViewer2(QObject):
 
     def mask_plot(self, name):
         # Setup the mask from the data
-        mask = self.mask
+        mask = self.mask.astype(int)
         mask_dict = {}
         for i in range(1, self.foutput.shape[0]):
             mask_dict[int(self.foutput[i]["CellID"][0])] = self.foutput[i][name][0]
@@ -218,6 +231,7 @@ class SignalViewer2(QObject):
             labels={"left": "Y-coordinate (px)", "bottom": "X-coordinate (px)"},
         )
         p1.setAspectLocked()
+        p1.getViewBox().invertY(True)
 
         # Setup the image
         img = pg.ImageItem(image=mask_mask)

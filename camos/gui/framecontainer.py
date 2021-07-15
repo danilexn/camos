@@ -491,8 +491,8 @@ class FrameContainer(QtWidgets.QWidget):
 
             tableAct = QAction("Show Table", self)
             tableAct.setStatusTip("Shows the data values as a table")
-            tabViewer = TableViewer(self.parent.signalmodel, idx)
-            tableAct.triggered.connect(tabViewer.display)
+            self.tabViewer = TableViewer(self.parent.signalmodel, idx)
+            tableAct.triggered.connect(self.tabViewer.display)
             menu.addAction(tableAct)
             menu.exec_(event.globalPos())
 

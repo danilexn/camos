@@ -24,8 +24,6 @@ class ExtractSignal(Analysis):
         self.mask = None
         self.image = None
         self.sampling = 1
-        self.finished.connect(self.output_to_signalmodel)
-        self.finished.connect(self.update_plot)
 
     def _run(
         self,

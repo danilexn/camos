@@ -25,7 +25,6 @@ class InterspikeInterval(Analysis):
             model, parent, signal, name=self.analysis_name
         )
         self.data = None
-        self.finished.connect(self.output_to_signalmodel)
 
     def _run(
         self,
@@ -73,11 +72,6 @@ class InterspikeInterval(Analysis):
             ISI[i] = np.average(np.diff(dict_events[ROI]))
 
         self.output[:]["ISI"] = ISI.reshape(-1, 1)
-
-    def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(
-            self.output, "ISI of {}".format(self.dataname), self, mask=self.mask
-        )
 
     def _plot(self):
         import matplotlib.ticker as tick

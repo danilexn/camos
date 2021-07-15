@@ -32,6 +32,7 @@ class BaseTask(QObject):
         self.signal = signal
         self.parent = parent
         self.output = np.zeros((1, 1))
+        self.dataname = ""
         self.paramDict = {}
         self.handler = RunTask(self)
         self.notify.connect(self.handler.on_notify)
@@ -50,24 +51,8 @@ class BaseTask(QObject):
         finally:
             self.finished.emit()
 
-    def update_plot(self):
-        # try:
-        #     self.plot.restartFigure()
-        # except:
-        #     pass
-        self._plot()
-        self.plot.draw()
-        self.plotReady.emit()
-
-    def update_values_plot(self, values):
-        self._update_values_plot(values)
-        self.update_plot()
-
-    def _update_values_plot(self, values):
-        pass
-
     def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(self.output, "", self, self.sampling)
+        raise NotImplementedError("Base tasks cannot move data to the Signal model")
 
     def output_to_imagemodel(self, name=None):
         image = InputData(self.output, name=self.layername.format(self.index),)

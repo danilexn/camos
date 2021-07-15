@@ -126,13 +126,15 @@ class ImageViewPort(pg.ImageView):
         self.scale.text.setText("{} {}".format(_range, get_length()))
 
     def update_scalebar(self, pxsize=1):
-        # TODO: change, as updates more stuff
+        # Check if there are layers at all
+        layer = self.model.currentlayer
+        if layer < 0:
+            return
+
         self.pixelsize = pxsize
         sz = self.scale.size * self.pixelsize
         self.scale.size = sz / pxsize
 
-        # Updates the Histogram here, better
-        layer = self.model.currentlayer
         # Update histogram after scaling and changing other levels
         self.ui.histogram.hide()
         self.ui.histogram.setImageItem(self.view.addedItems[layer + 3])

@@ -20,7 +20,6 @@ class BinnedBursting(Analysis):
             model, parent, signal, name=self.analysis_name
         )
         self.data = None
-        self.finished.connect(self.output_to_signalmodel)
 
     def _run(
         self,
@@ -60,17 +59,3 @@ class BinnedBursting(Analysis):
         # Stores into the output table
         self.output = np.zeros(shape=(len(active_filter), 1), dtype=output_type)
         self.output[:]["Burst"] = active_filter.reshape(-1, 1)
-
-    def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(
-            self.output, "Binned Bursting of {}".format(self.dataname), self
-        )
-
-    def _plot(self):
-        self.plot.axes.eventplot(
-            self.foutput[:]["Burst"], lineoffset=0.5, color="black"
-        )
-        self.plot.axes.set_ylim(0, 1)
-        self.plot.axes.set_yticklabels([])
-        self.plot.axes.tick_params(axis=u"y", which=u"y", length=0)
-        self.plot.axes.set_xlabel("Time ({})".format(get_time()))

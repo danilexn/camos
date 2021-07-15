@@ -22,7 +22,6 @@ class CorrelatePosition(Analysis):
         )
         self.model = model
         self.signal = signal
-        self.finished.connect(self.output_to_signalmodel)
 
     def _run(
         self,

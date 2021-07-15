@@ -17,6 +17,7 @@ import copy
 
 
 def tiff2nparray(path, persistence=True):
+    # TODO: fix for large stacks
     im = Image.open(path)
     i = 0
     frames = []
@@ -32,15 +33,13 @@ def tiff2nparray(path, persistence=True):
     if persistence:
         return frames, im.info
 
-    out_mmap = np.memmap(
-        _path.join(mkdtemp(), "memmap.dat"),
-        dtype=frames.dtype,
-        mode="w+",
-        shape=frames.shape,
-    )
+    path = _path.join(mkdtemp(), "memmap.dat")
+    out_mmap = np.memmap(path, dtype=frames.dtype, mode="w+", shape=frames.shape,)
 
     out_mmap[:] = frames
-    return out_mmap, im.info
+
+    out = np.memmap(path, dtype=frames.dtype, mode="r", shape=frames.shape,)
+    return out, im.info
 
 
 def list2stack(paths, persistence=True):
@@ -60,15 +59,13 @@ def list2stack(paths, persistence=True):
     if persistence:
         return frames, im.info
 
-    out_mmap = np.memmap(
-        _path.join(mkdtemp(), "memmap.dat"),
-        dtype=frames.dtype,
-        mode="w+",
-        shape=frames.shape,
-    )
+    path = _path.join(mkdtemp(), "memmap.dat")
+    out_mmap = np.memmap(path, dtype=frames.dtype, mode="w+", shape=frames.shape,)
+
     out_mmap[:] = frames
 
-    return out_mmap, im.info
+    out = np.memmap(path, dtype=frames.dtype, mode="r", shape=frames.shape,)
+    return out, im.info
 
 
 def nparray(arr, persistence=True):
@@ -97,15 +94,14 @@ def nparray(arr, persistence=True):
     if persistence:
         return frames
 
-    out_mmap = np.memmap(
-        _path.join(mkdtemp(), "memmap.dat"),
-        dtype=frames.dtype,
-        mode="w+",
-        shape=frames.shape,
-    )
+    path = _path.join(mkdtemp(), "memmap.dat")
+    out_mmap = np.memmap(path, dtype=frames.dtype, mode="w+", shape=frames.shape,)
+
     out_mmap[:] = frames
 
-    return out_mmap
+    out = np.memmap(path, dtype=frames.dtype, mode="r", shape=frames.shape,)
+
+    return out
 
 
 class Stack(Sequence):
