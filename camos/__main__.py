@@ -30,8 +30,8 @@ def sigint_handler(*args):
 
 def _set_credentials(app):
     """Specify the organization's Internet domain.
-    When the Internet domain is set, it is used on Mac OS X instead of
-    the organization name, since Mac OS X applications conventionally
+    When the Internet domain is set, it is used on macOS instead of
+    the organization name, since macOS applications conventionally
     use Internet domains to identify themselves
     """
     app.setOrganizationDomain("camos.org")

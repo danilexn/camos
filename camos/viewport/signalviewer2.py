@@ -264,32 +264,37 @@ class MultiLine(pg.QtGui.QGraphicsPathItem):
         _x = np.zeros(2 * len(x))
         _x[::2] = x
         _x[1::2] = x
-        x = _x
+        self.x = _x
 
         # Duplicating the data to connect
         y = y[0:n]
         _y = np.zeros(2 * len(y))
         _y[::2] = y - 1
         _y[1::2] = y
-        y = _y
+        self.y = _y
 
         # Creating the plot
-        self.path = pg.arrayToQPath(x, y, connect="pairs")
+        self.path = pg.arrayToQPath(self.x, self.y, connect="pairs")
         pg.QtGui.QGraphicsPathItem.__init__(self, self.path)
-
         self.updatePen()
 
     def updatePen(self):
         sz = self.parent.getViewBox().size().width()
         _rg = self.parent.getViewBox().state["viewRange"][0]
         rg = abs(_rg[1] - _rg[0])
-        self.setPen(QPen(QtCore.Qt.white, 2 * rg / sz))
+        width = 2 * rg / sz
 
-    def shape(self):
-        return pg.QtGui.QGraphicsItem.shape(self)
+        hz = self.parent.getViewBox().size().height()
+        _rh = self.parent.getViewBox().state["viewRange"][1]
+        rh = abs(_rh[1] - _rh[0])
+        height = max(1, 2 * rh / hz)
 
-    def boundingRect(self):
-        return self.path.boundingRect()
+        y = self.y
+        y[::2] = self.y[1::2] - int(height)
+        self.path = pg.arrayToQPath(self.x, y, connect="pairs")
+        self.setPath(self.path)
+        self.setPen(QPen(QtCore.Qt.white, width))
+        self.update()
 
     def wheelEvent(self, *args):
         super(MultiLine, self).wheelEvent(*args)
@@ -302,3 +307,8 @@ class MultiLine(pg.QtGui.QGraphicsPathItem):
     def mouseReleaseEvent(self, *args):
         super(MultiLine, self).mousePressEvent(*args)
         self.updatePen()
+
+    def dragMoveEvent(self, *args):
+        super(MultiLine, self).dragMoveEvent(*args)
+        self.updatePen()
+
