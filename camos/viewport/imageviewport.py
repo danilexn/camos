@@ -203,6 +203,7 @@ class DrawingImage(pg.ImageItem):
         n_x, n_y = s_x / p_x, s_y / p_y
         self.scale(n_x, n_y)
         self.previous_scale = [s_x, s_y]
+        self.ctrl_modif = False
 
     def setContrast(self, co):
         # if co == self.p_co:
@@ -226,16 +227,18 @@ class DrawingImage(pg.ImageItem):
         pass
 
     def mouseDragEvent(self, event):
-        if event.modifiers() == QtCore.Qt.ControlModifier:
-            if event.isStart():
+        if event.isStart():
+            if event.modifiers() == QtCore.Qt.ControlModifier:
                 model = apptools.getApp().gui.model
                 viewitems = model.viewitems
                 idx = viewitems.index(self)
                 self.initial_pos = model.translation[idx]
                 self.setBorder(pg.mkPen(cosmetic=False, width=4.5, color="r"))
                 self.accpos = list(model.translation[idx])
+                self.ctrl_modif = True
 
-            elif event.isFinish():
+        elif event.isFinish():
+            if self.ctrl_modif:
                 model = apptools.getApp().gui.model
                 viewitems = model.viewitems
                 idx = viewitems.index(self)
@@ -248,8 +251,10 @@ class DrawingImage(pg.ImageItem):
                 )
 
                 self.setBorder(None)
+                self.ctrl_modif = False
 
-            else:
+        else:
+            if event.modifiers() == QtCore.Qt.ControlModifier:
                 p = event.pos()
                 x, y = event.pos().x(), event.pos().y()
                 self.accpos[0] = self.accpos[0] + x
