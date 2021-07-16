@@ -83,6 +83,7 @@ def reload_instance(attribute_name, module):
 
 
 def run_opener(_class, filename):
+    # TODO: fix opening drag after opening with menu
     gui = apptools.getApp().gui
     model = gui.model
     signalmodel = gui.signalmodel

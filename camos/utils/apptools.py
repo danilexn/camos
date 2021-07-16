@@ -50,7 +50,7 @@ def getViews():
     """Small wrapper to hide that camosApp.gui object contains dbs_tree_view.
     :return: the DBs tree view
     """
-    return getGui().viewport, getGui().signalviewport
+    return getGui().viewport
 
 
 def long_action(message=None):
