@@ -21,9 +21,8 @@ import camos.utils.units as units
 from camos.utils.pluginmanager import plugin_open
 from camos.utils.console import open_console
 from camos.gui.helpers import MouseHelp
-from camos.resources import resources
-
 from camos.gui.framecontainer import FrameContainer
+from camos.gui.about import QtAbout
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -179,11 +178,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createHelpMenu()
 
     def createHelpMenu(self):
+        """Adds 'Help' menu to app menubar."""
         # Display Help
         self.helpAct = QtWidgets.QAction("User Guide", self)
         self.helpAct.setStatusTip("Opens a local version of the User Guide")
         self.helpAct.triggered.connect(self._open_help)
         self.helpMenu.addAction(self.helpAct)
+
+        # Display Mouse Help
         self.mouseAct = QtWidgets.QAction("Mouse Actions", self)
         self.mouseAct.setStatusTip("Help about available mouse actions")
         self.mouseAct.triggered.connect(self._help_mouse)
@@ -194,7 +196,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Display About window
         self.aboutAct = QtWidgets.QAction("About CaMOS", self)
         self.aboutAct.setStatusTip("Opens a dialog with information about CaMOS")
-        self.aboutAct.triggered.connect(self._about_camos)
+        self.aboutAct.triggered.connect(
+            lambda e: QtAbout.showAbout(self.viewport, self)
+        )
         self.helpMenu.addAction(self.aboutAct)
 
     def _open_help(self):
