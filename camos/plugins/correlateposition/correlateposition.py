@@ -51,8 +51,8 @@ class CorrelatePosition(Analysis):
             p = (
                 np.average(np.where(cell), axis=1) + np.flip(maskcmos_trans)
             ) * maskcmos_scale[0]
-            idx.insert(i, (p[0], p[1], p[0], p[1]))
-            idx_dic[i] = p
+            idx.insert(int(i), (p[0], p[1], p[0], p[1]))
+            idx_dic[int(i)] = p
 
         # Retrieve the Calcium mask, find positions
         maskfl_scale = self.model.scales[fl]
@@ -69,8 +69,7 @@ class CorrelatePosition(Analysis):
             # Introduce checking the distance under the threshold
             nearest = list(idx.nearest((p[0], p[1], p[0], p[1]), 1))[0]
             if np.linalg.norm(idx_dic[nearest] - p) < dist:
-                row = np.array([(i, nearest)], dtype=output_type)
+                row = np.array([(int(i), nearest)], dtype=output_type)
                 self.output = np.append(self.output, row)
 
-        self.maskimage = self.model.images[fl].image(0)
-        self.finished.emit()
+        self.mask = self.model.images[fl].image(0)

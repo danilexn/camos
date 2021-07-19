@@ -185,7 +185,7 @@ class SignalViewer2(QObject):
         print("pos: (%0.1f, %0.1f)  value: %g" % (x, y, val))
 
     def _plot(self):
-        mask_plots = ["MFR", "ISI"]
+        mask_plots = ["MFR", "ISI", "Nearest"]
         corr_plots = ["Cor"]
         if self.foutput.dtype.names == None:
             self.plotitem = self.signal_plot()
@@ -302,8 +302,12 @@ class SignalViewer2(QObject):
 
         self.exportable = True
 
-        for i in range(1, self.foutput.shape[0]):
-            mask_dict[int(self.foutput[i]["CellID"][0])] = self.foutput[i][name][0]
+        if self.foutput.dtype.names[1] == "Nearest":
+            for i in range(1, self.foutput.shape[0]):
+                mask_dict[int(self.foutput[i]["CellID"])] = self.foutput[i][name]
+        else:
+            for i in range(1, self.foutput.shape[0]):
+                mask_dict[int(self.foutput[i]["CellID"])] = self.foutput[i][name]
 
         k = np.array(list(mask_dict.keys()))
         v = np.array(list(mask_dict.values()))
@@ -335,6 +339,8 @@ class SignalViewer2(QObject):
         cm_label = "Mean Firing Rate (Events per {})".format(get_time())
         if self.foutput.dtype.names[1] == "ISI":
             cm_label = "Interspike Interval (1/{})".format(get_time())
+        elif self.foutput.dtype.names[1] == "Nearest":
+            cm_label = "Nearest ID"
 
         # Add the colorbar
         bar = pg.ColorBarItem(

@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from PyQt5.QtGui import QDoubleValidator
+from PyQt5.QtCore import Qt
 
 import pyqtgraph as pg
 
@@ -602,7 +603,10 @@ class LayerDialog(QtWidgets.QDialog):
         label = QtWidgets.QLabel("Second layer")
         self.combo = QtWidgets.QComboBox()
         self.parent = parent
-        self.combo.addItems(self.parent.model.list_images())
+        for i, name in enumerate(self.parent.model.list_images()):
+            _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
+            self.combo.addItem(_s_name, name)
+            self.combo.setItemData(i, name, Qt.ToolTipRole)
 
         box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
