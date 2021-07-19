@@ -21,9 +21,6 @@ from PyQt5.QtCore import Qt, QSizeF, pyqtSignal
 
 import PIL
 import numpy as np
-import matplotlib
-
-matplotlib.use("Agg")
 
 from camos.tasks.opening import Opening
 from camos.model.inputdata import InputData
@@ -56,11 +53,28 @@ class OpenCMOS(Opening):
         self.grid = None
 
     def _run(self):
+        self.buildUI()
         # We need to change this, otherwise PIL does not open the image
         PIL.Image.MAX_IMAGE_PIXELS = 933120000
         self.image = InputData(self.filename)
         self.image.loadImage()
         self.minimodel.add_image(self.image)
+        self.show()
+
+    def display(self):
+        if "image" in self.required and (type(self.model.list_images()) is type(None)):
+            raise IndexError("The image model is empty")
+        if "dataset" in self.required and (
+            type(self.signal.list_datasets()) is type(None)
+        ):
+            raise IndexError("The dataset model is empty")
+
+        self.filename = self.show_savemenu()
+
+        if self.filename == "":
+            raise ValueError("No file was selected")
+
+        self.run()
 
     def buildUI(self):
         self._initialize_UI()

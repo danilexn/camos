@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from PyQt5.QtGui import QDoubleValidator
+from PyQt5.QtCore import Qt
 
 import pyqtgraph as pg
 
@@ -59,6 +60,10 @@ class FrameContainer(QtWidgets.QWidget):
     def verticalwidgets(self):
         """ViewPorts for the images (box_layout1)
         """
+        # Create toolbar
+        self._createLayersActions()
+        self._createLayersToolBar()
+
         # Left side
         self.box_layout1 = QtWidgets.QHBoxLayout()
         self.box_layout1_1 = QtWidgets.QVBoxLayout()
@@ -86,9 +91,6 @@ class FrameContainer(QtWidgets.QWidget):
         self.box_layout1.addLayout(self.box_layout1_1, 1)
         self.box_layout1.addWidget(self.parent.viewport, 4)
 
-        self._createLayersActions()
-        self._createLayersToolBar()
-
     def _change_current_layer(self, index):
         """Internal representation of the current layer selected
 
@@ -97,9 +99,6 @@ class FrameContainer(QtWidgets.QWidget):
         """
         self.currentlayer = index
         self.parent.model.currentlayer = index
-        # maxframe = self.parent.model.frames[index]
-        # self.current_frame_slider.setRange(0, maxframe - 1)
-        # self.current_frame_rangeslider.setRange(0, maxframe - 1)
 
     def _update_layer_elements(self, layer):
         """When the ImageViewModel has updates in any of the elements, the layers list is updated
@@ -114,9 +113,6 @@ class FrameContainer(QtWidgets.QWidget):
         item.setToolTip(name + " (double click to change)")
         self.opened_layers_widget.addItem(item)
         self.opened_layers_widget.setCurrentItem(item)
-        # maxframe = self.parent.model.frames[layer]
-        # self.current_frame_slider.setRange(0, maxframe - 1)
-        # self.current_frame_rangeslider.setRange(0, maxframe - 1)
 
     def add_data_layer(self, name):
         """When the ImageViewModel has updates in any of the elements, the layers list is updated
@@ -172,22 +168,6 @@ class FrameContainer(QtWidgets.QWidget):
         layout.addRow(QLabel("Colormap"))
         layout.addRow(self.colormap_layer_selector)
         self.colormap_layer_selector.activated.connect(self._apply_changes_layer)
-
-        # self.apply_changes_layer_bt = QPushButton("Apply")
-        # self.apply_changes_layer_bt.clicked.connect(self._apply_changes_layer)
-        # layout.addRow(self.apply_changes_layer_bt)
-
-        # 3. Selection of the current frame
-        # self.current_frame_slider = QScrollBar(QtCore.Qt.Horizontal)
-        # layout.addRow(QLabel("Frame"))
-        # layout.addRow(self.current_frame_slider)
-        # self.current_frame_slider.valueChanged.connect(self._set_frame)
-
-        # 4. Selection of the frame range
-        # self.current_frame_rangeslider = QtRangeSlider(self, 0, 100, 0, 100)
-        # layout.addRow(QLabel("Range of frames"))
-        # layout.addRow(self.current_frame_rangeslider)
-        # self.current_frame_slider.valueChanged.connect(self._set_frame)
 
         # Configure the layout
         self.layers_controls.setLayout(layout)
@@ -254,7 +234,7 @@ class FrameContainer(QtWidgets.QWidget):
         )
         self.removeAction.triggered.connect(self._button_remove)
         self.duplicateAction = QAction(
-            QIcon("resources/icon-duplicate.svg"), "&Duplicate", self
+            QIcon(":/resources/icon-duplicate.svg"), "&Duplicate", self
         )
         self.duplicateAction.triggered.connect(self._button_duplicate)
         self.duplicateAction.setToolTip(
@@ -623,7 +603,10 @@ class LayerDialog(QtWidgets.QDialog):
         label = QtWidgets.QLabel("Second layer")
         self.combo = QtWidgets.QComboBox()
         self.parent = parent
-        self.combo.addItems(self.parent.model.list_images())
+        for i, name in enumerate(self.parent.model.list_images()):
+            _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
+            self.combo.addItem(_s_name, name)
+            self.combo.setItemData(i, name, Qt.ToolTipRole)
 
         box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,

@@ -25,6 +25,7 @@ PLUGIN_GROUP = "camos.plugins"
 log = logging.getLogger(__name__)
 plugin_instances = []
 plugin_open = []
+plugins = []
 
 DEBUG = os.getenv("CAMOS_DEBUG")
 
@@ -54,7 +55,7 @@ def _create_instance(plugin_class, attribute_name, base, module_name):
                     "instance": lambda filename: run_opener(plugin_class, filename),
                 }
             )
-        # instance = plugin_class(model=model, parent=gui, signal = signalmodel)
+        plugins.append(module_name)
     except Exception as e:
         log.error("Failed to create plugin instance")
         log.error(e)
@@ -83,6 +84,7 @@ def reload_instance(attribute_name, module):
 
 
 def run_opener(_class, filename):
+    # TODO: fix opening drag after opening with menu
     gui = apptools.getApp().gui
     model = gui.model
     signalmodel = gui.signalmodel

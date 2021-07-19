@@ -26,7 +26,7 @@ class RunTask(QWidget):
         self.waitLabel = QLabel("Wait while {} is running".format(name))
         self.cancelButton = QPushButton("Cancel", self)
         self.cancelButton.setToolTip("Click to cancel this task")
-        self.cancelButton.clicked.connect(self.closeEvent)
+        self.cancelButton.clicked.connect(self.closeTask)
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.pbar)
@@ -41,6 +41,7 @@ class RunTask(QWidget):
 
     def _init_thread(self):
         self.thread = QThread(parent=apptools.getApp().gui)
+        self.thread.setTerminationEnabled(True)
         self.obj.intReady.connect(self.on_count_changed)
         self.obj.moveToThread(self.thread)
         self.thread.started.connect(self.obj.run)
@@ -62,7 +63,6 @@ class RunTask(QWidget):
     def on_notify(self, value, priority):
         notify(value, priority)
 
-    def closeEvent(self, event):
+    def closeTask(self, event):
         if self.thread.isRunning():
-            self.thread.quit()
-            self.thread.wait()
+            self.thread.terminate()

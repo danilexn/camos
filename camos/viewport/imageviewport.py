@@ -205,24 +205,6 @@ class DrawingImage(pg.ImageItem):
         self.previous_scale = [s_x, s_y]
         self.ctrl_modif = False
 
-    def setContrast(self, co):
-        # if co == self.p_co:
-        #     return
-        # img = self.image
-        # out = cv2.addWeighted(img, co - self.p_co, img, 0, 0)
-        # self.setImage(out)
-        # self.p_co = co
-        pass
-
-    def setBrightness(self, br):
-        # if br == self.p_br:
-        #     return
-        # img = self.image
-        # out = cv2.addWeighted(img, 1, img, 0, br - self.p_br)
-        # self.setImage(out)
-        # self.p_br = br
-        pass
-
     def mouseClickEvent(self, event):
         pass
 
