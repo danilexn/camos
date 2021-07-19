@@ -20,7 +20,7 @@ from camos.utils.units import get_length
 import camos.utils.units as units
 from camos.utils.pluginmanager import plugin_open
 from camos.utils.console import open_console
-from camos.gui.helpers import MouseHelp
+from camos.gui.helpers import MouseHelp, short_mouse_help
 from camos.gui.framecontainer import FrameContainer
 from camos.gui.about import QtAbout
 
@@ -83,6 +83,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.model.newdata.connect(self.container._update_layer_elements)
         self.model.removedata.connect(self.viewport.remove_image)
         self.model.updatepos.connect(self._update_statusbar)
+
+        # Configure the statusbar help message
+        statusBar_help = QtWidgets.QLabel(short_mouse_help)
+        self.statusBar().addPermanentWidget(statusBar_help)
 
     def setup_model(self, model):
         self.model = model

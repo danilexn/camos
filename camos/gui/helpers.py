@@ -44,6 +44,8 @@ mouse_help_text = """You can use the mouse for the following:
         Single click with right button: displays a contextual menu to
             remove the current dataset, or to display the data as a table"""
 
+short_mouse_help = "<b>CTRL+Drag</b> to move image; <b>Wheel</b> to zoom; <b>Right click</b> for more options"
+
 
 class MouseHelp(QtWidgets.QDialog):
     def __init__(self, parent=None):
