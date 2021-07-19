@@ -309,8 +309,8 @@ class SignalViewer2(QObject):
             for i in range(1, self.foutput.shape[0]):
                 mask_dict[int(self.foutput[i]["CellID"])] = self.foutput[i][name]
 
-        k = np.array(list(mask_dict.keys()))
-        v = np.array(list(mask_dict.values()))
+        k = np.array(list(mask_dict.keys())).flatten()
+        v = np.array(list(mask_dict.values())).flatten()
 
         dim = max(k.max(), np.max(mask))
         mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
