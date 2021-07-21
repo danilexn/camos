@@ -60,5 +60,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 <!-- CONTACT -->
 ## Contact
 Daniel León Periñán - [@danilexn](https://github.com/danilexn) - daniel.leon-perinan@mailbox.tu-dresden.de
+
 Josua Seidel - [@jseidel5](https://github.com/jseidel5) - josua.seidel@mailbox.tu-dresden.de
+
 Hani Al Hawasli - [@HaniAlHawasli](https://github.com/HaniAlHawasli) - hani.al-hawasli@mailbox.tu-dresden.de
