@@ -26,7 +26,6 @@ class MeanFiringRate(Analysis):
         super(MeanFiringRate, self).__init__(
             model, parent, signal, name=self.analysis_name
         )
-        self.data = None
         self.plotter = MFRHeatmap
         self.colname = "MFR"
 

@@ -44,9 +44,9 @@ class Heatmap(Plotter):
         colorMap = pg.colormap.get("inferno", source="matplotlib")
 
         # generate an adjustabled color bar, initially spanning -1 to 1:
-        bar = pg.ColorBarItem(values=(-1, 1), cmap=colorMap)
+        self.colorbar = pg.ColorBarItem(values=(-1, 1), cmap=colorMap)
         # link color bar and color map to correlogram, and show it in plotItem:
-        bar.setImageItem(heatmap, insert_in=p1)
+        self.colorbar.setImageItem(heatmap, insert_in=p1)
 
         return p1
 
@@ -57,3 +57,16 @@ class Heatmap(Plotter):
             self.parent.model.add_image(image, "Viewport of {}".format(self.title))
         except:
             pass
+
+    @property
+    def colormap(self):
+        return self._colormap
+
+    @colormap.setter
+    def colormap(self, value):
+        self._colormap = value
+
+        assert self.colorbar is not None
+        # Colormap for the colorbar
+        cmap = pg.colormap.get(self._colormap, source="matplotlib")
+        self.colorbar.setCmap(cmap)

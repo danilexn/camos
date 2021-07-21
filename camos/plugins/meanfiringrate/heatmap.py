@@ -14,6 +14,7 @@ class MFRHeatmap(Plotter):
     def __init__(self, electrode_n=64, *args, **kwargs) -> None:
         super(MFRHeatmap, self).__init__(*args, **kwargs)
         self.electrode_n = electrode_n
+        self.colname = "MFR"
 
     def _plot(self):
         mfr = np.zeros(shape=(self.electrode_n * self.electrode_n))
@@ -39,8 +40,21 @@ class MFRHeatmap(Plotter):
         colorMap = pg.colormap.get("inferno", source="matplotlib")
 
         # generate an adjustabled color bar, initially spanning -1 to 1:
-        bar = pg.ColorBarItem(values=(-1, 1), cmap=colorMap)
+        self.colorbar = pg.ColorBarItem(values=(-1, 1), cmap=colorMap)
         # link color bar and color map to correlogram, and show it in plotItem:
-        bar.setImageItem(heatmap, insert_in=p1)
+        self.colorbar.setImageItem(heatmap, insert_in=p1)
 
         return p1
+
+    @property
+    def colormap(self):
+        return self._colormap
+
+    @colormap.setter
+    def colormap(self, value):
+        self._colormap = value
+
+        assert self.colorbar is not None
+        # Colormap for the colorbar
+        cmap = pg.colormap.get(self._colormap, source="matplotlib")
+        self.colorbar.setCmap(cmap)

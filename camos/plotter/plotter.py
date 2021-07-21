@@ -127,7 +127,11 @@ class Plotter(QObject):
     @title.setter
     def title(self, value):
         self._title = value
-        self.plotItem.setTitle(value)
+        try:
+            self.plotItem.setTitle(value)
+        except Exception as e:
+            print(str(e))
+            pass
 
     @property
     def axes(self):
