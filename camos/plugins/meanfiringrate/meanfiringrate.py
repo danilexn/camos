@@ -16,6 +16,9 @@ from camos.utils.generategui import (
 from camos.utils.units import length
 from camos.utils.units import get_time
 
+# Import the custom heatmap plotter
+from .heatmap import MFRHeatmap
+
 
 class MeanFiringRate(Analysis):
     analysis_name = "Mean Firing Rate"
@@ -25,6 +28,8 @@ class MeanFiringRate(Analysis):
             model, parent, signal, name=self.analysis_name
         )
         self.data = None
+        self.plotter = MFRHeatmap(electrode_n=64)
+        self.colname = "MFR"
 
     def _run(
         self,

@@ -13,6 +13,10 @@ from PyQt5.QtWidgets import (
     QListWidgetItem,
     QCheckBox,
     QListWidget,
+    QWidget,
+    QButtonGroup,
+    QRadioButton,
+    QVBoxLayout,
 )
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot, Qt
 
@@ -134,6 +138,28 @@ class CustomComboInput(DefaultInput):
                 _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
                 widget.addItem(_s_name)
                 widget.setItemData(i, name, Qt.ToolTipRole)
+
+        return widget
+
+
+class RadioButtonsInput(DefaultInput):
+    def __init__(self, items: list = [], *args, **kwargs):
+        self.items = items
+        super(RadioButtonsInput, self).__init__(*args, **kwargs)
+
+    def createComponent(self):
+        layout = QVBoxLayout()  # central layout
+        widget = QWidget()  # central widget
+        widget.setLayout(layout)
+        _group = QButtonGroup(widget)  # Number group
+
+        data = self.items
+        _group.idClicked[int].connect(lambda x: self.updateValue(x))
+        if data is not None:
+            for name in data:
+                r0 = QRadioButton(name)
+                _group.addButton(r0)
+                layout.addWidget(r0)
 
         return widget
 

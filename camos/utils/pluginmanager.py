@@ -17,6 +17,7 @@ from PyQt5 import QtWidgets
 from camos.tasks.analysis import Analysis
 from camos.tasks.processing import Processing
 from camos.tasks.saving import Saving
+from camos.plotter.plotter import Plotter
 from camos.tasks.opening import Opening
 import camos.utils.apptools as apptools
 
@@ -98,16 +99,18 @@ class PluginManager(object):
         self.enabled_plugins = enabled_plugins
         self.all_plugins = {}
         self.loaded_plugins = {}
+        self.loaded_plotters = {}
 
     def _disable_not_loaded(self):
         self.enabled_plugins = list(self.loaded_plugins.keys())
 
-    def loadAll(self):
+    def loadAllPlugins(self):
         self.loaded_plugins = {}
         package_dir = Path(__file__).resolve().parent.parent.joinpath("plugins")
         for (_, module_name, _) in iter_modules([package_dir]):
             # import the module and iterate through its attributes
             try:
+                # This loads stuff in the plugins folder
                 module = import_module(f"camos.plugins.{module_name}.{module_name}")
                 for attribute_name in dir(module):
                     attribute = getattr(module, attribute_name)
@@ -115,12 +118,40 @@ class PluginManager(object):
                         # Add the class to this package's variables
                         if any(
                             item in attribute.__bases__
-                            for item in [Analysis, Processing, Saving, Opening]
+                            for item in [Analysis, Processing, Saving, Opening,]
                         ):
                             self.loaded_plugins[attribute_name] = _create_instance(
                                 attribute, attribute_name, attribute.__bases__, module,
                             )
+                        elif any(item in attribute.__bases__ for item in [Plotter,]):
+                            self.loaded_plotters[
+                                module_name + "." + attribute_name
+                            ] = attribute
             except Exception as e:
                 log.error("Could not load the plugin {}; ".format(module_name) + str(e))
+
+        self._disable_not_loaded()
+
+    def loadDefaultPlotters(self):
+        self.loaded_plugins = {}
+        package_dir = Path(__file__).resolve().parent.parent.joinpath("plotter")
+        for (_, module_name, _) in iter_modules([package_dir]):
+            # import the module and iterate through its attributes
+            try:
+                # This loads stuff in the plugins folder
+                module = import_module(f"camos.plotter.{module_name}")
+                for attribute_name in dir(module):
+                    attribute = getattr(module, attribute_name)
+                    if isclass(attribute):
+                        # Add the class to this package's variables
+                        if any(item in attribute.__bases__ for item in [Plotter,]):
+                            self.loaded_plotters[
+                                "camos.plotters." + attribute_name
+                            ] = attribute
+            except Exception as e:
+                log.error(
+                    "Could not load the default plotter {}; ".format(module_name)
+                    + str(e)
+                )
 
         self._disable_not_loaded()

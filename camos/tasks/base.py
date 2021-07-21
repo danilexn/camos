@@ -14,7 +14,6 @@ import os
 from camos.tasks.runtask import RunTask
 from camos.model.inputdata import InputData
 from camos.utils.generategui import CreateGUI
-from camos.utils.notifications import notify
 
 DEBUG = os.getenv("CAMOS_DEBUG")
 

@@ -5,7 +5,6 @@
 # Distributed under a MIT License. See LICENSE for more info.
 
 import numpy as np
-import os
 
 from camos.tasks.base import BaseTask
 
@@ -18,6 +17,8 @@ class Analysis(BaseTask):
         self.finished.connect(self.output_to_signalmodel)
         self.outputimage = np.zeros((1, 1))
         self.mask = []
+        self.plotter = None
+        self.colname = None
 
     def output_to_signalmodel(self):
         self.parent.signalmodel.add_data(
@@ -25,4 +26,6 @@ class Analysis(BaseTask):
             name="{} from {}".format(self.analysis_name, self.dataname),
             sampling=self.sampling,
             mask=self.mask,
+            plotter=self.plotter,
+            colname=self.colname,
         )
