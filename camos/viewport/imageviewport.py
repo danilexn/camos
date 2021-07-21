@@ -35,10 +35,11 @@ class ImageViewPort(pg.ImageView):
 
         # This will hide some UI elements that will be handled by us
         # self.ui.histogram.hide()
+        self.ui.histogram.setLevelMode("mono")
         self.ui.histogram.fillHistogram(False)
         self.ui.menuBtn.hide()
         self.ui.roiBtn.hide()
-        self.timeLine = pg.InfiniteLine(0, movable=True)
+        self.timeLine = pg.InfiniteLine(0, movable=True, pen={"color": "y", "width": 3})
         self.timeLine.setBounds([0, 0])
         self.ui.roiPlot.addItem(self.timeLine)
         self.frameTicks = pg.VTickGroup(yrange=[0.8, 1], pen=0.4)
@@ -67,7 +68,7 @@ class ImageViewPort(pg.ImageView):
         image = self.model.get_layer(layer=layer)
 
         # Setup the display object
-        item = DrawingImage(image=image)
+        item = DrawingImage(image=image, model=self.model)
 
         # Determine if the layer is the last one, or already exists on the viewport
         if layer == -1:
@@ -197,6 +198,12 @@ class DrawingImage(pg.ImageItem):
     previous_scale = [1, 1]
     p_co = 1
     p_br = 0
+    ctrl_modif = False
+    _xi, _yi = 0, 0
+
+    def __init__(self, image, model, **kargs):
+        super().__init__(image=image, **kargs)
+        self.model = model
 
     def changeScale(self, s_x, s_y):
         p_x, p_y = self.previous_scale
@@ -211,37 +218,43 @@ class DrawingImage(pg.ImageItem):
     def mouseDragEvent(self, event):
         if event.isStart():
             if event.modifiers() == QtCore.Qt.ControlModifier:
-                model = apptools.getApp().gui.model
-                viewitems = model.viewitems
+                viewitems = self.model.viewitems
                 idx = viewitems.index(self)
-                self.initial_pos = model.translation[idx]
+                p = event.pos()
+                x, y = event.pos().x(), event.pos().y()
+                self._xi, self._yi = p.x(), p.y()
+                self.initial_pos = self.model.translation[idx]
                 self.setBorder(pg.mkPen(cosmetic=False, width=4.5, color="r"))
-                self.accpos = list(model.translation[idx])
+                self.accpos = list(self.model.translation[idx])
+                self.accpos[0] = self.accpos[0] + x - self._xi
+                self.accpos[1] = self.accpos[1] + y - self._yi
                 self.ctrl_modif = True
+                self.model.viewitems[idx] = self
 
         elif event.isFinish():
             if self.ctrl_modif:
-                model = apptools.getApp().gui.model
-                viewitems = model.viewitems
+                viewitems = self.model.viewitems
                 idx = viewitems.index(self)
 
                 x, y = event.pos().x(), event.pos().y()
-                self.accpos[0] = self.accpos[0] + x
-                self.accpos[1] = self.accpos[1] + y
-                apptools.getApp().gui.model.set_translation(
-                    idx, self.accpos[0], self.accpos[1]
-                )
+                self.accpos[0] = self.accpos[0] + x - self._xi
+                self.accpos[1] = self.accpos[1] + y - self._yi
+                self.model.set_translation(idx, self.accpos[0], self.accpos[1])
 
                 self.setBorder(None)
                 self.ctrl_modif = False
+                self.model.viewitems[idx] = self
 
         else:
             if (event.modifiers() == QtCore.Qt.ControlModifier) or self.ctrl_modif:
+                viewitems = self.model.viewitems
+                idx = viewitems.index(self)
                 p = event.pos()
                 x, y = event.pos().x(), event.pos().y()
-                self.accpos[0] = self.accpos[0] + x
-                self.accpos[1] = self.accpos[1] + y
-                self.translate(p.x(), p.y())
+                self.accpos[0] = self.accpos[0] + x - self._xi
+                self.accpos[1] = self.accpos[1] + y - self._yi
+                self.translate(p.x() - self._xi, p.y() - self._yi)
+                self.model.viewitems[idx] = self
         pass
 
     def hoverEvent(self, event):

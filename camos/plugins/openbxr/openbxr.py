@@ -10,6 +10,7 @@ import numpy as np
 import h5py
 
 from camos.tasks.opening import Opening
+from camos.plotter.raster import Raster
 from camos.viewport.signalviewer2 import SignalViewer2
 
 
@@ -51,7 +52,9 @@ class OpenBXR(Opening):
         self.output[:]["CellID"] = SpikeChIDs.reshape(-1, 1)
         self.output[:]["Active"] = SpikeTimes.reshape(-1, 1)
 
-        _sv = SignalViewer2(self.parent, self.output, title="Events from BXR")
+        _sv = SignalViewer2(
+            self.parent, self.output, title="Events from BXR", plotter=Raster
+        )
 
         self.parent.signalmodel.add_data(
             self.output, "Events from BXR".format(), _sv, samplingRate

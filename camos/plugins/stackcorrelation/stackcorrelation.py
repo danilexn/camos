@@ -69,6 +69,7 @@ class StackCorrelation(Processing):
 
     def buildUI(self):
         self.dockUI = QDockWidget(self.analysis_name, self.parent)
+        self.dockUI.setAllowedAreas(QtCore.Qt.NoDockWidgetArea)
         self.main_layout = QHBoxLayout()
         self.group_settings = QGroupBox("Parameters")
         self.group_plot = QGroupBox("Plots")

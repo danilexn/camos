@@ -36,10 +36,7 @@ class OpenSignal(Opening):
         h5f.close()
 
     def load_signal(self, data, name, mask=[]):
-        _sv = SignalViewer2(self.parent, data, title=name)
-        self.signal.add_data(data, name, _sv, mask=mask)
-        _sv.mask = mask
-        _sv.display()
+        self.signal.add_data(data, name, mask=mask)
 
     def load_mask(self, data, name):
         image = InputData(data, name=name,)

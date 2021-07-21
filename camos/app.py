@@ -36,5 +36,6 @@ class camosApp(QObject):
 
         # Load plugins
         self.plugins_mgr = pluginmanager.PluginManager()
-        self.plugins_mgr.loadAll()
+        self.plugins_mgr.loadAllPlugins()
+        self.plugins_mgr.loadDefaultPlotters()
         self.pluginsLoaded.emit()

@@ -14,7 +14,6 @@ import os
 from camos.tasks.runtask import RunTask
 from camos.model.inputdata import InputData
 from camos.utils.generategui import CreateGUI
-from camos.utils.notifications import notify
 
 DEBUG = os.getenv("CAMOS_DEBUG")
 
@@ -75,6 +74,7 @@ class BaseTask(QObject):
 
     def buildUI(self):
         self.dockUI = QDockWidget(self.analysis_name, self.parent)
+        self.dockUI.setAllowedAreas(QtCore.Qt.NoDockWidgetArea)
         self.layout = QVBoxLayout()
         self.params_gui = CreateGUI(self.paramDict, self.layout, self._run)
         self.params_gui.creategui()

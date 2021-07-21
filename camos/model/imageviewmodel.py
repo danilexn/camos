@@ -151,19 +151,21 @@ class ImageViewModel(QObject):
             index (int): position of the InputData object containing the image, in the list self.images
         """
         scale = self.scales[index]
+        y_tr, x_tr = self.translation[index]
+        y_shape_max, x_shape_max = self.images[index]._image._imgs.shape[1:3]
         x_min, x_max = (
-            int(self.roi_coord[0][0] / scale[0]),
-            int(self.roi_coord[1][0] / scale[0]),
+            max(0, abs(int(x_tr - self.roi_coord[0][0] / scale[0]))),
+            min(x_shape_max, abs(int(x_tr - self.roi_coord[1][0] / scale[0]))),
         )
         y_min, y_max = (
-            int(self.roi_coord[0][1] / scale[1]),
-            int(self.roi_coord[1][1] / scale[1]),
+            max(0, abs(int(y_tr + self.roi_coord[0][1] / scale[1]))),
+            min(y_shape_max, abs(int(y_tr + self.roi_coord[1][1] / scale[1]))),
         )
+
         cropped = self.images[index]._image._imgs[:, x_min:x_max, y_min:y_max]
         image = InputData(cropped, name="Cropped from Layer {}".format(index),)
         image.loadImage()
         self.add_image(image, "Cropped from Layer {}".format(index), scale=scale)
-        # self.translate_position(-1, (x_min, y_min))
 
     def flip_image(self, index):
         """Horizontally flips the image contained in this model for which the index is provided

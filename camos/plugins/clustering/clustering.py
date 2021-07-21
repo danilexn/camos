@@ -12,6 +12,7 @@ from camos.utils.generategui import (
     CustomComboInput,
     ImageInput,
 )
+from camos.plotter.image import Image
 
 
 class Correlation(Analysis):
@@ -27,6 +28,8 @@ class Correlation(Analysis):
             "Gaussian Mixture": self.gaussian_mixture,
         }
         self.method = None
+        self.colname = "Cluster"
+        self.plotter = Image
 
     def _run(
         self,
@@ -68,8 +71,6 @@ class Correlation(Analysis):
         self.output[:]["CellID"] = ROIs.reshape(-1, 1)
         self.output[:]["Cluster"] = _labels.reshape(-1, 1)
         self.mask = self.model.images[_i_mask].image(0)
-
-        self.finished.emit()
 
     def k_means(self, X, n=15, **kwargs):
         from sklearn.cluster import KMeans

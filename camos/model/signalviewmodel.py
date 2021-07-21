@@ -4,6 +4,10 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
+from camos.plotter.signal import Signal
+from camos.plotter.image import Image
+from camos.plotter.raster import Raster
+from camos.plotter.event import Event
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
 import numpy as np
@@ -14,6 +18,20 @@ import camos.utils.pluginmanager as PluginManager
 from camos.viewport.signalviewer2 import SignalViewer2
 
 MAXNAMELEN = 300
+
+
+def choose_plotter(data):
+    mask_plots = ["MFR", "ISI", "Nearest"]
+    if data.dtype.names == None:
+        return Signal, None
+    elif data.dtype.names[1] == "Burst":
+        return Event, data.dtype.names[1]
+    elif data.dtype.names[1] == "Active":
+        return Raster, data.dtype.names[1]
+    elif data.dtype.names[1] in mask_plots:
+        return Image, data.dtype.names[1]
+    else:
+        raise NotImplementedError
 
 
 class SignalViewModel(QObject):
@@ -29,7 +47,16 @@ class SignalViewModel(QObject):
         super(SignalViewModel, self).__init__()
 
     @pyqtSlot()
-    def add_data(self, data, name="New signal", _class=None, sampling=10, mask=[]):
+    def add_data(
+        self,
+        data,
+        name="New signal",
+        _class=None,
+        sampling=10,
+        mask=[],
+        plotter=None,
+        colname=None,
+    ):
         self.data.append(data)
         if name in self.names or name == "":
             name = "New_{}_{}".format(name, len(self.names))
@@ -42,13 +69,27 @@ class SignalViewModel(QObject):
         self.masks.append(mask)
         self.newdata.emit()
 
+        if plotter is None:
+            plotter, colname = choose_plotter(data)
+
+        plotter.title = name
+
         if _class is None:
             _class = SignalViewer2(
-                self.parent, data, title=self.names[-1], mask=self.masks[-1]
+                self.parent,
+                data,
+                title=self.names[-1],
+                mask=self.masks[-1],
+                plotter=plotter,
             )
+            _class.plotter.colname = colname
             _class.display()
 
         self.add_viewer(_class, self.names[-1])
+
+    def change_name(self, idx, name):
+        self.names[idx] = name
+        self.viewers[idx].plotter.title = name
 
     def list_datasets(self, _type=None):
         if len(self.data) == 0:
@@ -67,13 +108,14 @@ class SignalViewModel(QObject):
         self.sampling.pop(index)
         self.masks.pop(index)
         self.viewers.pop(index)
+        self.plotters.pop(index)
 
     def add_viewer(self, _class, name):
         if _class != None:
             gui = apptools.getApp().gui
             PluginManager.plugin_instances.append(_class)
             gui.container.add_data_layer(name)
-            self.viewers.append(PluginManager.plugin_instances[-1].show)
+            self.viewers.append(PluginManager.plugin_instances[-1])
         else:
             self.viewers.append([])
 
