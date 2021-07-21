@@ -34,6 +34,7 @@ class SignalViewer2(QObject):
     def __init__(self, parent=None, signal=None, title="", mask=[], plotter=None):
         super(SignalViewer2, self).__init__()
         self.parent = parent
+        self.model = self.parent.model
         self.parent.model.imagetoplot.connect(self.update_values_plot)
         self.output = signal
         self.foutput = self.output
@@ -89,6 +90,15 @@ class SignalViewer2(QObject):
         self.dockUI.setFloating(True)
         self.parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dockUI)
 
+        assert self.plotter is not None
+        self.exportButton = QPushButton("Export to Viewport")
+        self.exportButton.setToolTip(
+            "The current plot will be loaded to the viewport as an image"
+        )
+        self.exportButton.clicked.connect(self.plotter.toViewport)
+        self.plot_layout.addWidget(self.exportButton)
+        self.exportButton.hide()
+
     def update_values_plot(self, values):
         try:
             self.plot.clear()
@@ -105,6 +115,8 @@ class SignalViewer2(QObject):
             self.foutput = self.output[idx]
         except Exception as e:
             raise e
+        finally:
+            pass
 
     def createParameterTree(self):
         # Parameters tree
@@ -173,10 +185,11 @@ class SignalViewer2(QObject):
                 self.plotter.mask = self.mask
             self.plotter.plot()
 
-        if self.exportable:
-            exportButton = QPushButton("Export to Viewport")
-            exportButton.setToolTip(
-                "The current plot will be loaded to the viewport as an image"
-            )
-            exportButton.clicked.connect(self.toViewport)
-            self.plot_layout.addWidget(exportButton)
+        if self.plotter.exportable:
+            self.exportButton.show()
+            try:
+                self.exportButton.clicked.disconnect()
+            finally:
+                self.exportButton.clicked.connect(self.plotter.toViewport)
+        else:
+            self.exportButton.hide()

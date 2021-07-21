@@ -7,8 +7,6 @@
 import pyqtgraph as pg
 import numpy as np
 
-from camos.model.inputdata import InputData
-
 
 class Plotter:
     def __init__(
@@ -22,6 +20,7 @@ class Plotter:
         self.mask = []
         self.title = ""
         self.colname = None
+        self.exportable = False
 
         self.connect_range = True
         self._connect_time = False
@@ -66,7 +65,9 @@ class Plotter:
                 self.connectRangeToPlot(self.parent.viewport.region, self.plotItem)
 
         except Exception as e:
-            raise e
+            # TODO: as error, but not raise
+            print(str(e))
+            pass
 
     def connectRangeToPlot(self, r1, p1):
         # We could just disconnect the events
@@ -88,12 +89,7 @@ class Plotter:
             self.timeline.hide()
 
     def toViewport(self, *args, **kwargs):
-        try:
-            image = InputData(self.to_export)
-            image.loadImage()
-            self.parent.model.add_image(image, "Viewport of {}".format(self.title))
-        except:
-            pass
+        raise NotImplementedError("Base Plotter cannot export to ViewPort")
 
     def clickEvent(self, event):
         if event._double:

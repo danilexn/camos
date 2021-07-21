@@ -8,12 +8,14 @@ import pyqtgraph as pg
 import numpy as np
 
 from camos.plotter.plotter import Plotter
+from camos.model.inputdata import InputData
 
 
 class Heatmap(Plotter):
     def __init__(self, *args, **kwargs) -> None:
         super(Heatmap, self).__init__(*args, **kwargs)
         self.electrode_n = 64
+        self.exportable = True
 
     def _plot(self):
         mfr = np.zeros(shape=(self.electrode_n * self.electrode_n))
@@ -24,6 +26,7 @@ class Heatmap(Plotter):
         # reshape mfr values in shape of chip for heatmap
         mfr = np.reshape(mfr, (self.electrode_n, self.electrode_n)).T
 
+        self.to_export = mfr
         heatmap = pg.ImageItem()
         heatmap.setImage(mfr)
 
@@ -46,3 +49,11 @@ class Heatmap(Plotter):
         bar.setImageItem(heatmap, insert_in=p1)
 
         return p1
+
+    def toViewport(self, *args, **kwargs):
+        try:
+            image = InputData(self.to_export)
+            image.loadImage()
+            self.parent.model.add_image(image, "Viewport of {}".format(self.title))
+        except:
+            pass

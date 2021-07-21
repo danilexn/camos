@@ -8,12 +8,14 @@ import pyqtgraph as pg
 import numpy as np
 
 from camos.plotter.plotter import Plotter
+from camos.model.inputdata import InputData
 
 
 class Image(Plotter):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.cmap_label = "Pixel intensity value"
+        self.exportable = True
 
     def _plot(self):
         _mask = self.replaceValuesOnMask()
@@ -30,6 +32,7 @@ class Image(Plotter):
         img.hoverEvent = lambda event: self.hoverEvent(event, img)
         img.setOpts(axisOrder="row-major")
         p1.addItem(img)
+        self.to_export = _mask
 
         # Colormap for the colorbar
         cm = pg.colormap.get("inferno", source="matplotlib")
@@ -59,3 +62,11 @@ class Image(Plotter):
         mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
         mapping_ar[k] = v
         return np.nan_to_num(mapping_ar[mask])
+
+    def toViewport(self, *args, **kwargs):
+        try:
+            image = InputData(self.to_export)
+            image.loadImage()
+            self.parent.model.add_image(image, "Viewport of {}".format(self.title))
+        except:
+            pass
