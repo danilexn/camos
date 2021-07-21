@@ -41,5 +41,4 @@ def get_time():
         current_configuration = configuration.readConfiguration()
         return length[current_configuration["Units/Time"]]
     except:
-        warnings.warn("Could not load the time units, loading s as default")
         return "s"

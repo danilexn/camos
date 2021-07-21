@@ -1,25 +1,19 @@
 # -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-# Last modified on Mon Jun 07 2021
+# Last modified on Thu Jul 15 2021
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
 import numpy as np
+import copy
 
 import camos.utils.apptools as apptools
 import camos.utils.pluginmanager as PluginManager
-from camos.viewport.signalviewer import SignalViewer
+from camos.viewport.signalviewer2 import SignalViewer2
 
-signal_types = {
-    "timeseries": [3, "int"],
-    "correlation": [2, "object"],
-    "correlation_lag": [3, "object"],
-    "summary": [2, "int"],
-}
-
-MAXNAMELEN = 30
+MAXNAMELEN = 300
 
 
 class SignalViewModel(QObject):
@@ -47,6 +41,13 @@ class SignalViewModel(QObject):
         self.sampling.append(sampling)
         self.masks.append(mask)
         self.newdata.emit()
+
+        if _class is None:
+            _class = SignalViewer2(
+                self.parent, data, title=self.names[-1], mask=self.masks[-1]
+            )
+            _class.display()
+
         self.add_viewer(_class, self.names[-1])
 
     def list_datasets(self, _type=None):
@@ -82,14 +83,21 @@ class SignalViewModel(QObject):
         _filtered_idx = np.isin(self.data[index][:]["CellID"], IDs)
         _filtered = self.data[index][_filtered_idx]
 
-        _sv = SignalViewer(self.parent, _filtered)
-        _sv.display()
+        self.add_data(
+            _filtered, name=self.names[index], sampling=self.sampling[index],
+        )
+
+    def duplicate_data(self, index=0):
+        """Duplicates the current data
+
+        Args:
+            index (int, optional): index of the data to duplicate, according to self.data. Defaults to 0.
+        """
+        data = copy.deepcopy(self.data[index])
+        name = "Duplicate of {}".format(self.names[index])
 
         self.add_data(
-            _filtered,
-            name=self.names[index],
-            _class=_sv,
-            sampling=self.sampling[index],
+            data, name=name, sampling=self.sampling[index],
         )
 
     def __iter__(self):

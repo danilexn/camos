@@ -24,6 +24,6 @@ class OpenImageStack(Opening):
     def _run(self):
         # Added so we can load CMOS chip image
         PIL.Image.MAX_IMAGE_PIXELS = 933120000
-        image = InputData(self.filename, memoryPersist=True)
+        image = InputData(self.filename)
         image.loadImage()
         self.model.add_image(image)

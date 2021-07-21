@@ -7,9 +7,9 @@
 from PyQt5.QtWidgets import QLabel, QProgressBar, QPushButton, QVBoxLayout, QWidget
 from PyQt5.QtCore import QThread
 
-from camos.utils.errormessages import ErrorMessages
 import camos.utils.apptools as apptools
 from camos.utils.notifications import notify
+from camos.utils.errormessages import ErrorMessages
 
 
 class RunTask(QWidget):
@@ -26,14 +26,14 @@ class RunTask(QWidget):
         self.waitLabel = QLabel("Wait while {} is running".format(name))
         self.cancelButton = QPushButton("Cancel", self)
         self.cancelButton.setToolTip("Click to cancel this task")
-        self.cancelButton.clicked.connect(self.closeEvent)
+        self.cancelButton.clicked.connect(self.closeTask)
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.pbar)
         self.layout.addWidget(self.waitLabel)
         self.layout.addWidget(self.cancelButton)
         self.setLayout(self.layout)
-        self.setGeometry(300, 300, 550, 100)
+        self.setGeometry(300, 300, 300, 100)
         self.setWindowTitle("Running {}".format(name))
         self.success = False
 
@@ -41,6 +41,7 @@ class RunTask(QWidget):
 
     def _init_thread(self):
         self.thread = QThread(parent=apptools.getApp().gui)
+        self.thread.setTerminationEnabled(True)
         self.obj.intReady.connect(self.on_count_changed)
         self.obj.moveToThread(self.thread)
         self.thread.started.connect(self.obj.run)
@@ -62,7 +63,6 @@ class RunTask(QWidget):
     def on_notify(self, value, priority):
         notify(value, priority)
 
-    def closeEvent(self, event):
+    def closeTask(self, event):
         if self.thread.isRunning():
-            self.thread.quit()
-            self.thread.wait()
+            self.thread.terminate()

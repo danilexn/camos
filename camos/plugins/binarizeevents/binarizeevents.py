@@ -8,6 +8,7 @@ import numpy as np
 
 from camos.tasks.analysis import Analysis
 from camos.utils.generategui import NumericInput, DatasetInput
+from camos.utils.units import get_time
 
 
 class BinarizeEvents(Analysis):
@@ -19,11 +20,10 @@ class BinarizeEvents(Analysis):
             model, parent, signal, name=self.analysis_name
         )
         self.data = None
-        self.finished.connect(self.output_to_signalmodel)
 
     def _run(
         self,
-        _binsize: NumericInput("Bin Size (s)", 1),
+        _binsize: NumericInput("Bin Size ({})".format(get_time()), 1),
         _i_data: DatasetInput("Source dataset", 0),
     ):
         output_type = [("CellID", "int"), ("Active", "float")]
@@ -45,25 +45,3 @@ class BinarizeEvents(Analysis):
 
         # This reduces the events to one per electrode in the same bin
         self.output = np.unique(self.output, axis=0)
-
-    def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(
-            self.output, "Binned Bursting of {}".format(self.dataname), self
-        )
-
-    def _plot(self):
-        ev_ids = self.foutput[:]["CellID"].flatten()
-        ids = np.unique(ev_ids)
-        ids = np.sort(ids)
-        ids_norm = np.arange(0, len(ids), 1)
-
-        k = np.array(list(ids))
-        v = np.array(list(ids_norm))
-
-        dim = max(k.max(), np.max(ids_norm))
-        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
-        mapping_ar[k] = v
-        ev_ids_norm = mapping_ar[ev_ids]
-        self.plot.axes.scatter(y=ev_ids_norm, x=self.foutput[:]["Active"], s=0.5)
-        self.plot.axes.set_ylabel("Normalized ID")
-        self.plot.axes.set_xlabel("Time (s)")

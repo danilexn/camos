@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Created on Sat Jun 05 2021
-# Last modified on Wed Jul 07 2021
+# Last modified on Thu Jul 15 2021
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
@@ -15,19 +15,21 @@ from PyQt5.QtWidgets import (
     QSlider,
     QLabel,
     QComboBox,
-    QScrollBar,
     QAction,
     QWidget,
 )
 from PyQt5.QtGui import QDoubleValidator
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import Qt
 
 import pyqtgraph as pg
 
 from camos.utils.cmaps import cmaps
 from camos.utils.units import get_length
 from camos.utils.strings import range_to_list
-from camos.gui.qt.qt_range_slider import QtRangeSlider
+from camos.viewport.tableviewer import TableViewer
+from camos.resources import resources
+
+MAXNAMELEN = 30
 
 
 class FrameContainer(QtWidgets.QWidget):
@@ -58,12 +60,17 @@ class FrameContainer(QtWidgets.QWidget):
     def verticalwidgets(self):
         """ViewPorts for the images (box_layout1)
         """
+        # Create toolbar
+        self._createLayersActions()
+        self._createLayersToolBar()
+
         # Left side
         self.box_layout1 = QtWidgets.QHBoxLayout()
         self.box_layout1_1 = QtWidgets.QVBoxLayout()
         self.box_layout1.setContentsMargins(0, 0, 0, 0)
         self.box_layout1.setSpacing(0)
         self.opened_data = TabWidget()
+        self.opened_data.currentChanged.connect(self._tab_change)
         self.opened_layers_widget = QLayerWidget(self)
         self.opened_data.addTab(self.opened_layers_widget, "Layers")
         self.opened_layers_widget.installEventFilter(self)
@@ -76,15 +83,13 @@ class FrameContainer(QtWidgets.QWidget):
         self.opened_layers_widget.itemDoubleClicked.connect(self._setup_current_layer)
         self.opened_data_widget = QDataWidget(self)
         self.opened_data_widget.itemDoubleClicked.connect(self.open_data_layer)
+        self.opened_data_widget.installEventFilter(self)
         self.opened_data.addTab(self.opened_data_widget, "Datasets")
 
-        self.box_layout1_1.addWidget(self.opened_data, 1)
+        self.box_layout1_1.addWidget(self.opened_data, 5)
         self.box_layout1_1.addWidget(self.layers_controls, 1)
         self.box_layout1.addLayout(self.box_layout1_1, 1)
         self.box_layout1.addWidget(self.parent.viewport, 4)
-
-        self._createLayersActions()
-        self._createLayersToolBar()
 
     def _change_current_layer(self, index):
         """Internal representation of the current layer selected
@@ -102,12 +107,12 @@ class FrameContainer(QtWidgets.QWidget):
             name (str): the name of the new layer to be added
         """
         name = self.parent.model.names[layer]
-        item = QListWidgetItem(name)
-        item.setIcon(QIcon(self.parent.model.get_icon(-1)))
+        _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
+        item = QListWidgetItem(_s_name)
+        item.setIcon(QIcon(self.parent.model.get_icon(layer)))
+        item.setToolTip(name + " (double click to change)")
         self.opened_layers_widget.addItem(item)
-        maxframe = self.parent.model.maxframe
-        self.current_frame_slider.setRange(0, maxframe - 1)
-        self.current_frame_rangeslider.setRange(0, maxframe - 1)
+        self.opened_layers_widget.setCurrentItem(item)
 
     def add_data_layer(self, name):
         """When the ImageViewModel has updates in any of the elements, the layers list is updated
@@ -115,7 +120,9 @@ class FrameContainer(QtWidgets.QWidget):
         Args:
             name (str): the name of the new layer to be added
         """
-        item = QListWidgetItem(name)
+        _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
+        item = QListWidgetItem(_s_name)
+        item.setToolTip(name + " (double click to display)")
         self.opened_data_widget.addItem(item)
 
     def open_data_layer(self):
@@ -131,7 +138,9 @@ class FrameContainer(QtWidgets.QWidget):
             self.parent.model.names[layer[0].row()] = text
             items = self.opened_layers_widget.selectedItems()
             for item in items:
-                item.setText(text)
+                _s_name = text if len(text) < MAXNAMELEN else text[0:MAXNAMELEN] + "..."
+                item.setText(_s_name)
+                item.setToolTip(text + " (double click to change)")
 
     def _createLayersControls(self):
         """For the lateral layer control, creates the upper view of layers, and the bottom individual controls per layer
@@ -144,12 +153,12 @@ class FrameContainer(QtWidgets.QWidget):
 
         # We create the following controls that act over the chosen layer
         # 1. Opacity
-        self.opacity_layer_slider = CaMOSSlider(QtCore.Qt.Horizontal)
+        self.opacity_layer_slider = QSlider(QtCore.Qt.Horizontal)
         self.opacity_layer_label = QLabel("")
         self.opacity_layer_slider.setRange(0, 100)
         layout.addRow(QLabel("Opacity"))
         layout.addRow(self.opacity_layer_label, self.opacity_layer_slider)
-        self.opacity_layer_slider.pointClicked.connect(self._apply_changes_layer)
+        self.opacity_layer_slider.valueChanged.connect(self._apply_changes_layer)
         self.opacity_layer_slider.valueChanged.connect(self.opacityLabelUpdate)
         self.opacity_layer_slider.setValue(50)
 
@@ -160,65 +169,24 @@ class FrameContainer(QtWidgets.QWidget):
         layout.addRow(self.colormap_layer_selector)
         self.colormap_layer_selector.activated.connect(self._apply_changes_layer)
 
-        # 3. Contrast
-        self.contrast_layer_slider = CaMOSSlider(QtCore.Qt.Horizontal)
-        self.contrast_layer_slider.setRange(0, 20)
-        self.contrast_layer_slider.pointClicked.connect(self._apply_changes_layer)
-        self.contrast_layer_slider.valueChanged.connect(self.contrastLabelUpdate)
-        self.contrast_layer_label = QLabel("")
-        # layout.addRow(QLabel("Contrast"))
-        # layout.addRow(self.contrast_layer_label, self.contrast_layer_slider)
-        self.contrast_layer_slider.setValue(10)
-
-        # 4. Brightness
-        self.brightness_layer_slider = CaMOSSlider(QtCore.Qt.Horizontal)
-        self.brightness_layer_slider.setRange(-127, 128)
-        self.brightness_layer_slider.pointClicked.connect(self._apply_changes_layer)
-        self.brightness_layer_slider.valueChanged.connect(self.brightnessLabelUpdate)
-        self.brightness_layer_label = QLabel("")
-        # layout.addRow(QLabel("Brightness"))
-        # layout.addRow(self.brightness_layer_label, self.brightness_layer_slider)
-        self.brightness_layer_slider.setValue(0)
-
-        # self.apply_changes_layer_bt = QPushButton("Apply")
-        # self.apply_changes_layer_bt.clicked.connect(self._apply_changes_layer)
-        # layout.addRow(self.apply_changes_layer_bt)
-
-        # 5. Selection of the current frame
-        self.current_frame_slider = QScrollBar(QtCore.Qt.Horizontal)
-        layout.addRow(QLabel("Frame"))
-        layout.addRow(self.current_frame_slider)
-        self.current_frame_slider.valueChanged.connect(self._set_frame)
-        self.layers_controls.setLayout(layout)
-
-        # 6. Selection of the frame range
-        self.current_frame_rangeslider = QtRangeSlider(self, 0, 100, 0, 100)
-        layout.addRow(QLabel("Range of frames"))
-        layout.addRow(self.current_frame_rangeslider)
-        self.current_frame_slider.valueChanged.connect(self._set_frame)
+        # Configure the layout
         self.layers_controls.setLayout(layout)
 
     def opacityLabelUpdate(self, value):
         self.opacity_layer_label.setText(str(value))
-
-    def contrastLabelUpdate(self, value):
-        self.contrast_layer_label.setText(str(value))
-
-    def brightnessLabelUpdate(self, value):
-        self.brightness_layer_label.setText(str(value))
 
     def _populate_colormaps(self):
         """Inside the Layers Controls, populates the colormap controls with those available
         """
         self.colormap_layer_selector.addItems(cmaps)
 
-    def _set_frame(self, t):
-        """Configures the current frame, selected in the Layers Controls, to the image model
+    # def _set_frame(self, t):
+    #     """Configures the current frame, selected in the Layers Controls, to the image model
 
-        Args:
-            t (int): current frame selected in self.current_frame_slider
-        """
-        self.parent.model.set_frame(t)
+    #     Args:
+    #         t (int): current frame selected in self.current_frame_slider
+    #     """
+    #     self.parent.model.set_frame(t)
 
     def _get_frame(self):
         """Returns the frame currently selected in the image model
@@ -238,10 +206,6 @@ class FrameContainer(QtWidgets.QWidget):
         """
         op = self.parent.model.get_opacity(index)
         self.opacity_layer_slider.setValue(op)
-        co = self.parent.model.get_contrast(index)
-        self.contrast_layer_slider.setValue(co)
-        br = self.parent.model.get_brightness(index)
-        self.brightness_layer_slider.setValue(br)
         cm = self.parent.model.get_colormap(index)
         self.colormap_layer_selector.setCurrentIndex(list(cmaps.keys()).index(cm))
 
@@ -250,17 +214,13 @@ class FrameContainer(QtWidgets.QWidget):
         """
         index = self.opened_layers_widget.currentRow()
         op = self.opacity_layer_slider.value()
-        br = self.brightness_layer_slider.value()
-        co = self.contrast_layer_slider.value() / 10
         cm = self.colormap_layer_selector.currentText()
         _op = self.parent.model.get_opacity(index)
-        _co = self.parent.model.get_contrast(index)
-        _br = self.parent.model.get_brightness(index)
         _cm = self.parent.model.get_colormap(index)
 
-        if op == _op and br == _br and co == _co and cm == _cm:
+        if op == _op and cm == _cm:
             return
-        self.parent.model.set_values(op, br, co, cm, index)
+        self.parent.model.set_values(op, cm, index)
 
     def _createLayersActions(self):
         """Creates the UI elements (buttons) to handle Removal, Duplication, ROI toggling, Cropping and Cell Selection for the currently selected layer
@@ -268,42 +228,111 @@ class FrameContainer(QtWidgets.QWidget):
         # File actions
         self.removeAction = QAction(self)
         self.removeAction.setText("&Remove")
-        self.removeAction.setIcon(QIcon("resources/icon-remove.svg"))
-        self.removeAction.triggered.connect(self._layer_remove)
-        self.duplicateAction = QAction(
-            QIcon("resources/icon-duplicate.svg"), "&Duplicate", self
+        self.removeAction.setIcon(QIcon(":/resources/icon-remove.svg"))
+        self.removeAction.setToolTip(
+            "Removes the currently selected image (or dataset) layer"
         )
-        self.duplicateAction.triggered.connect(self._duplicate_layer)
-        self.rotateAction = QAction(QIcon("resources/icon-rotate.svg"), "&Rotate", self)
+        self.removeAction.triggered.connect(self._button_remove)
+        self.duplicateAction = QAction(
+            QIcon(":/resources/icon-duplicate.svg"), "&Duplicate", self
+        )
+        self.duplicateAction.triggered.connect(self._button_duplicate)
+        self.duplicateAction.setToolTip(
+            "Duplicates the currently selected image (or dataset) layer"
+        )
+        self.rotateAction = QAction(
+            QIcon(":/resources/icon-rotate.svg"), "&Rotate", self
+        )
         self.rotateAction.triggered.connect(self._rotate_layer)
-        self.flipAction = QAction(QIcon("resources/icon-flip.svg"), "&Flip", self)
+        self.rotateAction.setToolTip(
+            "Creates a new image that is a 90 degree rotation of the currently selected image"
+        )
+        self.flipAction = QAction(QIcon(":/resources/icon-flip.svg"), "&Flip", self)
         self.flipAction.triggered.connect(self._flip_layer)
-        self.toggleROIAction = QAction(QIcon("resources/icon-roi.svg"), "&ROI", self)
+        self.flipAction.setToolTip(
+            "Creates a new image that is a horizontal flip of the currently selected image"
+        )
+        self.toggleROIAction = QAction(QIcon(":/resources/icon-roi.svg"), "&ROI", self)
         self.toggleROIAction.triggered.connect(self._toggle_roi)
-        self.cropAction = QAction(QIcon("resources/icon-crop.svg"), "&Crop", self)
+        self.toggleROIAction.setToolTip("Toggles the ROI selector On or Off")
+        self.cropAction = QAction(QIcon(":/resources/icon-crop.svg"), "&Crop", self)
         self.cropAction.triggered.connect(self._crop_layer)
+        self.cropAction.setToolTip(
+            """Creates a new image that is a cropped version of the
+currently selected layer, within the ROI coordinates"""
+        )
         self.cellSelect = QAction(
-            QIcon("resources/icon-neuron.svg"), "&Select Cell", self
+            QIcon(":/resources/icon-neuron.svg"), "&Select Cell", self
         )
         self.cellSelect.triggered.connect(self._select_cells)
-        self.findIDs = QAction(QIcon("resources/icon-find.svg"), "&Find IDs", self)
+        self.cellSelect.setToolTip(
+            """Toggles the selection of cells On or Off. When double clicking,
+a new image filtered by the value of the double-clicked pixel will be
+created from the currently selected layer"""
+        )
+        self.findIDs = QAction(QIcon(":/resources/icon-find.svg"), "&Find IDs", self)
         self.findIDs.triggered.connect(self._find_ids)
-        self.resetAxis = QAction(QIcon("resources/reset-axis.svg"), "&Align zero", self)
+        self.findIDs.setToolTip(
+            """For the currently selected image (or data) layer, you will be prompted
+to introduce a list of IDs to filter. A new image (or data) layer will be
+created filtered by the introduced IDs."""
+        )
+        self.resetAxis = QAction(
+            QIcon(":/resources/reset-axis.svg"), "&Align zero", self
+        )
         self.resetAxis.triggered.connect(self._reset_axis)
-        self.sendMask = QAction(QIcon("resources/icon-all.svg"), "&Select All", self)
+        self.resetAxis.setToolTip(
+            """For the currently selected image, the position will be restored to the
+global (0, 0) coordinate of the viewport."""
+        )
+        self.sendMask = QAction(QIcon(":/resources/icon-all.svg"), "&Select All", self)
         self.sendMask.triggered.connect(self._send_mask)
-        self.alignImage = QAction(QIcon("resources/icon-align.svg"), "&Align to", self)
+        self.sendMask.setToolTip(
+            """For the currently selected layer, all unique values will be used to filter
+the IDs displayed in all plots (e.g., Y-axis in a raster plot)"""
+        )
+        self.alignImage = QAction(
+            QIcon(":/resources/icon-align.svg"), "&Align to", self
+        )
         self.alignImage.triggered.connect(self._align_image)
-        self.sumLayers = QAction(QIcon("resources/icon-sum.svg"), "&Sum", self)
+        self.alignImage.setToolTip(
+            """For the currently selected layer, you will be prompted to select another
+layer which will be aligned/moved to its same position (top-left corner)"""
+        )
+        self.sumLayers = QAction(QIcon(":/resources/icon-sum.svg"), "&Sum", self)
         self.sumLayers.triggered.connect(self._sum_layers)
+        self.sumLayers.setToolTip(
+            """A new image will be generated as the sum of two images: the currently
+selected layer and another layer you are prompted to select."""
+        )
         self.subtractLayers = QAction(
-            QIcon("resources/icon-subtract.svg"), "&Subtract", self
+            QIcon(":/resources/icon-subtract.svg"), "&Subtract", self
         )
         self.subtractLayers.triggered.connect(self._subtract_layers)
+        self.subtractLayers.setToolTip(
+            """A new image will be generated as the difference of two images:
+the currently selected layer and another layer you are prompted to select."""
+        )
         self.intersectLayers = QAction(
-            QIcon("resources/icon-multiply.svg"), "&Intersect", self
+            QIcon(":/resources/icon-multiply.svg"), "&Intersect", self
         )
         self.intersectLayers.triggered.connect(self._intersect_layers)
+        self.intersectLayers.setToolTip(
+            """A new image will be generated as the intersection (pixel value different to 0)
+of two images: the currently selected layer and another layer you select."""
+        )
+
+    def _button_remove(self):
+        if self.opened_data.currentIndex() == 0:
+            self._layer_remove()
+        else:
+            self._data_remove()
+
+    def _button_duplicate(self):
+        if self.opened_data.currentIndex() == 0:
+            self._duplicate_layer()
+        else:
+            self._duplicate_data()
 
     def _layer_remove(self):
         """Handles the removal of the currently selected layer in self.currentlayer, which is updated, in the image model
@@ -319,6 +348,7 @@ class FrameContainer(QtWidgets.QWidget):
         self.currentlayer = self.opened_data_widget.currentRow()
         idx = self.currentlayer
         self.opened_data_widget.takeItem(idx)
+        self.parent.signalmodel.data_remove(idx)
 
     def _layer_toggle(self):
         """Handles the removal of the currently selected layer in self.currentlayer, which is updated, in the image model
@@ -358,6 +388,13 @@ class FrameContainer(QtWidgets.QWidget):
         self.currentlayer = self.opened_layers_widget.currentRow()
         idx = self.currentlayer
         self.parent.model.duplicate_image(idx)
+
+    def _duplicate_data(self):
+        """Handles the call to ImageViewModel.duplicate_image in the parent image model, so it can duplicate the currently selected layer in self.currentlayer
+        """
+        self.currentlayer = self.opened_layers_widget.currentRow()
+        idx = self.currentlayer
+        self.parent.signalmodel.duplicate_data(idx)
 
     def _crop_layer(self):
         """Handles the call to ImageViewModel.crop_image in the parent image model, so it can crop the currently selected layer in self.currentlayer
@@ -489,13 +526,45 @@ class FrameContainer(QtWidgets.QWidget):
             event.type() == QtCore.QEvent.ContextMenu
             and source is self.opened_data_widget
         ):
+            idx = self.opened_data_widget.currentRow()
             menu = QtWidgets.QMenu()
             removeAct = QAction("Remove", self)
             removeAct.setStatusTip("Removes the current data")
             removeAct.triggered.connect(self._data_remove)
             menu.addAction(removeAct)
 
+            tableAct = QAction("Show Table", self)
+            tableAct.setStatusTip("Shows the data values as a table")
+            self.tabViewer = TableViewer(self.parent.signalmodel, idx)
+            tableAct.triggered.connect(self.tabViewer.display)
+            menu.addAction(tableAct)
+            menu.exec_(event.globalPos())
+
         return super(QWidget, self).eventFilter(source, event)
+
+    def _tab_change(self, i):
+        # Control disabling the buttons
+        visibility = True
+        if i == 1:
+            visibility = False
+
+        img_controls = [
+            self.rotateAction,
+            self.flipAction,
+            self.sumLayers,
+            self.subtractLayers,
+            self.intersectLayers,
+            self.toggleROIAction,
+            self.cropAction,
+            self.resetAxis,
+            self.alignImage,
+            self.cellSelect,
+            self.sendMask,
+        ]
+
+        for control in img_controls:
+            control.setEnabled(visibility)
+            control.setVisible(visibility)
 
 
 class QLayerWidget(QtWidgets.QListWidget):
@@ -526,31 +595,34 @@ class QDataWidget(QtWidgets.QListWidget):
             super().keyPressEvent(event)
 
 
-class LayerDialog(QtGui.QDialog):
+class LayerDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(LayerDialog, self).__init__(parent)
 
         self.setWindowTitle("Layer selection")
-        label = QtGui.QLabel("Second layer")
-        self.combo = QtGui.QComboBox()
+        label = QtWidgets.QLabel("Second layer")
+        self.combo = QtWidgets.QComboBox()
         self.parent = parent
-        self.combo.addItems(self.parent.model.list_images())
+        for i, name in enumerate(self.parent.model.list_images()):
+            _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
+            self.combo.addItem(_s_name, name)
+            self.combo.setItemData(i, name, Qt.ToolTipRole)
 
-        box = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             centerButtons=True,
         )
 
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
 
-        lay = QtGui.QGridLayout(self)
+        lay = QtWidgets.QGridLayout(self)
         lay.addWidget(label, 0, 0)
         lay.addWidget(self.combo, 0, 1)
         lay.addWidget(box, 2, 0, 1, 2)
 
 
-class TextDialog(QtGui.QDialog):
+class TextDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(TextDialog, self).__init__(parent)
 
@@ -561,22 +633,22 @@ class TextDialog(QtGui.QDialog):
         )
         self.search = QLineEdit()
 
-        box = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             centerButtons=True,
         )
 
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
 
-        lay = QtGui.QGridLayout(self)
+        lay = QtWidgets.QGridLayout(self)
         lay.addWidget(self.search_label, 0, 0)
         lay.addWidget(self.search, 0, 1)
         lay.addWidget(self.hint)
         lay.addWidget(box, 2, 0, 1, 2)
 
 
-class LayerPrefsDialog(QtGui.QDialog):
+class LayerPrefsDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, model=None, idx=None):
         super(LayerPrefsDialog, self).__init__(parent)
 
@@ -587,7 +659,7 @@ class LayerPrefsDialog(QtGui.QDialog):
         pixelsize = self.model.pixelsize[idx]
         scale = self.model.scales[idx][0]
 
-        self.setWindowTitle(name)
+        self.setWindowTitle("Preferences of {}".format(name))
 
         self.onlyDouble = QDoubleValidator()
         self.samplRate_label = QLabel("Sampling rate (Hz)")
@@ -607,15 +679,15 @@ class LayerPrefsDialog(QtGui.QDialog):
         self.scaleSize.setValidator(self.onlyDouble)
         self.scaleSize.setText(str(scale))
 
-        box = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             centerButtons=True,
         )
 
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
 
-        lay = QtGui.QGridLayout(self)
+        lay = QtWidgets.QGridLayout(self)
         lay.addWidget(self.samplRate_label)
         lay.addWidget(self.samplRate)
         lay.addWidget(self.pxSize_label)
@@ -650,10 +722,3 @@ class TabWidget(QtWidgets.QTabWidget):
     def __init__(self, parent=None):
         QtWidgets.QTabWidget.__init__(self, parent)
         self.setTabBar(HorizontalTabBar())
-
-
-class CaMOSSlider(QSlider):
-    pointClicked = pyqtSignal(int)
-
-    def sliderChange(self, event):
-        self.pointClicked.emit(self.value())

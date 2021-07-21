@@ -9,7 +9,8 @@ import traceback
 from inspect import isclass
 from pkgutil import iter_modules
 from pathlib import Path
-from importlib import import_module
+from importlib import import_module, reload
+import os
 
 from PyQt5 import QtWidgets
 
@@ -24,14 +25,22 @@ PLUGIN_GROUP = "camos.plugins"
 log = logging.getLogger(__name__)
 plugin_instances = []
 plugin_open = []
+plugins = []
+
+DEBUG = os.getenv("CAMOS_DEBUG")
 
 
-def _create_instance(plugin_class, attribute_name, base):
+def _create_instance(plugin_class, attribute_name, base, module_name):
     instance = None
     try:
         gui = apptools.getApp().gui
         analysisAct = QtWidgets.QAction("{}".format(plugin_class.analysis_name), gui)
-        analysisAct.triggered.connect(lambda: make_instance(plugin_class, base))
+        if DEBUG is None:
+            analysisAct.triggered.connect(lambda: make_instance(plugin_class, base))
+        else:
+            analysisAct.triggered.connect(
+                lambda: reload_instance(attribute_name, module_name)
+            )
         if Analysis in base:
             gui.analysisMenu.addAction(analysisAct)
         elif Processing in base:
@@ -46,7 +55,7 @@ def _create_instance(plugin_class, attribute_name, base):
                     "instance": lambda filename: run_opener(plugin_class, filename),
                 }
             )
-        # instance = plugin_class(model=model, parent=gui, signal = signalmodel)
+        plugins.append(module_name)
     except Exception as e:
         log.error("Failed to create plugin instance")
         log.error(e)
@@ -63,7 +72,19 @@ def make_instance(_class, base):
     plugin_instances[-1].display()
 
 
+def reload_instance(attribute_name, module):
+    module = reload(module)
+    _class = getattr(module, attribute_name)
+    gui = apptools.getApp().gui
+    model = gui.model
+    signalmodel = gui.signalmodel
+    instance = _class(model=model, parent=gui, signal=signalmodel)
+    plugin_instances.append(instance)
+    plugin_instances[-1].display()
+
+
 def run_opener(_class, filename):
+    # TODO: fix opening drag after opening with menu
     gui = apptools.getApp().gui
     model = gui.model
     signalmodel = gui.signalmodel
@@ -97,7 +118,7 @@ class PluginManager(object):
                             for item in [Analysis, Processing, Saving, Opening]
                         ):
                             self.loaded_plugins[attribute_name] = _create_instance(
-                                attribute, attribute_name, attribute.__bases__
+                                attribute, attribute_name, attribute.__bases__, module,
                             )
             except Exception as e:
                 log.error("Could not load the plugin {}; ".format(module_name) + str(e))

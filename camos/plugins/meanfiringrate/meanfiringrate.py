@@ -12,7 +12,6 @@ from camos.utils.generategui import (
     NumericInput,
 )
 
-
 class MeanFiringRate(Analysis):
     analysis_name = "Mean Firing Rate"
     required = ["dataset"]
@@ -22,7 +21,6 @@ class MeanFiringRate(Analysis):
             model, parent, signal, name=self.analysis_name
         )
         self.data = None
-        self.finished.connect(self.output_to_signalmodel)
 
     def _run(
         self,
@@ -31,7 +29,6 @@ class MeanFiringRate(Analysis):
         #scale: NumericInput("Axis scale", 1),
         #_i_units: CustomComboInput(list(length.keys()), "Axis units", 0),
         _i_data: DatasetInput("Source Dataset", 0),
-
     ):
         output_type = [("CellID", "int"), ("MFR", "float")]
         self.duration = duration
@@ -85,3 +82,4 @@ class MeanFiringRate(Analysis):
 
         self.plot.axes.set_ylabel("Electrode in Y direction")
         self.plot.axes.set_xlabel("Electrode in X direction")
+

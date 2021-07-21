@@ -25,7 +25,6 @@ class InterspikeInterval(Analysis):
             model, parent, signal, name=self.analysis_name
         )
         self.data = None
-        self.finished.connect(self.output_to_signalmodel)
 
     def _run(
         self,
@@ -73,36 +72,3 @@ class InterspikeInterval(Analysis):
             ISI[i] = np.average(np.diff(dict_events[ROI]))
 
         self.output[:]["ISI"] = ISI.reshape(-1, 1)
-
-    def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(
-            self.output, "ISI of {}".format(self.dataname), self, mask=self.mask
-        )
-
-    def _plot(self):
-        import matplotlib.ticker as tick
-
-        mask = self.mask.astype(int)
-        ISI_dict = {}
-        for i in range(1, self.foutput.shape[0]):
-            ISI_dict[int(self.foutput[i]["CellID"][0])] = self.foutput[i]["ISI"][0]
-
-        k = np.array(list(ISI_dict.keys()))
-        v = np.array(list(ISI_dict.values()))
-
-        dim = int(max(k.max(), np.max(mask)))
-        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
-        mapping_ar[k] = v
-        ISI_mask = mapping_ar[mask]
-
-        self.outputimage = ISI_mask
-
-        im = self.plot.axes.imshow(ISI_mask, cmap="inferno", origin="upper")
-        self.plot.fig.colorbar(
-            im, ax=self.plot.axes, label="Interspike Interval (seconds)"
-        )
-        formatter = lambda x, pos: f"{(x / self.scale):.1f}"  # scale is 1/resolution
-        self.plot.axes.yaxis.set_major_formatter(tick.FuncFormatter(formatter))
-        self.plot.axes.xaxis.set_major_formatter(tick.FuncFormatter(formatter))
-        self.plot.axes.set_ylabel("Y coordinate ({})".format(self.units))
-        self.plot.axes.set_xlabel("X coordinate ({})".format(self.units))

@@ -6,6 +6,7 @@
 
 import numpy as np
 import camos.model.image as img
+from camos.utils.apptools import getGui
 
 
 class InputData:
@@ -14,7 +15,7 @@ class InputData:
     properties of interest for the object to be handled in visualization and analysis.
     """
 
-    def __init__(self, file=None, memoryPersist=False, name="New Layer"):
+    def __init__(self, file=None, memoryPersist=None, name="New Layer"):
         """Initialization of the object
 
         Args:
@@ -28,7 +29,13 @@ class InputData:
         self._image = None
         self.frames = 0
         self.data = None
-        self.memoryPersist = memoryPersist
+        if memoryPersist is None:
+            _persist = getGui().configuration.readConfiguration()[
+                "Performance/RAM_persistence"
+            ]
+            self.memoryPersist = _persist
+        else:
+            self.memoryPersist = memoryPersist
         self.max = 0
         self.opacity = 50
         self.brightness = 0
@@ -47,11 +54,9 @@ class InputData:
         return self._image[index]
 
     def loadImage(self):
-        # TODO: load all into memory?
-        if self.memoryPersist:
-            self._image = img.Stack(self.file, dx=1, dz=1, units="nm")
-        else:
-            pass
+        self._image = img.Stack(
+            self.file, dx=1, dz=1, units="nm", persistence=self.memoryPersist
+        )
 
         self.frames = len(self._image)
         self.max = self._image._imgs.max()

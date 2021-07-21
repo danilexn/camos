@@ -9,11 +9,14 @@ from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QPushButton
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 
 import numpy as np
+import os
 
 from camos.tasks.runtask import RunTask
 from camos.model.inputdata import InputData
 from camos.utils.generategui import CreateGUI
 from camos.utils.notifications import notify
+
+DEBUG = os.getenv("CAMOS_DEBUG")
 
 
 class BaseTask(QObject):
@@ -29,6 +32,7 @@ class BaseTask(QObject):
         self.signal = signal
         self.parent = parent
         self.output = np.zeros((1, 1))
+        self.dataname = ""
         self.paramDict = {}
         self.handler = RunTask(self)
         self.notify.connect(self.handler.on_notify)
@@ -43,33 +47,15 @@ class BaseTask(QObject):
             self.handler.success = True
             self.foutput = self.output
         except Exception as e:
-            raise e
+            self.exc = e
         finally:
             self.finished.emit()
 
-    def update_plot(self):
-        # try:
-        #     self.plot.restartFigure()
-        # except:
-        #     pass
-        self._plot()
-        self.plot.draw()
-        self.plotReady.emit()
-
-    def update_values_plot(self, values):
-        self._update_values_plot(values)
-        self.update_plot()
-
-    def _update_values_plot(self, values):
-        pass
-
     def output_to_signalmodel(self):
-        self.parent.signalmodel.add_data(self.output, "", self, self.sampling)
+        raise NotImplementedError("Base tasks cannot move data to the Signal model")
 
     def output_to_imagemodel(self, name=None):
-        image = InputData(
-            self.output, memoryPersist=True, name=self.layername.format(self.index),
-        )
+        image = InputData(self.output, name=self.layername.format(self.index),)
         image.loadImage()
         self.parent.model.add_image(image, name)
 
@@ -95,7 +81,10 @@ class BaseTask(QObject):
 
         self.runButton = QPushButton("Run", self.parent)
         self.runButton.setToolTip("Click to run this task")
-        self.runButton.clicked.connect(self.handler.start_progress)
+        if DEBUG is None:
+            self.runButton.clicked.connect(self.handler.start_progress)
+        else:
+            self.runButton.clicked.connect(self.run)
 
         self.layout.addWidget(self.runButton)
 

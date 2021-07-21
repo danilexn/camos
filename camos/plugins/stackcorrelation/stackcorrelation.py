@@ -4,6 +4,7 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
+from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (
     QDockWidget,
@@ -16,11 +17,13 @@ from PyQt5.QtWidgets import (
 )
 
 import numpy as np
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 from camos.tasks.runtask import RunTask
 from camos.tasks.plotting import AnalysisPlot
 from camos.tasks.processing import Processing
 from camos.utils.generategui import ImageInput
+from camos.utils.generategui import CreateGUI
 
 
 class StackCorrelation(Processing):
@@ -89,12 +92,7 @@ class StackCorrelation(Processing):
         self.handler = RunTask(self)
         self.runButton.clicked.connect(self.handler.start_progress)
 
-        self.savePlot = QPushButton("To viewport", self.parent)
-        self.savePlot.setToolTip("Click to move plot to viewport")
-        self.savePlot.clicked.connect(self.export_plot_to_viewport)
-
         self.layout.addWidget(self.runButton)
-        self.layout.addWidget(self.savePlot)
 
         self.dockedWidget = QWidget()
         self.dockUI.setWidget(self.dockedWidget)

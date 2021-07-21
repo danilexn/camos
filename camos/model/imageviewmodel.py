@@ -4,17 +4,16 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-import copy
-
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 from PyQt5.QtGui import QImage, QPixmap
 
+import copy
 import numpy as np
 
 from camos.model.inputdata import InputData
 
 MAXHISTORY = 20
-MAXNAMELEN = 30
+MAXNAMELEN = 300
 
 
 class ImageViewModel(QObject):
@@ -106,7 +105,15 @@ class ImageViewModel(QObject):
             pass
 
     @pyqtSlot()
-    def add_image(self, image, name=None, cmap="gray", scale=[1, 1]):
+    def add_image(
+        self,
+        image,
+        name=None,
+        cmap="gray",
+        scale=[1, 1],
+        translation=[0, 0],
+        samplingrate=1,
+    ):
         """Any image, once it has been loaded within a InputData object, can be loaded onto the ImageViewModel through this function. It will read all the features for the loaded image, and recalculate the global (shared) features (maximum number of frames overall, ROIs...)
 
         Args:
@@ -131,9 +138,9 @@ class ImageViewModel(QObject):
             name = name[0:MAXNAMELEN]
 
         self.names.append(name)
-        self.translation.append([0, 0])
+        self.translation.append(translation)
         self.scales.append(scale)
-        self.samplingrate.append(1)
+        self.samplingrate.append(samplingrate)
         self.pixelsize.append(image._image.dx)
         self.newdata.emit(-1)
 
@@ -153,9 +160,7 @@ class ImageViewModel(QObject):
             int(self.roi_coord[1][1] / scale[1]),
         )
         cropped = self.images[index]._image._imgs[:, x_min:x_max, y_min:y_max]
-        image = InputData(
-            cropped, memoryPersist=True, name="Cropped from Layer {}".format(index),
-        )
+        image = InputData(cropped, name="Cropped from Layer {}".format(index),)
         image.loadImage()
         self.add_image(image, "Cropped from Layer {}".format(index), scale=scale)
         # self.translate_position(-1, (x_min, y_min))
@@ -168,9 +173,7 @@ class ImageViewModel(QObject):
         """
         scale = self.scales[index]
         flipped = np.flip(self.images[index]._image._imgs, axis=2)
-        image = InputData(
-            flipped, memoryPersist=True, name="Flipped from Layer {}".format(index),
-        )
+        image = InputData(flipped, name="Flipped from Layer {}".format(index),)
         image.loadImage()
         self.add_image(image, "Flipped from Layer {}".format(index), scale=scale)
 
@@ -192,9 +195,7 @@ class ImageViewModel(QObject):
         else:
             cell_ID = int(cell_ID[2])
         cell = np.where(mask == cell_ID, mask, 0)
-        image = InputData(
-            cell, memoryPersist=True, name="Selected Cell {}".format(cell_ID)
-        )
+        image = InputData(cell, name="Selected Cell {}".format(cell_ID))
         image.loadImage()
         scale = self.scales[self.currentlayer]
         self.add_image(
@@ -211,7 +212,7 @@ class ImageViewModel(QObject):
         ids = np.isin(mask, cell_ID)
         found = np.where(ids == True, mask, 0)
         newname = "Cells {} from Layer {}".format(cell_ID, self.currentlayer)
-        image = InputData(found, memoryPersist=True, name=newname)
+        image = InputData(found, name=newname)
         image.loadImage()
         scale = self.scales[self.currentlayer]
         self.add_image(
@@ -245,6 +246,18 @@ class ImageViewModel(QObject):
             index (int): position of the image in the self.images list
         """
         assert index != None
+
+        # Correct the current layer index
+        if index == len(self.images) - 1:
+            self.currentlayer -= 1
+        elif index < self.currentlayer:
+            self.currentlayer -= 1
+
+        # Prevent the index being negative
+        if self.currentlayer < 0:
+            self.currentlayer = 0
+
+        # Remove all data and properties linked to index
         self.images.pop(index)
         self.frames.pop(index)
         self.opacities.pop(index)
@@ -363,7 +376,6 @@ class ImageViewModel(QObject):
         summed = a + b
         image = InputData(
             summed,
-            memoryPersist=True,
             name="Sum from {} and {}".format(self.names[layer], self.names[curr]),
         )
         image.loadImage()
@@ -380,7 +392,6 @@ class ImageViewModel(QObject):
         subtracted = np.abs(a - b)
         image = InputData(
             subtracted,
-            memoryPersist=True,
             name="Subtract from {} and {}".format(self.names[layer], self.names[curr]),
         )
         image.loadImage()
@@ -398,7 +409,6 @@ class ImageViewModel(QObject):
         intersect = np.where(multiplied != 0, a, 0)
         image = InputData(
             intersect,
-            memoryPersist=True,
             name="Intersect from {} and {}".format(self.names[layer], self.names[curr]),
         )
         image.loadImage()
@@ -418,9 +428,7 @@ class ImageViewModel(QObject):
         self.add_image(image, "Duplicate of Layer {}".format(index))
 
     @pyqtSlot()
-    def set_values(
-        self, opacity=1, brightness=0, contrast=1, cmap="grey", index=0, undo=None
-    ):
+    def set_values(self, opacity=1, cmap="grey", index=0, undo=None):
         """Configures the properties for the selected layer; emits an event, i.e., so the ViewPort knows that it has to call the self.get_current_view method.
 
         Args:
@@ -430,8 +438,6 @@ class ImageViewModel(QObject):
         if undo is not None:
             index = undo["index"]
             opacity = undo["opacity"]
-            brightness = undo["brightness"]
-            contrast = undo["contrast"]
             cmap = undo["cmap"]
 
         if undo is None:
@@ -441,8 +447,6 @@ class ImageViewModel(QObject):
                     "function": self.set_values,
                     "index": index,
                     "opacity": self.opacities[index],
-                    "brightness": self.brightnesses[index],
-                    "contrast": self.contrasts[index],
                     "cmap": self.colormaps[index],
                 }
             ]
@@ -452,8 +456,6 @@ class ImageViewModel(QObject):
 
         # Apply the transformation
         self.opacities[index] = opacity
-        self.brightnesses[index] = brightness
-        self.contrasts[index] = contrast
         self.colormaps[index] = cmap
         self.updated.emit(index)
 
@@ -503,6 +505,7 @@ class ImageViewModel(QObject):
         Args:
             t (int): number of the frame to be configured
         """
+        assert len(self.images) > 0
         self.frame = t
         self.updatedframe.emit(self.currentlayer)
         pxs = self.pixelsize[self.currentlayer]
@@ -577,8 +580,21 @@ class ImageViewModel(QObject):
         self.undoHistory[-1][0]["function"](undo=self.undoHistory[-1][0])
         self.undoHistory.pop(-1)
 
+    def from_clipboard(self):
+        try:
+            from PIL import ImageGrab
+
+            im = np.array(ImageGrab.grabclipboard())
+            image = InputData(im, name="Image from Clipboard")
+            image.loadImage()
+            self.add_image(image, name="Image from Clipboard")
+        except Exception as e:
+            raise ValueError("Could not paste image")
+
     def __getstate__(self):
-        return self.__dict__
+        state = self.__dict__.copy()
+        del state["viewitems"]
+        return state
 
     def __setstate__(self, d):
         self.__dict__ = d

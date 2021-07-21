@@ -143,13 +143,37 @@ class Config(QtCore.QSettings):
             return default_value
 
     def unitsLength(self):
-        """Returns the color of the viewport
+        """Returns the program-wise units of length
         """
 
         key = "Units/Length"
         default_value = "Microns"
         setting_value = self.value(key)
         if isinstance(setting_value, str):
+            return setting_value
+        else:
+            return default_value
+
+    def unitsTime(self):
+        """Returns the program-wise units of time
+        """
+
+        key = "Units/Time"
+        default_value = "Seconds"
+        setting_value = self.value(key)
+        if isinstance(setting_value, str):
+            return setting_value
+        else:
+            return default_value
+
+    def performanceRAM(self):
+        """Returns the RAM persistence setting
+        """
+
+        key = "Performance/RAM_persistence"
+        default_value = True
+        setting_value = self.value(key)
+        if isinstance(setting_value, int):
             return setting_value
         else:
             return default_value
@@ -188,6 +212,8 @@ class Config(QtCore.QSettings):
         config["Plugins/Enabled"] = self.enabledPlugins()
         config["Viewport/Color"] = self.viewportColor()
         config["Units/Length"] = self.unitsLength()
+        config["Units/Time"] = self.unitsTime()
+        config["Performance/RAM_persistence"] = self.performanceRAM()
         return config
 
     def applyConfiguration(self, config, gui):
@@ -242,6 +268,14 @@ class Config(QtCore.QSettings):
         if key in config:
             self.units_length = config[key]
 
+        key = "Units/Time"
+        if key in config:
+            self.units_time = config[key]
+
+        key = "Performance/RAM_persistence"
+        if key in config:
+            self.RAM_persistence = config[key]
+
     def saveConfiguration(self):
         """
         Store current application settings on disk.
@@ -260,4 +294,6 @@ class Config(QtCore.QSettings):
         # The current background color
         self.writeValue("Viewport/Color", self.viewport_color)
         self.writeValue("Units/Length", self.units_length)
+        self.writeValue("Units/Time", self.units_time)
+        self.writeValue("Performance/RAM_persistence", self.RAM_persistence)
         self.sync()

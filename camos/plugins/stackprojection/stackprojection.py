@@ -48,9 +48,7 @@ class StackProjection(Processing):
         self.output = method(self.image._image._imgs, axis=self.axis)
 
     def output_to_imagemodel(self, name=None):
-        image = InputData(
-            self.output, memoryPersist=True, name=self.layername.format(self.index),
-        )
+        image = InputData(self.output, name=self.layername.format(self.index),)
         image.loadImage()
         self.parent.model.add_image(
             image,

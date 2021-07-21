@@ -1,14 +1,14 @@
-from PyQt5 import QtGui
-from PyQt5.QtWidgets import QLabel, QComboBox
+from PyQt5 import QtGui, QtWidgets
+from PyQt5.QtWidgets import QLabel, QComboBox, QCheckBox
 import warnings
 
 import camos.utils.apptools as apptools
 from camos.utils.settings import Config
 from camos.utils.cmaps import bg_colors as colors
-from camos.utils.units import length
+from camos.utils.units import length, time
 
 
-class CAMOSPreferences(QtGui.QDialog):
+class CAMOSPreferences(QtWidgets.QDialog):
     def __init__(self, parent=None):
         self.parent = parent
 
@@ -22,15 +22,17 @@ class CAMOSPreferences(QtGui.QDialog):
         super(CAMOSPreferences, self).__init__(parent)
 
         self.setWindowTitle("Program Preferences")
-        layout = QtGui.QGridLayout(self)
+        layout = QtWidgets.QGridLayout(self)
 
         # Calls the functions that create individual UI components
         self.viewportBackgroundUI(layout)
         self.lengthUnitsUI(layout)
+        self.timeUnitsUI(layout)
+        self.memoryPersistentLoading(layout)
 
         # Creates the Accept/Cancel buttons
-        box = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             centerButtons=True,
         )
 
@@ -91,6 +93,42 @@ class CAMOSPreferences(QtGui.QDialog):
         except Exception as e:
             warnings.warn(str(e))
 
+    def timeUnitsUI(self, layout):
+        """Creates the UI elements for setting the program-wide
+        length units (options to choose from length dictionary)
+
+        Args:
+            layout (QtGui.QGridLayout): where the widgets should
+                be attached.
+        """
+        try:
+            # Get the current color configuration
+            current_time = self.current_config["Units/Time"]
+
+            # Creates the UI elements (Label and ComboBox)
+            label_time = QLabel("Time units")
+            widget_time = QComboBox()
+            widget_time.addItems(time.keys())
+            widget_time.setCurrentIndex(list(time.keys()).index(current_time))
+            widget_time.currentTextChanged[str].connect(self.setupTime)
+
+            # Add the widgets to the layout
+            layout.addWidget(label_time)
+            layout.addWidget(widget_time)
+        except Exception as e:
+            warnings.warn(str(e))
+
+    def memoryPersistentLoading(self, layout):
+        try:
+            current_RAM = self.current_config["Performance/RAM_persistence"]
+
+            widget = QCheckBox("Images to RAM")
+            widget.stateChanged[int].connect(self.setupRAM)
+            widget.setChecked(current_RAM)
+            layout.addWidget(widget)
+        except Exception as e:
+            warnings.warn(str(e))
+
     def setupViewportColor(self, c):
         """Updates the current config variable,
         with the selected color in the ComboBox (UI)
@@ -110,6 +148,20 @@ class CAMOSPreferences(QtGui.QDialog):
                 the dictionary 'length')
         """
         self.current_config["Units/Length"] = l
+
+    def setupTime(self, t):
+        """Updates the current config variable,
+        with the selected time unit in the ComboBox (UI)
+
+        Args:
+            c (str): string identifying the time unit (see keys in
+                the dictionary 'time')
+        """
+        self.current_config["Units/Time"] = t
+
+    def setupRAM(self, r):
+        r = True if r == 2 else False
+        self.current_config["Performance/RAM_persistence"] = r
 
     def accept(self):
         # Sends the changes to the viewport
