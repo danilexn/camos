@@ -102,8 +102,6 @@ class SignalViewer2(QObject):
     def update_values_plot(self, values):
         try:
             self.plot.clear()
-        except Exception as e:
-            raise e
         finally:
             self._update_values_plot(values)
             self.plotter.data = self.foutput
@@ -111,11 +109,14 @@ class SignalViewer2(QObject):
 
     def _update_values_plot(self, values):
         try:
-            idx = np.isin(self.output[:]["CellID"], np.array(values))
+            if self.output.dtype.names == None:
+                idx = values
+            else:
+                idx = np.isin(self.output[:]["CellID"], np.array(values))
             self.foutput = self.output[idx]
         except Exception as e:
-            raise e
-        finally:
+            # TODO: exception as warning
+            print(str(e))
             pass
 
     def createParameterTree(self):
@@ -145,6 +146,14 @@ class SignalViewer2(QObject):
                     values=getApp().plugins_mgr.loaded_plotters,
                     value=get_plotter_index(self.plotter),
                     function=self._change_plot_type,
+                ),
+                dict(
+                    name="plotCmap",
+                    title="Change Colormap:    ",
+                    type="list",
+                    values=["inferno", "viridis", "plasma", "magma", "rainbow"],
+                    value="inferno",
+                    function=self._change_colormap,
                 ),
             ],
         )
@@ -178,6 +187,9 @@ class SignalViewer2(QObject):
             self.plotter = value(self.parent, self.plot, self.foutput)
             self.plotter.colname = colname
             self.update_plot()
+
+    def _change_colormap(self, param, value):
+        self.plotter.colormap = value
 
     def _plot(self):
         if self.plotter is not None:

@@ -72,6 +72,8 @@ class SignalViewModel(QObject):
         if plotter is None:
             plotter, colname = choose_plotter(data)
 
+        plotter.title = name
+
         if _class is None:
             _class = SignalViewer2(
                 self.parent,
@@ -84,6 +86,10 @@ class SignalViewModel(QObject):
             _class.display()
 
         self.add_viewer(_class, self.names[-1])
+
+    def change_name(self, idx, name):
+        self.names[idx] = name
+        self.viewers[idx].plotter.title = name
 
     def list_datasets(self, _type=None):
         if len(self.data) == 0:
@@ -102,13 +108,14 @@ class SignalViewModel(QObject):
         self.sampling.pop(index)
         self.masks.pop(index)
         self.viewers.pop(index)
+        self.plotters.pop(index)
 
     def add_viewer(self, _class, name):
         if _class != None:
             gui = apptools.getApp().gui
             PluginManager.plugin_instances.append(_class)
             gui.container.add_data_layer(name)
-            self.viewers.append(PluginManager.plugin_instances[-1].show)
+            self.viewers.append(PluginManager.plugin_instances[-1])
         else:
             self.viewers.append([])
 

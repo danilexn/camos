@@ -4,21 +4,26 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
+from PyQt5.QtCore import QObject
+
 import pyqtgraph as pg
 import numpy as np
 
 
-class Plotter:
+class Plotter(QObject):
     def __init__(
         self, parent=None, viewer=None, data=None, hastimeline=True, *args, **kwargs
     ):
+        super(Plotter, self).__init__(*args, **kwargs)
         self.parent = parent
         self.viewer = viewer
         self.data = data
         self.hastimeline = hastimeline
         self.plotItem = None
         self.mask = []
-        self.title = ""
+        self._title = ""
+        self._axes = ["", ""]
+        self._colormap = None
         self.colname = None
         self.exportable = False
 
@@ -28,7 +33,6 @@ class Plotter:
     def addInfiniteLine(self, plt):
         # Add the infinite line
         timeLine = pg.InfiniteLine(0, movable=True, pen={"color": "y", "width": 2})
-        # self.timeLine.setBounds([0, 0])
         plt.addItem(timeLine)
 
         return timeLine
@@ -115,3 +119,29 @@ class Plotter:
 
         # Show the value
         print("pos: (%0.1f, %0.1f)  value: %g" % (x, y, val))
+
+    @property
+    def title(self):
+        return self._title
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+        self.plotItem.setTitle(value)
+
+    @property
+    def axes(self):
+        return self._title
+
+    @axes.setter
+    def axes(self, x, y):
+        self._axes = [x, y]
+        self.plotItem.setLabels(bottom=self._axes[0], left=self._axes[1])
+
+    @property
+    def colormap(self):
+        raise NotImplementedError("Colormap not available at base Plotter")
+
+    @axes.setter
+    def axes(self, x, y):
+        raise NotImplementedError("Colormap not available at base Plotter")

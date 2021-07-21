@@ -127,7 +127,7 @@ class FrameContainer(QtWidgets.QWidget):
 
     def open_data_layer(self):
         idx = self.opened_data_widget.currentRow()
-        self.parent.signalmodel.viewers[idx]()
+        self.parent.signalmodel.viewers[idx].show()
 
     def _setup_current_layer(self):
         text, okPressed = QInputDialog.getText(
@@ -148,7 +148,7 @@ class FrameContainer(QtWidgets.QWidget):
         )
         if okPressed and text != "":
             layer = self.opened_data_widget.selectedIndexes()
-            self.parent.signalmodel.names[layer[0].row()] = text
+            self.parent.signalmodel.change_name(layer[0].row(), text)
             items = self.opened_data_widget.selectedItems()
             for item in items:
                 _s_name = text if len(text) < MAXNAMELEN else text[0:MAXNAMELEN] + "..."

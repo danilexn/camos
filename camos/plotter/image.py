@@ -38,10 +38,10 @@ class Image(Plotter):
         cm = pg.colormap.get("inferno", source="matplotlib")
 
         # Add the colorbar
-        bar = pg.ColorBarItem(
+        self.colorbar = pg.ColorBarItem(
             values=(np.min(_mask), np.max(_mask)), cmap=cm, label=self.cmap_label
         )
-        bar.setImageItem(img, insert_in=p1)
+        self.colorbar.setImageItem(img, insert_in=p1)
 
         return p1
 
@@ -70,3 +70,16 @@ class Image(Plotter):
             self.parent.model.add_image(image, "Viewport of {}".format(self.title))
         except:
             pass
+
+    @property
+    def colormap(self):
+        return self._colormap
+
+    @colormap.setter
+    def colormap(self, value):
+        self._colormap = value
+
+        assert self.colorbar is not None
+        # Colormap for the colorbar
+        cmap = pg.colormap.get(self._colormap, source="matplotlib")
+        self.colorbar.setCmap(cmap)
