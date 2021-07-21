@@ -254,8 +254,8 @@ class MiniImageViewModel(ImageViewModel):
         return self.images[0]._image._imgs[0]
 
     def set_currpos(self, x, y):
-        self.curr_x = x
-        self.curr_y = y
+        self.curr_x = x + self.translation[0][1]
+        self.curr_y = y + self.translation[0][0]
 
     def draw_grid(self, coords):
         for coord in coords:
