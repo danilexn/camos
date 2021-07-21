@@ -4,6 +4,8 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
+from PyQt5.QtWidgets import QFileDialog
+
 from camos.tasks.opening import Opening
 from camos.model.inputdata import InputData
 
@@ -27,3 +29,16 @@ class OpenImageStack(Opening):
         image = InputData(self.filename)
         image.loadImage()
         self.model.add_image(image)
+
+    def show_filemenu(self):
+        """Displays a File Dialog so the route of the file to be opened can be selected.
+
+        Returns:
+            str: route to the file
+        """
+        options = QFileDialog.Options()
+        fileName, _ = QFileDialog.getOpenFileNames(
+            self.parent, "Open Files", "", str(self.extensions), options=options,
+        )
+
+        return fileName

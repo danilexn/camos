@@ -40,9 +40,10 @@ class Opening(BaseTask):
         if "dataset" in self.required and (
             type(self.signal.list_datasets()) is type(None)
         ):
-            raise IndexError("The dataset model is empty")
+            # TODO: add as a warning (notification system)
+            print("No file was selected")
 
-        self.filename = self.show_savemenu()
+        self.filename = self.show_filemenu()
 
         if self.filename == "":
             raise ValueError("No file was selected")
@@ -55,7 +56,7 @@ class Opening(BaseTask):
 
         notify("The file '{}' was opened".format(self.filename), "INFO")
 
-    def show_savemenu(self):
+    def show_filemenu(self):
         """Displays a File Dialog so the route of the file to be opened can be selected.
 
         Returns:

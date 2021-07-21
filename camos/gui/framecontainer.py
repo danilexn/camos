@@ -80,7 +80,7 @@ class FrameContainer(QtWidgets.QWidget):
         )
         self.opened_layers_widget.setSpacing(5)
         self.opened_layers_widget.currentRowChanged.connect(self._change_current_layer)
-        self.opened_layers_widget.itemDoubleClicked.connect(self._setup_current_layer)
+        self.opened_layers_widget.itemDoubleClicked.connect(self._layer_toggle)
         self.opened_data_widget = QDataWidget(self)
         self.opened_data_widget.itemDoubleClicked.connect(self.open_data_layer)
         self.opened_data_widget.installEventFilter(self)
@@ -110,7 +110,7 @@ class FrameContainer(QtWidgets.QWidget):
         _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
         item = QListWidgetItem(_s_name)
         item.setIcon(QIcon(self.parent.model.get_icon(layer)))
-        item.setToolTip(name + " (double click to change)")
+        item.setToolTip(name + " (double click to toggle visibility)")
         self.opened_layers_widget.addItem(item)
         self.opened_layers_widget.setCurrentItem(item)
 
@@ -140,7 +140,20 @@ class FrameContainer(QtWidgets.QWidget):
             for item in items:
                 _s_name = text if len(text) < MAXNAMELEN else text[0:MAXNAMELEN] + "..."
                 item.setText(_s_name)
-                item.setToolTip(text + " (double click to change)")
+                item.setToolTip(text + " (double click to display)")
+
+    def _setup_current_data(self):
+        text, okPressed = QInputDialog.getText(
+            self, "Change name", "New name:", QLineEdit.Normal, "",
+        )
+        if okPressed and text != "":
+            layer = self.opened_data_widget.selectedIndexes()
+            self.parent.signalmodel.names[layer[0].row()] = text
+            items = self.opened_data_widget.selectedItems()
+            for item in items:
+                _s_name = text if len(text) < MAXNAMELEN else text[0:MAXNAMELEN] + "..."
+                item.setText(_s_name)
+                item.setToolTip(text + " (double click to display)")
 
     def _createLayersControls(self):
         """For the lateral layer control, creates the upper view of layers, and the bottom individual controls per layer
@@ -504,10 +517,10 @@ of two images: the currently selected layer and another layer you select."""
         ):
             menu = QtWidgets.QMenu()
 
-            hideAct = QAction("Toggle visibility", self)
-            hideAct.setStatusTip("Hides or shows the current layer")
-            hideAct.triggered.connect(self._layer_toggle)
-            menu.addAction(hideAct)
+            renameAct = QAction("Change name", self)
+            renameAct.setStatusTip("Open dialog to change current layer's name")
+            renameAct.triggered.connect(self._setup_current_layer)
+            menu.addAction(renameAct)
 
             removeAct = QAction("Remove", self)
             removeAct.setStatusTip("Removes the current layer")
@@ -528,6 +541,12 @@ of two images: the currently selected layer and another layer you select."""
         ):
             idx = self.opened_data_widget.currentRow()
             menu = QtWidgets.QMenu()
+
+            renameAct = QAction("Change name", self)
+            renameAct.setStatusTip("Open dialog to change current dataset's name")
+            renameAct.triggered.connect(self._setup_current_data)
+            menu.addAction(renameAct)
+
             removeAct = QAction("Remove", self)
             removeAct.setStatusTip("Removes the current data")
             removeAct.triggered.connect(self._data_remove)

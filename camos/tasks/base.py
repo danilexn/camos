@@ -74,6 +74,7 @@ class BaseTask(QObject):
 
     def buildUI(self):
         self.dockUI = QDockWidget(self.analysis_name, self.parent)
+        self.dockUI.setAllowedAreas(QtCore.Qt.NoDockWidgetArea)
         self.layout = QVBoxLayout()
         self.params_gui = CreateGUI(self.paramDict, self.layout, self._run)
         self.params_gui.creategui()

@@ -35,7 +35,7 @@ class Saving(BaseTask):
         ):
             raise IndexError("The dataset model is empty")
 
-        self.filename = self.show_savemenu()
+        self.filename = self.show_filemenu()
 
         if self.filename == "":
             raise ValueError("No file was selected")
@@ -49,7 +49,7 @@ class Saving(BaseTask):
         message = Notification("The file '{}' was saved".format(self.filename), "INFO")
         CaMOSQtNotification.from_notification(message)
 
-    def show_savemenu(self):
+    def show_filemenu(self):
         options = QFileDialog.Options()
         fileName, _ = QFileDialog.getSaveFileName(
             self.parent, "Save File", "", str(self.extensions), options=options,

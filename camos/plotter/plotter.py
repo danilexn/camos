@@ -28,7 +28,7 @@ class Plotter:
 
     def addInfiniteLine(self, plt):
         # Add the infinite line
-        timeLine = pg.InfiniteLine(0, movable=True)
+        timeLine = pg.InfiniteLine(0, movable=True, pen={"color": "y", "width": 2})
         # self.timeLine.setBounds([0, 0])
         plt.addItem(timeLine)
 

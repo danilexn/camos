@@ -35,10 +35,11 @@ class ImageViewPort(pg.ImageView):
 
         # This will hide some UI elements that will be handled by us
         # self.ui.histogram.hide()
+        self.ui.histogram.setLevelMode("mono")
         self.ui.histogram.fillHistogram(False)
         self.ui.menuBtn.hide()
         self.ui.roiBtn.hide()
-        self.timeLine = pg.InfiniteLine(0, movable=True)
+        self.timeLine = pg.InfiniteLine(0, movable=True, pen={"color": "y", "width": 3})
         self.timeLine.setBounds([0, 0])
         self.ui.roiPlot.addItem(self.timeLine)
         self.frameTicks = pg.VTickGroup(yrange=[0.8, 1], pen=0.4)
@@ -220,10 +221,13 @@ class DrawingImage(pg.ImageItem):
                 viewitems = self.model.viewitems
                 idx = viewitems.index(self)
                 p = event.pos()
+                x, y = event.pos().x(), event.pos().y()
                 self._xi, self._yi = p.x(), p.y()
                 self.initial_pos = self.model.translation[idx]
                 self.setBorder(pg.mkPen(cosmetic=False, width=4.5, color="r"))
                 self.accpos = list(self.model.translation[idx])
+                self.accpos[0] = self.accpos[0] + x - self._xi
+                self.accpos[1] = self.accpos[1] + y - self._yi
                 self.ctrl_modif = True
                 self.model.viewitems[idx] = self
 

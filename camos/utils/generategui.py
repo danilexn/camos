@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import (
     QRadioButton,
     QVBoxLayout,
 )
+from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot, Qt
 
 from typing import Callable
@@ -80,11 +81,23 @@ class DefaultInput(QObject):
 
 
 class NumericInput(DefaultInput):
+    def tryUpdate(self, v):
+        try:
+            self.updateValue(float(v))
+        except:
+            pass
+
     def createComponent(self):
         widget = QLineEdit()
         if self.default != None:
             widget.setText(str(self.default))
-        widget.textChanged[str].connect(lambda v: self.updateValue(float(v)))
+
+        # Validate only numeric input (doubles, too)
+        onlyDouble = QDoubleValidator()
+        widget.setValidator(onlyDouble)
+
+        # How to update the value
+        widget.textChanged[str].connect(lambda v: self.tryUpdate(v))
         return widget
 
 

@@ -73,6 +73,7 @@ class SignalViewer2(QObject):
 
     def buildUI(self):
         self.dockUI = QDockWidget(self.window_title, self.parent)
+        self.dockUI.setAllowedAreas(QtCore.Qt.RightDockWidgetArea)
         self.plot_layout = QVBoxLayout()
         # Main plot setup in UI
         self.plot_layout.addWidget(self.plot)

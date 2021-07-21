@@ -69,7 +69,7 @@ class OpenCMOS(Opening):
         ):
             raise IndexError("The dataset model is empty")
 
-        self.filename = self.show_savemenu()
+        self.filename = self.show_filemenu()
 
         if self.filename == "":
             raise ValueError("No file was selected")
@@ -122,6 +122,7 @@ class OpenCMOS(Opening):
 
     def _initialize_UI(self):
         self.dockUI = QDockWidget(self.analysis_name)
+        self.dockUI.setAllowedAreas(QtCore.Qt.NoDockWidgetArea)
         self.main_layout = QHBoxLayout()
         self.group_settings = QGroupBox("Parameters")
         self.group_plot = QGroupBox("Plots")
