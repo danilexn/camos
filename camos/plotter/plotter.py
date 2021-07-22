@@ -58,7 +58,10 @@ class Plotter(QObject):
 
         try:
             # Generate the base plot
-            self.plotItem = self._plot()
+            self.plotItem = self.viewer.addPlot(
+                title=self.title, labels={"left": "Y axis", "bottom": "X axis"},
+            )  # comment out for the matplotlib
+            self._plot()
 
             # Generate the timeline
             self.timeline = self.addInfiniteLine(self.plotItem)

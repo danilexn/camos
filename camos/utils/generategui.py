@@ -34,6 +34,7 @@ class CreateGUI(QObject):
         self.function = function
         self.valueDict = valueDict
         self.updateEvents = []
+        self.widgets = {}
 
     def creategui(self):
         # Check that everything is not None
@@ -45,6 +46,7 @@ class CreateGUI(QObject):
             field = self.function.__annotations__[a]
             field.var = a
             widget = field.createComponent()
+            self.widgets[field.var] = field
             # Store the default values
             self.valueDict[a] = field.default
             # Connect the change in values to the updateValue method
@@ -79,6 +81,10 @@ class DefaultInput(QObject):
         self.value = value
         self.updatedValue.emit(value, self.var)
 
+    def connect(self, *args, **kwargs):
+        print("No connect method for this object")
+        pass
+
 
 class NumericInput(DefaultInput):
     def tryUpdate(self, v):
@@ -88,17 +94,20 @@ class NumericInput(DefaultInput):
             pass
 
     def createComponent(self):
-        widget = QLineEdit()
+        self.widget = QLineEdit()
         if self.default != None:
-            widget.setText(str(self.default))
+            self.widget.setText(str(self.default))
 
         # Validate only numeric input (doubles, too)
         onlyDouble = QDoubleValidator()
-        widget.setValidator(onlyDouble)
+        self.widget.setValidator(onlyDouble)
 
         # How to update the value
-        widget.textChanged[str].connect(lambda v: self.tryUpdate(v))
-        return widget
+        self.widget.textChanged[str].connect(lambda v: self.tryUpdate(v))
+        return self.widget
+
+    def connect(self, expr):
+        self.widget.textChanged[int].connect(expr)
 
 
 class ImageInput(DefaultInput):
@@ -107,16 +116,19 @@ class ImageInput(DefaultInput):
         super(ImageInput, self).__init__(*args, **kwargs)
 
     def createComponent(self):
-        widget = QComboBox()
-        widget.currentIndexChanged[int].connect(lambda x: self.updateValue(x))
+        self.widget = QComboBox()
+        self.widget.currentIndexChanged[int].connect(lambda x: self.updateValue(x))
         images = self.model.list_images()
         if images is not None:
             for i, name in enumerate(images):
                 _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
-                widget.addItem(_s_name, name)
-                widget.setItemData(i, name, Qt.ToolTipRole)
+                self.widget.addItem(_s_name, name)
+                self.widget.setItemData(i, name, Qt.ToolTipRole)
 
-        return widget
+        return self.widget
+
+    def connect(self, expr):
+        self.widget.currentIndexChanged[int].connect(expr)
 
 
 class DatasetInput(DefaultInput):
@@ -125,16 +137,19 @@ class DatasetInput(DefaultInput):
         super(DatasetInput, self).__init__(*args, **kwargs)
 
     def createComponent(self):
-        widget = QComboBox()
-        widget.currentIndexChanged[int].connect(lambda x: self.updateValue(x))
+        self.widget = QComboBox()
+        self.widget.currentIndexChanged[int].connect(lambda x: self.updateValue(x))
         data = self.model.list_datasets()
         if data is not None:
             for i, name in enumerate(data):
                 _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
-                widget.addItem(_s_name, name)
-                widget.setItemData(i, name, Qt.ToolTipRole)
+                self.widget.addItem(_s_name, name)
+                self.widget.setItemData(i, name, Qt.ToolTipRole)
 
-        return widget
+        return self.widget
+
+    def connect(self, expr):
+        self.widget.currentIndexChanged[int].connect(expr)
 
 
 class CustomComboInput(DefaultInput):
@@ -143,16 +158,19 @@ class CustomComboInput(DefaultInput):
         super(CustomComboInput, self).__init__(*args, **kwargs)
 
     def createComponent(self):
-        widget = QComboBox()
+        self.widget = QComboBox()
         data = self.items
-        widget.currentIndexChanged[int].connect(lambda x: self.updateValue(x))
+        self.widget.currentIndexChanged[int].connect(lambda x: self.updateValue(x))
         if data is not None:
             for i, name in enumerate(data):
                 _s_name = name if len(name) < MAXNAMELEN else name[0:MAXNAMELEN] + "..."
-                widget.addItem(_s_name)
-                widget.setItemData(i, name, Qt.ToolTipRole)
+                self.widget.addItem(_s_name)
+                self.widget.setItemData(i, name, Qt.ToolTipRole)
 
-        return widget
+        return self.widget
+
+    def connect(self, expr):
+        self.widget.currentIndexChanged[int].connect(expr)
 
 
 class RadioButtonsInput(DefaultInput):
@@ -162,9 +180,9 @@ class RadioButtonsInput(DefaultInput):
 
     def createComponent(self):
         layout = QVBoxLayout()  # central layout
-        widget = QWidget()  # central widget
-        widget.setLayout(layout)
-        _group = QButtonGroup(widget)  # Number group
+        self.widget = QWidget()  # central widget
+        self.widget.setLayout(layout)
+        _group = QButtonGroup(self.widget)  # Number group
 
         data = self.items
         _group.idClicked[int].connect(lambda x: self.updateValue(x))
@@ -174,7 +192,10 @@ class RadioButtonsInput(DefaultInput):
                 _group.addButton(r0)
                 layout.addWidget(r0)
 
-        return widget
+        return self.widget
+
+    def connect(self, expr):
+        self.widget.idClicked[int].connect(expr)
 
 
 class DatasetList(DefaultInput):
@@ -185,14 +206,14 @@ class DatasetList(DefaultInput):
         super(DatasetList, self).__init__(*args, **kwargs)
 
     def createComponent(self):
-        widget = ThumbListWidget()
+        self.widget = ThumbListWidget()
         for method in self.model.list_datasets():
             item = QListWidgetItem(method)
             item.setCheckState(Qt.Unchecked)
-            widget.addItem(item)
-        widget.itemSelectionChanged.connect(lambda: self.updateValue(widget))
+            self.widget.addItem(item)
+        self.widget.itemSelectionChanged.connect(lambda: self.updateValue(self.widget))
 
-        return widget
+        return self.widget
 
     @pyqtSlot()
     def updateValue(self, widget) -> None:
@@ -201,14 +222,20 @@ class DatasetList(DefaultInput):
             self.value.append(i)
         self.updatedValue.emit(self.value, self.var)
 
+    def connect(self, expr):
+        self.widget.itemSelectionChanged.connect(expr)
+
 
 class CheckboxInput(DefaultInput):
     def createComponent(self):
-        widget = QCheckBox(self.name)
-        widget.stateChanged[int].connect(lambda x: self.updateValue(x))
-        widget.setChecked(self.default)
+        self.widget = QCheckBox(self.name)
+        self.widget.stateChanged[int].connect(lambda x: self.updateValue(x))
+        self.widget.setChecked(self.default)
 
-        return widget
+        return self.widget
+
+    def connect(self, expr):
+        self.widget.stateChanged[int].connect(expr)
 
 
 class ThumbListWidget(QListWidget):

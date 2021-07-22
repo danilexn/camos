@@ -30,25 +30,21 @@ class Heatmap(Plotter):
         heatmap = pg.ImageItem()
         heatmap.setImage(mfr)
 
-        p1 = self.viewer.addPlot(
-            title=self.title, labels={"left": "Electrode Y", "bottom": "Electrode X"},
+        self.plotItem.setLabels(
+            left="Electrode Y", bottom="Electrode X",
         )
-        p1.setAspectLocked()
+        self.plotItem.setAspectLocked()
 
-        p1.invertY(True)  # orient y axis to run top-to-bottom
-        p1.setDefaultPadding(0.0)  # plot without padding data range
-        p1.addItem(heatmap)  # display heatmap
+        self.plotItem.invertY(True)  # orient y axis to run top-to-bottom
+        self.plotItem.setDefaultPadding(0.0)  # plot without padding data range
+        self.plotItem.addItem(heatmap)  # display heatmap
 
-        # show full frame, label tick marks at top and left sides, with some extra space for labels:
-        p1.showAxes(True, showValues=(True, True, False, False), size=20)
         colorMap = pg.colormap.get("inferno", source="matplotlib")
 
         # generate an adjustabled color bar, initially spanning -1 to 1:
         self.colorbar = pg.ColorBarItem(values=(-1, 1), cmap=colorMap)
         # link color bar and color map to correlogram, and show it in plotItem:
-        self.colorbar.setImageItem(heatmap, insert_in=p1)
-
-        return p1
+        self.colorbar.setImageItem(heatmap, insert_in=self.plotItem)
 
     def toViewport(self, *args, **kwargs):
         try:

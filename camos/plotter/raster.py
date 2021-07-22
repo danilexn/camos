@@ -12,6 +12,7 @@ import numpy as np
 
 from camos.plotter.plotter import Plotter
 from camos.utils.units import get_time
+from camos.plotter.matplotlibwidget import MatplotlibWidget
 
 
 class Raster(Plotter):
@@ -32,19 +33,35 @@ class Raster(Plotter):
         mapping_ar[k] = v
         ev_ids_norm = mapping_ar[ev_ids]
 
-        p1 = self.viewer.addPlot(
-            title=self.title,
-            labels={
-                "left": "Normalized Source ID",
-                "bottom": "Time ({})".format(get_time()),
-            },
+        self.plotItem.setLabels(
+            left="Normalized Source ID", bottom="Time ({})".format(get_time()),
         )
-        p1.enableAutoRange(False)
-        lines = MultiLine(self.data[:]["Active"].flatten(), ev_ids_norm.flatten(), p1)
-        lines.clickEvent = lambda event: self.clickEvent(event, lines)
-        p1.addItem(lines)
 
-        return p1
+        self.plotItem.enableAutoRange(False)
+        lines = MultiLine(
+            self.data[:]["Active"].flatten(), ev_ids_norm.flatten(), self.plotItem
+        )
+        lines.clickEvent = lambda event: self.clickEvent(event, lines)
+        self.plotItem.addItem(lines)
+
+    def _plot_mpl(self):
+        # Just in case
+        ev_ids = self.data[:]["CellID"].flatten()
+        ids = np.unique(ev_ids)
+        ids = np.sort(ids)
+        ids_norm = np.arange(0, len(ids), 1)
+
+        k = np.array(list(ids))
+        v = np.array(list(ids_norm))
+
+        dim = max(k.max(), np.max(ids_norm))
+        mapping_ar = np.zeros(dim + 1, dtype=v.dtype)
+        mapping_ar[k] = v
+        ev_ids_norm = mapping_ar[ev_ids]
+
+        self.plotItem = self.viewer.getFigure().add_subplot(111)
+        self.plotItem.scatter(y=ev_ids_norm, x=self.data[:]["Active"], s=0.5)
+        self.plotItem.draw()
 
 
 class MultiLine(pg.QtGui.QGraphicsPathItem):

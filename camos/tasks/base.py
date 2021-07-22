@@ -78,6 +78,7 @@ class BaseTask(QObject):
         self.layout = QVBoxLayout()
         self.params_gui = CreateGUI(self.paramDict, self.layout, self._run)
         self.params_gui.creategui()
+        self._connectComponents()
 
         self.runButton = QPushButton("Run", self.parent)
         self.runButton.setToolTip("Click to run this task")
@@ -93,3 +94,9 @@ class BaseTask(QObject):
         self.dockedWidget.setLayout(self.layout)
         self.dockUI.setFloating(True)
         self.parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dockUI)
+
+    def _connectComponents(self):
+        self.connectComponents(self.params_gui.widgets)
+
+    def connectComponents(self, widgets):
+        pass

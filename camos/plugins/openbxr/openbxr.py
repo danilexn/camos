@@ -41,11 +41,18 @@ class OpenBXR(Opening):
         samplingRate = np.asarray(
             filehdf5_bxr["3BRecInfo"]["3BRecVars"]["SamplingRate"]
         )[0]
+
+        lastFrame = int(
+            np.asarray(filehdf5_bxr["3BUserInfo"]["TimeIntervals"])[0][3][0][1]
+        )
+        duration = lastFrame / samplingRate
         SpikeChIDs = np.asarray(filehdf5_bxr["3BResults"]["3BChEvents"]["SpikeChIDs"])
         SpikeTimes = (
             np.asarray(filehdf5_bxr["3BResults"]["3BChEvents"]["SpikeTimes"])
             / samplingRate
         )
+
+        NCols = int(np.array(filehdf5_bxr["3BRecInfo"]["3BMeaChip"]["NCols"]))
 
         output_type = [("CellID", "int"), ("Active", "float")]
         self.output = np.zeros(shape=(len(SpikeChIDs), 1), dtype=output_type)
@@ -57,7 +64,16 @@ class OpenBXR(Opening):
         )
 
         self.parent.signalmodel.add_data(
-            self.output, "Events from BXR".format(), _sv, samplingRate
+            self.output,
+            "Events from BXR".format(),
+            _sv,
+            samplingRate,
+            properties={
+                "samplingRate": samplingRate,
+                "duration": duration,
+                "timeUnits": "s",
+                "electrodeX": NCols,
+            },
         )
         _sv.display()
 
