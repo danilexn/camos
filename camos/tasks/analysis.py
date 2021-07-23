@@ -19,6 +19,7 @@ class Analysis(BaseTask):
         self.mask = []
         self.plotter = None
         self.colname = None
+        self.output_properties = {}
 
     def output_to_signalmodel(self):
         self.parent.signalmodel.add_data(
@@ -28,4 +29,5 @@ class Analysis(BaseTask):
             mask=self.mask,
             plotter=self.plotter,
             colname=self.colname,
+            properties=self.output_properties,
         )

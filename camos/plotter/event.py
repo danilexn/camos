@@ -19,14 +19,10 @@ class Event(Plotter):
     def _plot(self):
         x, y = self.dataTo2DEvents()
 
-        p1 = self.viewer.addPlot(
-            title=self.title, labels={"bottom": "Time ({})".format(get_time())}
-        )
+        self.plotItem.setLabels(bottom="Time ({})".format(get_time()),)
         plot = pg.PlotDataItem(x, y, connect="pairs")
         plot.clickEvent = lambda event: self.clickEvent(event, plot)
-        p1.addItem(plot)
-
-        return p1
+        self.plotItem.addItem(plot)
 
     def dataTo2DEvents(self):
         x = self.data[:][self.colname].flatten()

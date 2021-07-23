@@ -19,19 +19,17 @@ class Image(Plotter):
 
     def _plot(self):
         _mask = self.replaceValuesOnMask()
-        # Setup the display object
-        p1 = self.viewer.addPlot(
-            title=self.title,
-            labels={"left": "Y-coordinate (px)", "bottom": "X-coordinate (px)"},
+        self.plotItem.setAspectLocked()
+        self.plotItem.getViewBox().invertY(True)
+        self.plotItem.setLabels(
+            left="Y coordinate (px)", bottom="X coordinate (px)",
         )
-        p1.setAspectLocked()
-        p1.getViewBox().invertY(True)
 
         # Setup the image
         img = pg.ImageItem(image=_mask)
         img.hoverEvent = lambda event: self.hoverEvent(event, img)
         img.setOpts(axisOrder="row-major")
-        p1.addItem(img)
+        self.plotItem.addItem(img)
         self.to_export = _mask
 
         # Colormap for the colorbar
@@ -41,9 +39,7 @@ class Image(Plotter):
         self.colorbar = pg.ColorBarItem(
             values=(np.min(_mask), np.max(_mask)), cmap=cm, label=self.cmap_label
         )
-        self.colorbar.setImageItem(img, insert_in=p1)
-
-        return p1
+        self.colorbar.setImageItem(img, insert_in=self.plotItem)
 
     def replaceValuesOnMask(self):
         # Setup the mask from the data

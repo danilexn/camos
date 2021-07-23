@@ -17,9 +17,9 @@ class Signal(Plotter):
 
     def _plot(self):
         nPlots = self.data.shape[0]
-        p1 = self.viewer.addPlot(
-            title=self.title,
-            labels={"left": "Source ID", "bottom": "Time ({})".format(get_time())},
+
+        self.plotItem.setLabels(
+            left="Source ID", bottom="Time ({})".format(get_time()),
         )
 
         self._signal_curves = []
@@ -29,11 +29,9 @@ class Signal(Plotter):
             curve = pg.PlotCurveItem(
                 pen=({"color": (i, nPlots * 1.3), "width": 1}), skipFiniteCheck=True
             )
-            p1.addItem(curve)
+            self.plotItem.addItem(curve)
             self._signal_curves.append(curve)
             curve.setData(self.data[i] + offset)
             offset += 1
 
-        p1.clickEvent = lambda event: self.clickEvent(event, p1)
-
-        return p1
+        self.plotItem.clickEvent = lambda event: self.clickEvent(event, self.plotItem)

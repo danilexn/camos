@@ -38,13 +38,14 @@ class SignalViewModel(QObject):
     newdata = pyqtSignal()
 
     def __init__(self, data=[], parent=None):
+        super(SignalViewModel, self).__init__()
         self.data = data
         self.parent = parent
         self.names = []
         self.sampling = []
         self.masks = []
         self.viewers = []
-        super(SignalViewModel, self).__init__()
+        self.properties = []
 
     @pyqtSlot()
     def add_data(
@@ -56,6 +57,7 @@ class SignalViewModel(QObject):
         mask=[],
         plotter=None,
         colname=None,
+        properties={},
     ):
         self.data.append(data)
         if name in self.names or name == "":
@@ -67,6 +69,7 @@ class SignalViewModel(QObject):
         self.names.append(name)
         self.sampling.append(sampling)
         self.masks.append(mask)
+        self.properties.append(properties)
         self.newdata.emit()
 
         if plotter is None:
@@ -108,7 +111,7 @@ class SignalViewModel(QObject):
         self.sampling.pop(index)
         self.masks.pop(index)
         self.viewers.pop(index)
-        self.plotters.pop(index)
+        self.properties.pop(index)
 
     def add_viewer(self, _class, name):
         if _class != None:

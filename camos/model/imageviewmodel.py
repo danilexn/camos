@@ -76,6 +76,7 @@ class ImageViewModel(QObject):
         self.scales = []
         self.samplingrate = []
         self.pixelsize = []
+        self.properties = []
 
         self.maxframe = 0
         self.frame = 0
@@ -113,6 +114,7 @@ class ImageViewModel(QObject):
         scale=[1, 1],
         translation=[0, 0],
         samplingrate=1,
+        properties={},
     ):
         """Any image, once it has been loaded within a InputData object, can be loaded onto the ImageViewModel through this function. It will read all the features for the loaded image, and recalculate the global (shared) features (maximum number of frames overall, ROIs...)
 
@@ -127,6 +129,7 @@ class ImageViewModel(QObject):
         self.brightnesses.append(0)
         self.contrasts.append(1)
         self.colormaps.append(cmap)
+        self.properties.append(properties)
 
         if name == None:
             name = "Layer {}".format(len(self.images) - 1)
@@ -151,18 +154,18 @@ class ImageViewModel(QObject):
             index (int): position of the InputData object containing the image, in the list self.images
         """
         scale = self.scales[index]
-        y_tr, x_tr = self.translation[index]
+        x_tr, y_tr = self.translation[index]
         y_shape_max, x_shape_max = self.images[index]._image._imgs.shape[1:3]
-        x_min, x_max = (
-            max(0, abs(int(x_tr - self.roi_coord[0][0] / scale[0]))),
-            min(x_shape_max, abs(int(x_tr - self.roi_coord[1][0] / scale[0]))),
-        )
         y_min, y_max = (
-            max(0, abs(int(y_tr + self.roi_coord[0][1] / scale[1]))),
-            min(y_shape_max, abs(int(y_tr + self.roi_coord[1][1] / scale[1]))),
+            int(max(0, abs(int(y_tr - self.roi_coord[0][0]))) / scale[1]),
+            int(min(y_shape_max, abs(int(y_tr - self.roi_coord[1][0]))) / scale[1]),
+        )
+        x_min, x_max = (
+            int(max(0, abs(int(x_tr - self.roi_coord[0][1]))) / scale[0]),
+            int(min(x_shape_max, abs(int(x_tr - self.roi_coord[1][1]))) / scale[0]),
         )
 
-        cropped = self.images[index]._image._imgs[:, x_min:x_max, y_min:y_max]
+        cropped = self.images[index]._image._imgs[:, y_min:y_max, x_min:x_max]
         image = InputData(cropped, name="Cropped from Layer {}".format(index),)
         image.loadImage()
         self.add_image(image, "Cropped from Layer {}".format(index), scale=scale)
@@ -268,6 +271,7 @@ class ImageViewModel(QObject):
         self.translation.pop(index)
         self.scales.pop(index)
         self.viewitems.pop(index)
+        self.properties.pop(index)
         self.removedata.emit(index)
 
     def list_images(self):

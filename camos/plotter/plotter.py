@@ -11,8 +11,17 @@ import numpy as np
 
 
 class Plotter(QObject):
+    backend = "pyqtgraph"
+
     def __init__(
-        self, parent=None, viewer=None, data=None, hastimeline=True, *args, **kwargs
+        self,
+        parent=None,
+        viewer=None,
+        data=None,
+        hastimeline=True,
+        title="",
+        *args,
+        **kwargs
     ):
         super(Plotter, self).__init__(*args, **kwargs)
         self.parent = parent
@@ -21,7 +30,7 @@ class Plotter(QObject):
         self.hastimeline = hastimeline
         self.plotItem = None
         self.mask = []
-        self._title = ""
+        self._title = title
         self._axes = ["", ""]
         self._colormap = None
         self.colname = None
@@ -29,6 +38,39 @@ class Plotter(QObject):
 
         self.connect_range = True
         self._connect_time = False
+
+    @property
+    def title(self):
+        return self._title
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+        try:
+            if self.backend is "matplotlib":
+                self.plotItem.axes.set_title(value)
+            else:
+                self.plotItem.setTitle(value)
+        except Exception as e:
+            print(str(e))
+            pass
+
+    @property
+    def axes(self):
+        return self._title
+
+    @axes.setter
+    def axes(self, x, y):
+        self._axes = [x, y]
+        self.plotItem.setLabels(bottom=self._axes[0], left=self._axes[1])
+
+    @property
+    def colormap(self):
+        raise NotImplementedError("Colormap not available at base Plotter")
+
+    @axes.setter
+    def axes(self, x, y):
+        raise NotImplementedError("Colormap not available at base Plotter")
 
     def addInfiniteLine(self, plt):
         # Add the infinite line
@@ -58,15 +100,27 @@ class Plotter(QObject):
 
         try:
             # Generate the base plot
-            self.plotItem = self._plot()
+            if self.backend is "pyqtgraph":
+                self.plotItem = self.viewer.addPlot(
+                    title=self.title, labels={"left": "Y axis", "bottom": "X axis"},
+                )
 
-            # Generate the timeline
-            self.timeline = self.addInfiniteLine(self.plotItem)
-            self.connectLines(self.timeline, self.parent.viewport.timeLine)
-            self.timeline.hide()
+            # Generate the specific plot
+            self._plot()
 
-            if self.connect_time:
-                self.connectRangeToPlot(self.parent.viewport.region, self.plotItem)
+            if self.backend is "matplotlib":
+                self.viewer.draw()
+
+            self.title = self._title
+
+            if self.backend is "pyqtgraph":
+                # Generate the timeline
+                self.timeline = self.addInfiniteLine(self.plotItem)
+                self.connectLines(self.timeline, self.parent.viewport.timeLine)
+                self.timeline.hide()
+
+                if self.connect_time:
+                    self.connectRangeToPlot(self.parent.viewport.region, self.plotItem)
 
         except Exception as e:
             # TODO: as error, but not raise
@@ -119,33 +173,3 @@ class Plotter(QObject):
 
         # Show the value
         print("pos: (%0.1f, %0.1f)  value: %g" % (x, y, val))
-
-    @property
-    def title(self):
-        return self._title
-
-    @title.setter
-    def title(self, value):
-        self._title = value
-        try:
-            self.plotItem.setTitle(value)
-        except Exception as e:
-            print(str(e))
-            pass
-
-    @property
-    def axes(self):
-        return self._title
-
-    @axes.setter
-    def axes(self, x, y):
-        self._axes = [x, y]
-        self.plotItem.setLabels(bottom=self._axes[0], left=self._axes[1])
-
-    @property
-    def colormap(self):
-        raise NotImplementedError("Colormap not available at base Plotter")
-
-    @axes.setter
-    def axes(self, x, y):
-        raise NotImplementedError("Colormap not available at base Plotter")

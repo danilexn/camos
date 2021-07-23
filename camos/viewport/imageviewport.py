@@ -37,6 +37,7 @@ class ImageViewPort(pg.ImageView):
         # self.ui.histogram.hide()
         self.ui.histogram.setLevelMode("mono")
         self.ui.histogram.fillHistogram(False)
+        self.ui.histogram.disableAutoHistogramRange()
         self.ui.menuBtn.hide()
         self.ui.roiBtn.hide()
         self.timeLine = pg.InfiniteLine(0, movable=True, pen={"color": "y", "width": 3})
@@ -48,7 +49,9 @@ class ImageViewPort(pg.ImageView):
         self.region.setBounds([0, 0])
         self.region.setZValue(-10)
         self.ui.roiPlot.addItem(self.region)
-        self.ui.roiPlot.show()
+        # Hide unless more than 1 frame
+        self.ui.roiPlot.hide()
+
         self.roi.rotatable = False
 
         # Connect events to update the ImageViewModel
@@ -137,19 +140,20 @@ class ImageViewPort(pg.ImageView):
         self.scale.size = sz / pxsize
 
         # Update histogram after scaling and changing other levels
-        self.ui.histogram.hide()
         self.ui.histogram.setImageItem(self.view.addedItems[layer + 3])
-        self.ui.histogram.setHistogramRange(
-            mn=1, mx=np.max(self.view.addedItems[layer + 3].image)
-        )
-        self.ui.histogram.show()
 
         # Update the frame selector
-        bound = [0, self.model.frames[layer]]
-        self.timeLine.setBounds(bound)
-        self.timeLine.setValue(self.model.frame)
-        self.region.setBounds(bound)
-        self.region.setRegion(bound)
+        bound = [0, self.model.frames[layer] - 1]
+
+        # Check if multiframe
+        if bound[1] > 0:
+            self.timeLine.setBounds(bound)
+            self.timeLine.setValue(self.model.frame)
+            self.region.setBounds(bound)
+            self.region.setRegion(bound)
+            self.ui.roiPlot.show()
+        else:
+            self.ui.roiPlot.hide()
 
     def update_viewport_frame(self, layer=0):
         image = self.model.get_layer(layer=layer)

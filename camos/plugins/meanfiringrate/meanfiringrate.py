@@ -67,3 +67,20 @@ class MeanFiringRate(Analysis):
         self.output[:]["MFR"] = counts.reshape(-1, 1)
         self.output[:]["MFR"] = self.output[:]["MFR"] / self.duration
 
+        # Store the parameters
+        self.output_properties = self.signal.properties[_i_data]
+
+    def connectComponents(self, fields):
+        # Changing the input data to update the duration
+        fields["_i_data"].connect(
+            lambda x: fields["duration"].widget.setText(
+                str(int(self.signal.properties[x]["duration"]))
+            )
+        )
+
+        # Changing the input data to update the number of electrodes
+        fields["_i_data"].connect(
+            lambda x: fields["electrode_x"].widget.setText(
+                str(int(self.signal.properties[x]["electrodeX"]))
+            )
+        )

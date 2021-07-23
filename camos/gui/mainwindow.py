@@ -4,7 +4,7 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QHBoxLayout, QMenu, QMessageBox
 
@@ -23,6 +23,8 @@ from camos.utils.console import open_console
 from camos.gui.helpers import MouseHelp, short_mouse_help
 from camos.gui.framecontainer import FrameContainer
 from camos.gui.about import QtAbout
+
+CAMOS_WIKI_URL = "https://github.com/danilexn/CMS-TEA-DZNE/wiki"
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -184,8 +186,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def createHelpMenu(self):
         """Adds 'Help' menu to app menubar."""
         # Display Help
-        self.helpAct = QtWidgets.QAction("User Guide", self)
-        self.helpAct.setStatusTip("Opens a local version of the User Guide")
+        self.helpAct = QtWidgets.QAction("Online User Guide", self)
+        self.helpAct.setStatusTip("Opens the official CaMOS wiki")
         self.helpAct.triggered.connect(self._open_help)
         self.helpMenu.addAction(self.helpAct)
 
@@ -206,10 +208,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.helpMenu.addAction(self.aboutAct)
 
     def _open_help(self):
-        pass
-
-    def _about_camos(self):
-        pass
+        url = QtCore.QUrl(CAMOS_WIKI_URL)
+        if not QtGui.QDesktopServices.openUrl(url):
+            QtGui.QMessageBox.warning(self, "Open Url", "Could not open url")
 
     def _help_mouse(self):
         dialog = MouseHelp(self)

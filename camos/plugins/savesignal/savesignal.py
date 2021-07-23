@@ -25,6 +25,9 @@ class SaveSignal(Saving):
                 h5f.create_group(group_name)
                 h5f[group_name].create_dataset(group_name, data=data)
                 h5f[group_name].create_dataset("mask", data=self.signal.masks[i])
+                h5f[group_name].create_dataset(
+                    "properties", data=self.signal.properties[i]
+                )
             else:
                 h5f.create_dataset("{}".format(name), data=data)
         h5f.close()
