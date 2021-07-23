@@ -4,6 +4,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 
 __all__ = ["MatplotlibWidget"]
 
@@ -21,6 +22,7 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def __init__(self, size=(5.0, 4.0), dpi=100):
         QtWidgets.QWidget.__init__(self)
+        plt.style.use("dark_background")
         self.fig = Figure(size, dpi=dpi)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setParent(self)
@@ -37,3 +39,6 @@ class MatplotlibWidget(QtWidgets.QWidget):
 
     def draw(self):
         self.canvas.draw()
+
+    def clear(self):
+        self.fig.clf()

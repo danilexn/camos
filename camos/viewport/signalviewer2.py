@@ -4,6 +4,7 @@
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
+from camos.plotter.matplotlibwidget import MatplotlibWidget
 from PyQt5.QtWidgets import QDockWidget, QVBoxLayout, QPushButton
 from PyQt5.QtCore import QObject
 from PyQt5 import QtWidgets, QtCore
@@ -54,16 +55,27 @@ class SignalViewer2(QObject):
         assert plotter is not None
 
         if inspect.isclass(plotter):
-            self.plotter = plotter(self.parent, self.plot, self.foutput)
+            self.plotter = plotter(
+                self.parent, self.plot, self.foutput, title=self.title
+            )
         else:
             self.plotter = plotter
             self.plotter.parent = self.parent
             self.plotter.viewer = self.plot
             self.plotter.data = self.foutput
+            self.plotter.title = self.title
+
+        # Construct the dock
+        self.buildDock()
 
     def display(self, index=0):
+        # Construct the UI for the first time
         self.buildUI()
+
+        # Update what is inside the plot
         self.update_plot()
+
+        # Display the dock UI
         self.show()
 
     def show(self):
@@ -72,16 +84,36 @@ class SignalViewer2(QObject):
     def update_plot(self):
         self._plot()
 
-    def buildUI(self):
+    def buildDock(self):
         self.dockUI = QDockWidget(self.window_title, self.parent)
         self.dockUI.setAllowedAreas(QtCore.Qt.RightDockWidgetArea)
-        self.plot_layout = QVBoxLayout()
+
+    def buildUI(self):
+        # Restore the layout
+        if hasattr(self, "plot_layout"):
+            for i in reversed(range(self.plot_layout.count())):
+                self.plot_layout.itemAt(i).widget().setParent(None)
+        else:
+            self.plot_layout = QVBoxLayout()
+
+        # Setup the correct backend
+        if hasattr(self.plotter, "plotItem"):
+            if self.plotter.backend is "matplotlib":
+                self.plot = MatplotlibWidget()
+
+                # Update the viewer in the plotter
+                self.plotter.viewer = self.plot
+
         # Main plot setup in UI
         self.plot_layout.addWidget(self.plot)
 
-        # Bottom parameter tree
-        pt = self.createParameterTree()
-        self.plot_layout.addWidget(pt)
+        # Setup the correct backend
+        if hasattr(self.plotter, "plotItem"):
+            if self.plotter.backend is "pyqtgraph":
+                # Parameters for pyqtgraph only
+                pt = self.createParameterTree()
+                self.plot_layout.addWidget(pt)
+
         self.dockedWidget = QtWidgets.QWidget()
 
         # All in a floating dock

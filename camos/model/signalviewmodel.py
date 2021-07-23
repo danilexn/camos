@@ -111,7 +111,6 @@ class SignalViewModel(QObject):
         self.sampling.pop(index)
         self.masks.pop(index)
         self.viewers.pop(index)
-        self.plotters.pop(index)
         self.properties.pop(index)
 
     def add_viewer(self, _class, name):
