@@ -334,6 +334,14 @@ the currently selected layer and another layer you are prompted to select."""
             """A new image will be generated as the intersection (pixel value different to 0)
 of two images: the currently selected layer and another layer you select."""
         )
+        self.filterLayers = QAction(
+            QIcon(":/resources/icon-filter.svg"), "&Filter", self
+        )
+        self.filterLayers.triggered.connect(self._filter_layer)
+        self.filterLayers.setToolTip(
+            """Applies a value (greater and smaller than...) filter to the currently selected
+layer, and returns a new layer with all pixels that are 'True' under that filter"""
+        )
 
     def _button_remove(self):
         if self.opened_data.currentIndex() == 0:
@@ -477,6 +485,13 @@ of two images: the currently selected layer and another layer you select."""
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
             self.parent.model.intersect_layers(dialog.combo.currentIndex())
 
+    def _filter_layer(self):
+        dialog = FilterDialog(self.parent)
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            self.parent.model.filter_layer(
+                float(dialog.lowerfilter.text()), float(dialog.upperfilter.text())
+            )
+
     def _find_ids(self):
         dialog = TextDialog(self.parent)
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
@@ -509,6 +524,7 @@ of two images: the currently selected layer and another layer you select."""
         layersToolBar.addAction(self.cellSelect)
         layersToolBar.addAction(self.sendMask)
         layersToolBar.addAction(self.findIDs)
+        layersToolBar.addAction(self.filterLayers)
 
     def eventFilter(self, source, event):
         if (
@@ -579,6 +595,7 @@ of two images: the currently selected layer and another layer you select."""
             self.alignImage,
             self.cellSelect,
             self.sendMask,
+            self.filterLayers,
         ]
 
         for control in img_controls:
@@ -638,6 +655,38 @@ class LayerDialog(QtWidgets.QDialog):
         lay = QtWidgets.QGridLayout(self)
         lay.addWidget(label, 0, 0)
         lay.addWidget(self.combo, 0, 1)
+        lay.addWidget(box, 2, 0, 1, 2)
+
+
+class FilterDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(FilterDialog, self).__init__(parent)
+
+        self.setWindowTitle("Apply filter to layer")
+        llabel = QtWidgets.QLabel("Lower Limit")
+        self.onlyDouble = QDoubleValidator()
+        self.lowerfilter = QLineEdit()
+        self.lowerfilter.setValidator(self.onlyDouble)
+        self.lowerfilter.setText("0.0")
+
+        ulabel = QtWidgets.QLabel("Upper Limit")
+        self.upperfilter = QLineEdit()
+        self.upperfilter.setValidator(self.onlyDouble)
+        self.upperfilter.setText("1.0")
+
+        box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+            centerButtons=True,
+        )
+
+        box.accepted.connect(self.accept)
+        box.rejected.connect(self.reject)
+
+        lay = QtWidgets.QGridLayout(self)
+        lay.addWidget(llabel, 0, 0)
+        lay.addWidget(self.lowerfilter, 0, 1)
+        lay.addWidget(ulabel, 1, 0)
+        lay.addWidget(self.upperfilter, 1, 1)
         lay.addWidget(box, 2, 0, 1, 2)
 
 

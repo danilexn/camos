@@ -11,28 +11,34 @@ from camos.tasks.analysis import Analysis
 from camos.utils.generategui import (
     DatasetInput,
     NumericInput,
+    ImageInput,
+    CustomComboInput,
 )
-
-from .heatmap import ISIHeatmap
+from camos.utils.units import length
+from camos.plotter.image import Image
 
 
 class InterspikeIntervalMask(Analysis):
-    analysis_name = "Interspike Interval"
+    analysis_name = "Interspike Interval (on Mask)"
 
     def __init__(self, model=None, parent=None, signal=None):
         super(InterspikeIntervalMask, self).__init__(
             model, parent, signal, name=self.analysis_name
         )
-        self.plotter = ISIHeatmap
+        self.plotter = Image
         self.colname = "ISI"
 
     def _run(
         self,
-        electrode_x: NumericInput("Number of electrodes along one axis", 64),
+        scale: NumericInput("Axis scale", 1),
+        _i_units: CustomComboInput(list(length.keys()), "Axis units", 0),
         _i_data: DatasetInput("Source Dataset", 0),
+        _i_mask: ImageInput("Mask image", 0),
     ):
+        self.mask = self.model.images[_i_mask].image(0)
         output_type = [("CellID", "int"), ("ISI", "float")]
-        self.plotter = ISIHeatmap(electrode_n=electrode_x)
+        self.scale = scale
+        self.units = length[list(length.keys())[_i_units]]
 
         # data should be provided in format of peaks
         data = self.signal.data[_i_data]

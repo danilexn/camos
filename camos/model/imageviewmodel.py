@@ -224,6 +224,19 @@ class ImageViewModel(QObject):
             image, newname, scale=scale,
         )
 
+    def filter_layer(self, lowerf, upperf):
+        """Filters the cells in the currently selected layer, between lower and upper values.
+        """
+        mask = self.images[self.currentlayer].image(0)
+        found = np.where((mask > lowerf) & (mask < upperf), mask, 0)
+        newname = "Filtered from Layer {}".format(self.currentlayer)
+        image = InputData(found, name=newname)
+        image.loadImage()
+        scale = self.scales[self.currentlayer]
+        self.add_image(
+            image, newname, scale=scale,
+        )
+
     def update_plots(self, layer=None):
         if layer == None:
             self.imagetoplot.emit([self.get_currint()])

@@ -1,41 +1,36 @@
 # -*- coding: utf-8 -*-
-# Created on Sat Jun 05 2021
-# Last modified on Mon Jun 07 2021
+# Created on Thu Aug 05 2021
+# Last modified on Thu Aug 05 2021
 # Copyright (c) CaMOS Development Team. All Rights Reserved.
 # Distributed under a MIT License. See LICENSE for more info.
 
 import numpy as np
 
 from camos.tasks.analysis import Analysis
-from camos.utils.generategui import (
-    DatasetInput,
-    NumericInput,
-)
+from camos.utils.generategui import DatasetInput, NumericInput, ImageInput
 
-# Import the custom heatmap plotter
-from .heatmap import MFRHeatmap
+from camos.plotter.image import Image
 
 
-class MeanFiringRate(Analysis):
-    analysis_name = "Mean Firing Rate"
-    required = ["dataset"]
+class MeanFiringRateMask(Analysis):
+    analysis_name = "Mean Firing Rate (on Mask)"
 
     def __init__(self, model=None, parent=None, signal=None):
-        super(MeanFiringRate, self).__init__(
+        super(MeanFiringRateMask, self).__init__(
             model, parent, signal, name=self.analysis_name
         )
-        self.plotter = MFRHeatmap
+        self.plotter = Image
         self.colname = "MFR"
 
     def _run(
         self,
         duration: NumericInput("Recording duration in seconds", 600),
-        electrode_x: NumericInput("Number of electrodes along one axis", 64),
         _i_data: DatasetInput("Source Dataset", 0),
+        _i_mask: ImageInput("Mask image", 0),
     ):
+        self.mask = self.model.images[_i_mask].image(0)
         output_type = [("CellID", "int"), ("MFR", "float")]
         self.duration = duration
-        self.plotter = MFRHeatmap(electrode_n=electrode_x)
 
         """
         Data format:
