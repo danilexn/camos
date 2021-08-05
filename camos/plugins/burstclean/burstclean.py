@@ -22,7 +22,7 @@ class BurstClean(Analysis):
         self,
         duration: NumericInput("Total Duration ({})".format(get_time()), 100),
         _filter_min: NumericInput("Minimum Events/{}".format(get_time()), 1),
-        _filter_max: NumericInput("Maximum Events/{{".format(get_time()), 50),
+        _filter_max: NumericInput("Maximum Events/{}".format(get_time()), 50),
         _i_data: DatasetInput("Source dataset", 0),
     ):
         output_type = [("CellID", "int"), ("Active", "float")]
@@ -59,3 +59,11 @@ class BurstClean(Analysis):
         #     ),
         #     "INFO",
         # )
+
+    def connectComponents(self, fields):
+        # Changing the input data to update the duration
+        fields["_i_data"].connect(
+            lambda x: fields["duration"].widget.setText(
+                str(int(self.signal.properties[x]["duration"]))
+            )
+        )
