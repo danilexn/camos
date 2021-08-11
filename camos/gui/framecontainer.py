@@ -171,9 +171,9 @@ class FrameContainer(QtWidgets.QWidget):
         self.opacity_layer_slider.setRange(0, 100)
         layout.addRow(QLabel("Opacity"))
         layout.addRow(self.opacity_layer_label, self.opacity_layer_slider)
+        self.opacity_layer_slider.setValue(50)
         self.opacity_layer_slider.valueChanged.connect(self._apply_changes_layer)
         self.opacity_layer_slider.valueChanged.connect(self.opacityLabelUpdate)
-        self.opacity_layer_slider.setValue(50)
 
         # 2. Colormap
         self.colormap_layer_selector = QComboBox()
@@ -273,15 +273,6 @@ class FrameContainer(QtWidgets.QWidget):
         self.cropAction.setToolTip(
             """Creates a new image that is a cropped version of the
 currently selected layer, within the ROI coordinates"""
-        )
-        self.cellSelect = QAction(
-            QIcon(":/resources/icon-neuron.svg"), "&Select Cell", self
-        )
-        self.cellSelect.triggered.connect(self._select_cells)
-        self.cellSelect.setToolTip(
-            """Toggles the selection of cells On or Off. When double clicking,
-a new image filtered by the value of the double-clicked pixel will be
-created from the currently selected layer"""
         )
         self.findIDs = QAction(QIcon(":/resources/icon-find.svg"), "&Find IDs", self)
         self.findIDs.triggered.connect(self._find_ids)
@@ -446,11 +437,6 @@ layer, and returns a new layer with all pixels that are 'True' under that filter
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
             self.parent.model.align_layers(dialog.combo.currentIndex())
 
-    def _select_cells(self):
-        """Handles the call to ImageViewModel.trigger_select_cells in the parent image model, so it can enable the selection of cells for any layer selected at any moment
-        """
-        self.parent.model.trigger_select_cells()
-
     def _toggle_roi(self):
         """Handles the call to ImageViewModel.toggle_roi
         """
@@ -521,7 +507,6 @@ layer, and returns a new layer with all pixels that are 'True' under that filter
         layersToolBar.addAction(self.cropAction)
         layersToolBar.addAction(self.resetAxis)
         layersToolBar.addAction(self.alignImage)
-        layersToolBar.addAction(self.cellSelect)
         layersToolBar.addAction(self.sendMask)
         layersToolBar.addAction(self.findIDs)
         layersToolBar.addAction(self.filterLayers)
@@ -593,7 +578,6 @@ layer, and returns a new layer with all pixels that are 'True' under that filter
             self.cropAction,
             self.resetAxis,
             self.alignImage,
-            self.cellSelect,
             self.sendMask,
             self.filterLayers,
         ]

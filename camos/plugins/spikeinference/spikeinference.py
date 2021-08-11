@@ -9,20 +9,18 @@ import scipy.signal
 import numpy as np
 from . import oopsi
 
-from PyQt5 import QtCore
-
 from camos.tasks.analysis import Analysis
 from camos.utils.generategui import NumericInput, DatasetInput, CustomComboInput
-from camos.utils.units import get_time
-from camos.resources import resources
 
 
-class DetectPeaks(Analysis):
-    analysis_name = "Detect Peaks"
+class SpikeInference(Analysis):
+    analysis_name = "Spike Inference"
     required = ["dataset"]
 
     def __init__(self, model=None, parent=None, signal=None):
-        super(DetectPeaks, self).__init__(model, parent, input, name=self.analysis_name)
+        super(SpikeInference, self).__init__(
+            model, parent, input, name=self.analysis_name
+        )
         self.model = model
         self.signal = signal
         self._methods = {
@@ -80,7 +78,6 @@ class DetectPeaks(Analysis):
         fps = kwargs["fps"]
         thr = kwargs["thr"]
         event_amplitude = kwargs["event_amplitude"]
-        # TODO: load the mat file as a resource
         # mat = QtCore.QFile(":/resources/spikes.mat")
         spike_lib = scipy.io.loadmat("resources/spikes.mat")["spikes"][0]
 

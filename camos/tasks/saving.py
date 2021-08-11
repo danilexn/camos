@@ -8,8 +8,7 @@ from PyQt5.QtWidgets import QFileDialog
 
 from camos.tasks.runtask import RunTask
 from camos.tasks.base import BaseTask
-from camos.utils.notifications import Notification
-from camos.gui.notification import CaMOSQtNotification
+from camos.utils.notifications import notify
 
 
 class Saving(BaseTask):
@@ -23,9 +22,10 @@ class Saving(BaseTask):
         **kwargs
     ):
         super(Saving, self).__init__(*args, **kwargs)
-        self.show = show
+        self._show = show
         self.extensions = extensions
         self.handler = RunTask(self)
+        self.finished.connect(self.notify_saved)
 
     def display(self):
         if "image" in self.required and (type(self.model.list_images()) is type(None)):
@@ -40,14 +40,14 @@ class Saving(BaseTask):
         if self.filename == "":
             raise ValueError("No file was selected")
 
-        if self.show:
+        if self._show:
             self.buildUI()
             self.show()
         else:
             self.run()
 
-        message = Notification("The file '{}' was saved".format(self.filename), "INFO")
-        CaMOSQtNotification.from_notification(message)
+    def notify_saved(self):
+        notify("The file '{}' was saved".format(self.filename), "INFO")
 
     def show_filemenu(self):
         options = QFileDialog.Options()

@@ -224,8 +224,6 @@ def sys_info(as_html=False):
         except Exception as e:
             text += f"<b>{name}</b>: Import failed ({e})<br>"
 
-    # TODO: OpenGL information here
-
     text += "<br><b>Screens:</b><br>"
 
     try:

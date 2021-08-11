@@ -22,6 +22,7 @@ class RunTask(QWidget):
 
         self.pbar = QProgressBar(self)
         self.pbar.setGeometry(30, 40, 500, 75)
+        self.pbar.setRange(0, 0)
 
         self.waitLabel = QLabel("Wait while {} is running".format(name))
         self.cancelButton = QPushButton("Cancel", self)
@@ -58,6 +59,7 @@ class RunTask(QWidget):
         self.hide()
 
     def on_count_changed(self, value):
+        self.pbar.setRange(0, 100)
         self.pbar.setValue(value)
 
     def on_notify(self, value, priority):

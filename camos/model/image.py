@@ -17,7 +17,6 @@ import copy
 
 
 def tiff2nparray(path, persistence=True):
-    # TODO: fix for large stacks
     im = Image.open(path)
     i = 0
     frames = []

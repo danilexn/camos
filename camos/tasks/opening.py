@@ -6,8 +6,12 @@
 
 from PyQt5.QtWidgets import QFileDialog
 
+import os
+
 from camos.tasks.base import BaseTask
 from camos.utils.notifications import notify
+
+DEBUG = os.getenv("CAMOS_DEBUG")
 
 
 class Opening(BaseTask):
@@ -33,6 +37,8 @@ class Opening(BaseTask):
         super(Opening, self).__init__(*args, **kwargs)
         self._show = show
         self.extensions = extensions
+        self.filename = ""
+        self.finished.connect(self.notify_opened)
 
     def display(self):
         if "image" in self.required and (type(self.model.list_images()) is type(None)):
@@ -52,9 +58,23 @@ class Opening(BaseTask):
             self.buildUI()
             self.show()
         else:
-            self.run()
+            if DEBUG is None:
+                self.handler.start_progress()
+            else:
+                self.run()
 
+    def notify_opened(self):
         notify("The file '{}' was opened".format(self.filename), "INFO")
+
+    def open(self):
+        """This will directly execute the run task, to support drag and drop.
+        A filename must be different than the empty string!
+        """
+        assert self.filename != ""
+        if DEBUG is None:
+            self.handler.start_progress()
+        else:
+            self.run()
 
     def show_filemenu(self):
         """Displays a File Dialog so the route of the file to be opened can be selected.

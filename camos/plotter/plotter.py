@@ -123,9 +123,7 @@ class Plotter(QObject):
                     self.connectRangeToPlot(self.parent.viewport.region, self.plotItem)
 
         except Exception as e:
-            # TODO: as error, but not raise
             print(str(e))
-            pass
 
     def connectRangeToPlot(self, r1, p1):
         # We could just disconnect the events

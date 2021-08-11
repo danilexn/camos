@@ -22,7 +22,7 @@ class SignalViewer(QObject):
         self.parent = parent
         self.output = signal
         self.foutput = self.output
-        self.parent.model.imagetoplot.connect(self.update_values_plot)
+        # self.parent.model.imagetoplot.connect(self.update_values_plot)
         self.mask = []
         self.pixelsize = 1
         super(SignalViewer, self).__init__()

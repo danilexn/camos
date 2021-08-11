@@ -23,12 +23,9 @@ mouse_help_text = """You can use the mouse for the following:
         Single click with rigth button: displays the contextual menu
             to modify visualization settings, and to export the current
             viewport
-        Double click with left button: if the option 'Select Cell' is
-            toggled On, creates a new image layer from the currently
+        Double click with left button: creates a new image layer from the currently
             selected one, with just the pixels that have the same value
-            as the pixel in which you double clicked. If 'Select Cell'
-            is disabled, sends a signal to all plots, so the IDs are 
-            updated to the value of the pixel
+            as the pixel in which you double clicked.
     2. Layers tab:
         Double click with left button: displays a dialog to change
             the name of the current layer

@@ -48,11 +48,16 @@ class CorrelatePosition(Analysis):
         for i in ROIs[1:]:  # avoid the background 0 value
             self.intReady.emit(i * 100 / len(ROIs))
             cell = maskcmos[0] == i
-            p = (
-                np.average(np.where(cell), axis=1) + np.flip(maskcmos_trans)
+            p_m = (
+                np.min(np.where(cell), axis=1) + np.flip(maskcmos_trans)
             ) * maskcmos_scale[0]
-            idx.insert(int(i), (p[0], p[1], p[0], p[1]))
-            idx_dic[int(i)] = p
+            p_M = (
+                np.max(np.where(cell), axis=1) + np.flip(maskcmos_trans)
+            ) * maskcmos_scale[0]
+
+            p = (p_m[0], p_m[1], p_M[0], p_M[1])
+
+            idx.insert(int(i), p)
 
         # Retrieve the Calcium mask, find positions
         maskfl_scale = self.model.scales[fl]
@@ -63,13 +68,21 @@ class CorrelatePosition(Analysis):
         for i in ROIs[1:]:  # avoid the background 0 value
             self.intReady.emit(i * 100 / len(ROIs))
             cell = maskfl[0] == i
-            p = (
-                np.average(np.where(cell), axis=1) + np.flip(maskfl_trans)
+            p_m = (
+                np.min(np.where(cell), axis=1) + np.flip(maskfl_trans)
             ) * maskfl_scale[0]
+            p_M = (
+                np.max(np.where(cell), axis=1) + np.flip(maskfl_trans)
+            ) * maskfl_scale[0]
+
+            p = np.array((p_m[0] - dist, p_m[1] - dist, p_M[0] + dist, p_M[1] + dist))
+
             # Introduce checking the distance under the threshold
-            nearest = list(idx.nearest((p[0], p[1], p[0], p[1]), 1))[0]
-            if np.linalg.norm(idx_dic[nearest] - p) < dist:
-                row = np.array([(int(i), nearest)], dtype=output_type)
-                self.output = np.append(self.output, row)
+            nearest = list(idx.intersection(p))
+            if len(nearest) == 0:
+                continue
+
+            row = np.array([(int(i), nearest[0])], dtype=output_type)
+            self.output = np.append(self.output, row)
 
         self.mask = self.model.images[fl].image(0)

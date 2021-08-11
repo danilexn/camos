@@ -6,6 +6,7 @@
 
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtSlot
 from PyQt5.QtGui import QImage, QPixmap
+from PyQt5 import QtWidgets
 
 import copy
 import numpy as np
@@ -54,7 +55,7 @@ class ImageViewModel(QObject):
     updateint = pyqtSignal(int)
 
     # For communicating to plots being updated
-    imagetoplot = pyqtSignal(list)
+    # imagetoplot = pyqtSignal(list)
 
     def __init__(self, images=[], parent=None):
         """Initialization of the class
@@ -85,8 +86,6 @@ class ImageViewModel(QObject):
         self._currentlayer = 0
         self.roi_coord = [[0, 0], [1, 1]]
 
-        self._enable_select_cells = False
-
         self.undoHistory = []
 
         # Initialize the parent QObject class
@@ -115,6 +114,7 @@ class ImageViewModel(QObject):
         translation=[0, 0],
         samplingrate=1,
         properties={},
+        opacity=50,
     ):
         """Any image, once it has been loaded within a InputData object, can be loaded onto the ImageViewModel through this function. It will read all the features for the loaded image, and recalculate the global (shared) features (maximum number of frames overall, ROIs...)
 
@@ -125,7 +125,7 @@ class ImageViewModel(QObject):
             self.maxframe = image.frames
         self.images.append(image)
         self.frames.append(image.frames)
-        self.opacities.append(50)
+        self.opacities.append(opacity)
         self.brightnesses.append(0)
         self.contrasts.append(1)
         self.colormaps.append(cmap)
@@ -157,12 +157,12 @@ class ImageViewModel(QObject):
         x_tr, y_tr = self.translation[index]
         y_shape_max, x_shape_max = self.images[index]._image._imgs.shape[1:3]
         y_min, y_max = (
-            int(max(0, abs(int(y_tr - self.roi_coord[0][0]))) / scale[1]),
-            int(min(y_shape_max, abs(int(y_tr - self.roi_coord[1][0]))) / scale[1]),
+            int(max(0, abs(int(y_tr - self.roi_coord[0][0])) / scale[1])),
+            int(min(y_shape_max, abs(int(y_tr - self.roi_coord[1][0])) / scale[1])),
         )
         x_min, x_max = (
-            int(max(0, abs(int(x_tr - self.roi_coord[0][1]))) / scale[0]),
-            int(min(x_shape_max, abs(int(x_tr - self.roi_coord[1][1]))) / scale[0]),
+            int(max(0, abs(int(x_tr - self.roi_coord[0][1])) / scale[0])),
+            int(min(x_shape_max, abs(int(x_tr - self.roi_coord[1][1])) / scale[0])),
         )
 
         cropped = self.images[index]._image._imgs[:, y_min:y_max, x_min:x_max]
@@ -182,19 +182,11 @@ class ImageViewModel(QObject):
         image.loadImage()
         self.add_image(image, "Flipped from Layer {}".format(index), scale=scale)
 
-    def trigger_select_cells(self):
-        """Toggles on or off the selection of cells in the current layer after a "double click" mouse event
-        """
-        self._enable_select_cells = False if self._enable_select_cells else True
-
     def select_cells(self, cell_ID=None, scale=[1, 1]):
         """Selects the cells in the currently selected layer if cell selection is enabled. See the method self.trigger_select_cells
         """
         mask = self.images[self.currentlayer]._image._imgs[0]
         if cell_ID == None:
-            if not self._enable_select_cells:
-                self.update_plots()
-                return
             x, y = self.curr_x, self.curr_y
             cell_ID = mask[x, y]
         else:
@@ -239,11 +231,10 @@ class ImageViewModel(QObject):
 
     def update_plots(self, layer=None):
         if layer == None:
-            self.imagetoplot.emit([self.get_currint()])
+            idx = [self.get_currint()]
         else:
             idx = np.unique(self.images[self.currentlayer]._image._imgs[0]).tolist()
-            self.imagetoplot.emit(idx)
-            return idx
+        return idx
 
     @pyqtSlot()
     def update_prefs(self, layer=None, sampling=1, pxsize=1, scale=1):
@@ -601,14 +592,47 @@ class ImageViewModel(QObject):
 
     def from_clipboard(self):
         try:
-            from PIL import ImageGrab
+            _qimage = QtWidgets.QApplication.clipboard().image()
+            im = self.convertQImageToMat(_qimage)
 
-            im = np.array(ImageGrab.grabclipboard())
             image = InputData(im, name="Image from Clipboard")
             image.loadImage()
             self.add_image(image, name="Image from Clipboard")
         except Exception as e:
             raise ValueError("Could not paste image")
+
+    def convertQImageToMat(self, incomingImage):
+        """  Converts a QImage into an opencv MAT format  """
+
+        incomingImage = incomingImage.convertToFormat(3)
+
+        width = incomingImage.width()
+        height = incomingImage.height()
+
+        ptr = incomingImage.bits()
+        ptr.setsize(incomingImage.byteCount())
+        if incomingImage.byteCount() == width * height:
+            arr = np.array(ptr).reshape(height, width, 1)
+        else:
+            arr = np.array(ptr).reshape(height, width, 3)
+        return arr
+
+    def to_clipboard(self):
+        try:
+            from PIL import Image
+
+            original = Image.fromarray(self.images[self.currentlayer].image(0)).convert(
+                "RGB"
+            )
+            height, width, channel = np.array(original).shape
+            bytesPerLine = 3 * width
+            qImg = QImage(
+                np.array(original), width, height, bytesPerLine, QImage.Format_RGB888
+            )
+            pixmap = QPixmap.fromImage(qImg)
+            QtWidgets.QApplication.clipboard().setPixmap(pixmap)
+        except Exception as e:
+            raise ValueError("Could not copy image")
 
     def __getstate__(self):
         state = self.__dict__.copy()

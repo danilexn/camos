@@ -6,6 +6,7 @@
 
 import pyqtgraph as pg
 from PyQt5 import QtCore
+from PyQt5.QtCore import QPointF
 
 import numpy as np
 
@@ -79,9 +80,10 @@ class ImageViewPort(pg.ImageView):
         else:
             self.model.viewitems[layer] = item
 
+        op = self.model.opacities[layer]
         # Add to viewport
         self.view.addItem(self.model.viewitems[layer])
-        self.view.addedItems[-1].setOpts(opacity=0.5, axisOrder="row-major")
+        self.view.addedItems[-1].setOpts(opacity=op / 100, axisOrder="row-major")
 
         # Do not update other features if the image is larger than...
         if image.shape[0] > 10000 or image.shape[1] > 10000:
@@ -194,6 +196,16 @@ class ImageViewPort(pg.ImageView):
         if self.roi.isVisible():
             self.roi.hide()
         else:
+            _i_layer = self.model.currentlayer
+            _layer_pos = self.model.translation[_i_layer]
+            _layer_sca = self.model.scales[_i_layer]
+            _layer_shape = self.model.images[_i_layer]._image._imgs[0].shape[0:2]
+            self.roi.setPos(_layer_pos[0], y=_layer_pos[1])
+            self.roi.setSize(
+                QPointF(
+                    _layer_shape[1] * _layer_sca[0], _layer_shape[0] * _layer_sca[0]
+                )
+            )
             self.roi.show()
 
 

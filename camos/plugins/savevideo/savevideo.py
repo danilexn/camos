@@ -13,20 +13,27 @@ from camos.utils.generategui import NumericInput
 
 class SaveVideo(Saving):
     analysis_name = "Save Video"
+    required = ["image"]
 
     def __init__(self, *args, **kwargs):
         super(SaveVideo, self).__init__(show=True, *args, **kwargs)
         self.image = None
 
     def _run(self, fps: NumericInput("Frames per second", 10)):
-        height, width, layers = self.model.get_current_view(0).shape
-        size = (width, height)
+        shape = self.model.get_layer(self.model.currentlayer).shape
+        size = (shape[1], shape[0])
         out = cv2.VideoWriter(
             self.filename, cv2.VideoWriter_fourcc(*"DIVX"), int(fps), size,
         )
-        for i in range(self.model.maxframe):
-            self.model.frame = i
-            out.write(np.uint8(self.model.get_current_view()))
-            self.intReady.emit(i * 100 / self.model.maxframe)
+        maxframes = self.model.frames[self.model.currentlayer]
+        for i in range(maxframes):
+            self.model.set_frame(i)
+            from PIL import Image
+
+            frame = Image.fromarray(
+                self.model.get_layer(self.model.currentlayer)
+            ).convert("RGB")
+            out.write(np.array(frame))
+            self.intReady.emit(i * 100 / maxframes)
 
         out.release()
