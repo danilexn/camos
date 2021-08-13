@@ -24,6 +24,8 @@ from camos.gui.helpers import MouseHelp, short_mouse_help
 from camos.gui.framecontainer import FrameContainer
 from camos.gui.about import QtAbout
 
+import pyqtgraph as pg
+
 CAMOS_WIKI_URL = "https://github.com/danilexn/CMS-TEA-DZNE/wiki"
 
 
@@ -257,6 +259,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if reply == QMessageBox.Yes:
             # Save all the configuration to the file
             self.configuration.saveConfiguration()
+            pg.exit()
             event.accept()
         else:
             event.ignore()
@@ -265,7 +268,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.model.from_clipboard()
 
     def _copy_image(self):
-        pass
+        self.model.to_clipboard()
 
     def readSettings(self):
         self.configuration.applyConfiguration(self.current_configuration, self)

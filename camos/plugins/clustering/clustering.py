@@ -66,10 +66,14 @@ class Correlation(Analysis):
                     X = np.vstack((X, d[n][:, 0]))
 
         method_fun = self.methods[list(self.methods.keys())[method]]
-        _labels = method_fun(X.T, n=nclust, eps=eps, min_samples=min_samples) + 1
+        _labels = (
+            method_fun(X.T, n=int(nclust), eps=eps, min_samples=int(min_samples)) + 1
+        )
 
         self.output[:]["CellID"] = ROIs.reshape(-1, 1)
         self.output[:]["Cluster"] = _labels.reshape(-1, 1)
+        print(X.T)
+        print(_labels)
         self.mask = self.model.images[_i_mask].image(0)
 
     def k_means(self, X, n=15, **kwargs):

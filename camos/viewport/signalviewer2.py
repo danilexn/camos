@@ -36,7 +36,7 @@ class SignalViewer2(QObject):
         super(SignalViewer2, self).__init__()
         self.parent = parent
         self.model = self.parent.model
-        self.parent.model.imagetoplot.connect(self.update_values_plot)
+        # self.parent.model.imagetoplot.connect(self.update_values_plot)
         self.output = signal
         self.foutput = self.output
         self.mask = mask
@@ -147,9 +147,7 @@ class SignalViewer2(QObject):
                 idx = np.isin(self.output[:]["CellID"], np.array(values))
             self.foutput = self.output[idx]
         except Exception as e:
-            # TODO: exception as warning
             print(str(e))
-            pass
 
     def createParameterTree(self):
         # Parameters tree

@@ -58,7 +58,7 @@ class OpenCMOS(Opening):
         PIL.Image.MAX_IMAGE_PIXELS = 933120000
         self.image = InputData(self.filename)
         self.image.loadImage()
-        self.minimodel.add_image(self.image)
+        self.minimodel.add_image(self.image, opacity=100)
         self.show()
 
     def display(self):

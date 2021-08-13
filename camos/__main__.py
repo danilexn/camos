@@ -12,6 +12,7 @@ import traceback
 
 from PyQt5 import QtWidgets, QtCore
 from darktheme.widget_template import DarkPalette
+import pyqtgraph as pg
 
 from camos.app import camosApp
 import camos.utils.settings as settings
@@ -25,6 +26,7 @@ _I18N_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "i18n")
 
 def sigint_handler(*args):
     """Handler for the SIGINT signal."""
+    pg.exit()
     exit(0)
 
 
