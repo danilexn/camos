@@ -14,9 +14,9 @@ CaMOS can be installed on most macOS, Linux, and Windows systems with Python >=3
 
 ```bash
 # Clone the repository locally
-git clone https://github.com/danilexn/CMS-TEA-DZNE.git
+git clone https://github.com/danilexn/camos.git
 # Navigate to the directory
-cd CMS-TEA-DZNE
+cd camos
 # Install using pip (make sure that pip is alias to pip for python >=3.7
 pip install -e '.[all]'
 ```
@@ -26,7 +26,7 @@ Make sure you have an internet connection during the installation process, as pi
 ### Running _CaMOS_
 To run CaMOS as a Python module, either having installed it with pip (or not), you can execute the following command
 ```bash
-cd CMS-TEA-DZNE # or wherever the repo directory is
+cd camos # or wherever the repo directory is
 python -m camos
 ```
 
